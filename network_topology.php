@@ -24,12 +24,44 @@ $stats = [
     'router' => ['total' => 0, 'online' => 0]
 ];
 
+// Function to check if device is reachable via ping
+function checkDeviceStatus($ip) {
+    if(empty($ip)) return 'offline';
+    
+    // Try to connect to common ports (SSH=22, HTTP=80, HTTPS=443)
+    $ports = [22, 80, 443, 8728, 8729];
+    $timeout = 2;
+    
+    foreach($ports as $port) {
+        $connection = @fsockopen($ip, $port, $errno, $errstr, $timeout);
+        if($connection) {
+            fclose($connection);
+            return 'online';
+        }
+    }
+    
+    // Try system ping as fallback
+    $ping = stripos(PHP_OS, 'WIN') === 0 ? "ping -n 1 -w 2 $ip" : "ping -c 1 -W 2 $ip";
+    $output = shell_exec($ping . " 2>&1");
+    
+    if(stripos($output, 'bytes from') !== false || stripos($output, '1 received') !== false) {
+        return 'online';
+    }
+    
+    return 'offline';
+}
+
 $device_list = [];
 while($d = $devices->fetch_assoc()) {
     $type = $d['device_type'] ?? 'router';
     if(!isset($stats[$type])) $type = 'router';
     $stats[$type]['total']++;
-    $stats[$type]['online']++;
+    
+    // Check actual device status
+    $status = checkDeviceStatus($d['ip_address']);
+    if($status === 'online') {
+        $stats[$type]['online']++;
+    }
     
     $device_list[] = [
         'id' => $d['id'],
@@ -38,7 +70,7 @@ while($d = $devices->fetch_assoc()) {
         'type' => $type,
         'model' => $d['model'] ?? '',
         'location' => $d['location'] ?? '',
-        'status' => 'online'
+        'status' => $status
     ];
 }
 
@@ -319,6 +351,12 @@ if(empty($connections)) {
             animation: pulse 2s infinite;
         }
         
+        .status-indicator.offline {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            animation: none;
+        }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -327,7 +365,7 @@ if(empty($connections)) {
         .map-area {
             flex: 1;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
 
         /* Grid Background */
@@ -395,6 +433,11 @@ if(empty($connections)) {
             transform: scale(1.15);
             z-index: 20;
         }
+        
+        .device-node.selected .node-icon {
+            box-shadow: 0 0 30px #3b82f6, 0 0 50px #3b82f6;
+            border: 3px solid #3b82f6;
+        }
 
         .node-icon {
             width: 70px;
@@ -419,6 +462,43 @@ if(empty($connections)) {
         .node-icon.mikrotik { background: linear-gradient(135deg, #f59e0b, #b45309); }
         .node-icon.switch { background: linear-gradient(135deg, #10b981, #047857); }
         .node-icon.router { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        
+        /* Offline styling */
+        .device-node.offline { opacity: 0.5; }
+        .device-node.offline .node-icon { filter: grayscale(100%); }
+        .offline-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 2px solid #fff;
+        }
+        .status-dot {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #1e293b;
+        }
+        .status-dot.online {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse 2s infinite;
+        }
+        .status-dot.offline {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
 
         .node-label {
             position: absolute;
@@ -489,11 +569,30 @@ if(empty($connections)) {
         .info-title {
             color: #f8fafc;
             font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 15px;
+            font-weight: 600;
+            padding: 20px;
+            border-bottom: 1px solid #334155;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+        }
+        
+        .close-info {
+            margin-left: auto;
+            background: rgba(239, 68, 68, 0.2);
+            border: none;
+            color: #ef4444;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-info:hover {
+            background: rgba(239, 68, 68, 0.4);
         }
 
         .info-title i {
@@ -548,22 +647,75 @@ if(empty($connections)) {
         .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
         .btn-success:hover { transform: translateY(-2px); }
 
-        /* Add Button */
+        /* Add Button - Side Position */
 .add-device-btn {
             position: absolute;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
             background: linear-gradient(135deg, #6366f1, #4f46e5);
             border: none;
             color: #fff;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
             transition: all 0.3s;
-            z-index: 100;
+            z-index: 200;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .add-device-btn i {
+            color: #fff !important;
+        }
+        
+        .add-device-btn:hover { 
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+        
+        .add-device-btn i {
+            color: #fff !important;
+        }
+        
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            font-size: 20px;
+            z-index: 300;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            cursor: pointer;
+        }
+        
+        .mobile-zoom {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            gap: 10px;
+            z-index: 300;
+        }
+        
+        .mobile-zoom button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.95);
+            color: white;
+            border: 1px solid #334155;
+            font-size: 18px;
+            cursor: pointer;
         }
         
         .add-device-btn:hover { 
@@ -716,7 +868,19 @@ if(empty($connections)) {
         <i class="fa fa-project-diagram fa-lg"></i>
         NETWORK TOPOLOGY - NOC CENTER
     </div>
-    <div style="display:flex; align-items:center; gap:20px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+        <!-- Cable Type Selector -->
+        <div id="cableTypeSelector" style="display:flex; gap:8px;">
+            <button class="cable-type-btn active" onclick="selectCableType('fiber')" style="padding:6px 14px; border:2px solid #ef4444; background:#ef4444; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
+                <i class="fa fa-bolt"></i> Fiber
+            </button>
+            <button class="cable-type-btn" onclick="selectCableType('copper')" style="padding:6px 14px; border:2px solid #f59e0b; background:#f59e0b; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
+                <i class="fa fa-ethernet"></i> Copper
+            </button>
+            <button class="cable-type-btn" onclick="selectCableType('wifi')" style="padding:6px 14px; border:2px solid #10b981; background:#10b981; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
+                <i class="fa fa-wifi"></i> WiFi
+            </button>
+        </div>
         <div class="noc-time" id="currentTime"></div>
         <button class="fullscreen-btn" onclick="toggleFullscreen()">
             <i class="fa fa-expand"></i>
@@ -770,7 +934,7 @@ if(empty($connections)) {
         </div>
         <div class="device-list" id="deviceList">
             <?php foreach($device_list as $dev): ?>
-            <div class="device-card" onclick="handleDeviceClick('<?= $dev['id'] ?>', '<?= $dev['name'] ?>', '<?= $dev['type'] ?>', '<?= $dev['ip'] ?>')">
+            <div class="device-card <?= $dev['status'] ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" onclick="handleDeviceClick('<?= $dev['id'] ?>', '<?= $dev['name'] ?>', '<?= $dev['type'] ?>', '<?= $dev['ip'] ?>')">
                 <div class="device-icon-small <?= $dev['type'] ?>">
                     <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 </div>
@@ -778,7 +942,7 @@ if(empty($connections)) {
                     <div class="device-name"><?= htmlspecialchars($dev['name']) ?></div>
                     <div class="device-ip"><?= $dev['ip'] ?></div>
                 </div>
-                <div class="status-indicator"></div>
+                <div class="status-indicator <?= $dev['status'] ?>"></div>
             </div>
             <?php endforeach; ?>
             
@@ -792,7 +956,18 @@ if(empty($connections)) {
     </div>
     
     <!-- Topology Map -->
-    <div class="map-area">
+    <!-- Mobile Toggle Buttons -->
+    <button class="mobile-toggle" onclick="togglePanel('devicePanel')">
+        <i class="fa fa-bars"></i>
+    </button>
+    
+    <div class="mobile-zoom">
+        <button onclick="zoomOut()"><i class="fa fa-minus"></i></button>
+        <button onclick="resetZoom()"><i class="fa fa-compress"></i></button>
+        <button onclick="zoomIn()"><i class="fa fa-plus"></i></button>
+    </div>
+    
+    <div class="map-area" id="mapArea">
         <div class="topology-grid"></div>
         
         <!-- SVG Connections -->
@@ -802,6 +977,7 @@ if(empty($connections)) {
                 $to = $positions[$conn['to']] ?? ['x' => 0, 'y' => 0];
             ?>
             <line class="conn-line <?= $conn['type'] ?>" 
+                  data-from="<?= $conn['from'] ?>" data-to="<?= $conn['to'] ?>"
                   x1="<?= $from['x'] + 35 ?>" y1="<?= $from['y'] + 35 ?>"
                   x2="<?= $to['x'] + 35 ?>" y2="<?= $to['y'] + 35 ?>" />
             <?php endforeach; ?>
@@ -815,14 +991,20 @@ if(empty($connections)) {
         
         <!-- Device Nodes -->
         <?php foreach($device_list as $idx => $dev): ?>
-        <div class="device-node" 
-             style="left:<?= $positions[$idx]['x'] ?>px; top:<?= $positions[$idx]['y'] ?>px;" 
+        <div class="device-node <?= $dev['status'] ?>" 
+             data-id="<?= $dev['id'] ?>"
+             data-status="<?= $dev['status'] ?>"
+             style="left:<?= $positions[$idx]['x'] ?>px; top:<?= $positions[$idx]['y'] ?>px; <?= $dev['status'] === 'offline' ? 'opacity: 0.5;' : '' ?>" 
              onclick="handleDeviceClick('<?= $dev['id'] ?>', '<?= $dev['name'] ?>', '<?= $dev['type'] ?>', '<?= $dev['ip'] ?>')">
-            <div class="node-icon <?= $dev['type'] ?>">
+            <div class="node-icon <?= $dev['type'] ?> <?= $dev['status'] ?>">
                 <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
+                <?php if($dev['status'] === 'offline'): ?>
+                <div class="offline-badge"><i class="fa fa-times"></i></div>
+                <?php endif; ?>
             </div>
             <div class="node-label"><?= htmlspecialchars($dev['name']) ?></div>
             <div class="node-ip"><?= $dev['ip'] ?></div>
+            <div class="status-dot <?= $dev['status'] ?>"></div>
         </div>
         <?php endforeach; ?>
         
@@ -830,6 +1012,7 @@ if(empty($connections)) {
         <div class="info-panel" id="infoPanel">
             <div class="info-title">
                 <i class="fa fa-server" id="infoIcon"></i> Device Details
+                <button class="close-info" onclick="closeInfoPanel()"><i class="fa fa-times"></i></button>
             </div>
             <div class="info-row">
                 <span class="info-label">Name</span>
@@ -854,6 +1037,7 @@ if(empty($connections)) {
             <div class="info-actions">
                 <a href="#" class="btn btn-primary" id="btnManage"><i class="fa fa-cog"></i> Manage</a>
                 <a href="#" class="btn btn-success" id="btnPing"><i class="fa fa-broadcast-tower"></i> Ping</a>
+                <a href="#" class="btn btn-warning" id="btnEdit" onclick="return false;"><i class="fa fa-edit"></i> Edit</a>
             </div>
         </div>
         
@@ -873,26 +1057,18 @@ if(empty($connections)) {
             </div>
         </div>
         
-        <button class="add-device-btn" id="drawModeBtn" onclick="toggleDrawMode()" style="right: 250px; background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fa fa-link"></i>
-        </button>
-        <div id="cableTypeSelector" style="position:absolute; bottom:25px; right:330px; display:flex; gap:5px; z-index:100;">
-            <button class="cable-type-btn active" onclick="selectCableType('fiber')" style="padding:8px 12px; border:2px solid #ef4444; background:#ef4444; color:#fff; border-radius:20px; cursor:pointer; font-size:11px; font-weight:600;">
-                <i class="fa fa-bolt"></i> Fiber
+        <!-- Action Buttons - Right Side -->
+        <div style="position:absolute; top:20px; right:80px; display:flex; flex-direction:column; gap:8px; z-index:200;">
+            <button class="add-device-btn" onclick="openAddModal()" title="Add Device" style="background: linear-gradient(135deg, #10b981, #059669);">
+                <i class="fa fa-plus"></i>
             </button>
-            <button class="cable-type-btn" onclick="selectCableType('copper')" style="padding:8px 12px; border:2px solid #f59e0b; background:transparent; color:#f59e0b; border-radius:20px; cursor:pointer; font-size:11px; font-weight:600;">
-                <i class="fa fa-ethernet"></i> Copper
+            <button class="add-device-btn" id="drawModeBtn" onclick="toggleDrawMode()" title="Add Cable" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                <i class="fa fa-plug"></i>
             </button>
-            <button class="cable-type-btn" onclick="selectCableType('wifi')" style="padding:8px 12px; border:2px solid #10b981; background:transparent; color:#10b981; border-radius:20px; cursor:pointer; font-size:11px; font-weight:600;">
-                <i class="fa fa-wifi"></i> WiFi
+            <button class="add-device-btn" id="deleteModeBtn" onclick="toggleDeleteMode()" title="Remove Cable" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                <i class="fa fa-trash"></i>
             </button>
         </div>
-        <button class="add-device-btn" onclick="clearConnections()" style="right: 20px; background: linear-gradient(135deg, #f59e0b, #d97706);">
-            <i class="fa fa-unlink"></i>
-        </button>
-        <button class="add-device-btn" onclick="openAddModal()">
-            <i class="fa fa-plus"></i>
-        </button>
     </div>
 </div>
 
@@ -934,6 +1110,74 @@ if(empty($connections)) {
     </div>
 </div>
 
+<!-- Edit Device Modal -->
+<div class="modal-overlay" id="editDeviceModal">
+    <div class="modal-content">
+        <div class="modal-title"><i class="fa fa-edit"></i> Edit Device</div>
+        <form id="editDeviceForm">
+            <input type="hidden" name="device_id" id="editDeviceId">
+            <div class="form-group">
+                <label class="form-label">Device Name</label>
+                <input type="text" name="nasname" id="editDeviceName" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">IP Address</label>
+                <input type="text" name="ip_address" id="editDeviceIp" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Device Type</label>
+                <select name="device_type" id="editDeviceType" class="form-select" required>
+                    <option value="olt">OLT</option>
+                    <option value="mikrotik">MikroTik</option>
+                    <option value="switch">Switch</option>
+                    <option value="router">Router</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Model</label>
+                <input type="text" name="model" id="editDeviceModel" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" name="location" id="editDeviceLocation" class="form-input">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn" style="background:#ef4444; color:#fff;" onclick="deleteDevice()"><i class="fa fa-trash"></i> Delete</button>
+                <button type="button" class="btn" style="background:#475569; color:#fff;" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Cable Info Modal -->
+<div class="modal-overlay" id="cableModal">
+    <div class="modal-content">
+        <div class="modal-title"><i class="fa fa-link"></i> Cable Details</div>
+        <form id="cableForm">
+            <input type="hidden" name="from_id" id="cableFromId">
+            <input type="hidden" name="to_id" id="cableToId">
+            <div class="form-group">
+                <label class="form-label">Cable Name</label>
+                <input type="text" name="cable_name" id="cableName" class="form-input" placeholder="e.g., Main Fiber to OLT">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Cable Type</label>
+                <select name="cable_type" id="cableType" class="form-select">
+                    <option value="fiber">Fiber</option>
+                    <option value="copper">Copper</option>
+                    <option value="wifi">Wireless</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn" style="background:#ef4444; color:#fff;" onclick="deleteCable()"><i class="fa fa-trash"></i> Delete Cable</button>
+                <button type="button" class="btn" style="background:#475569; color:#fff;" onclick="closeCableModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 // Update time
 function updateTime() {
@@ -944,26 +1188,12 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
-// Select device
+// Select device from panel
 function selectDevice(id, name, type, ip) {
     document.querySelectorAll('.device-card').forEach(c => c.classList.remove('selected'));
     event.target.closest('.device-card')?.classList.add('selected');
     
-    document.getElementById('infoName').innerText = name;
-    document.getElementById('infoType').innerText = type.toUpperCase();
-    document.getElementById('infoIp').innerText = ip;
-    document.getElementById('infoUptime').innerText = '10d 5h 30m';
-    
-    const icon = document.getElementById('infoIcon');
-    icon.className = 'fa fa-' + (type === 'olt' ? 'server' : (type === 'mikrotik' ? 'microchip' : (type === 'switch' ? 'network-wired' : 'router'))) + ' ' + type;
-    
-    const manageUrl = type === 'olt' ? 'olt_dashboard.php?id=' + id :
-                      type === 'mikrotik' ? 'mikrotik_dashboard.php?id=' + id :
-                      type === 'switch' ? 'switch_dashboard.php?id=' + id : 'nas.php';
-    document.getElementById('btnManage').href = manageUrl;
-    document.getElementById('btnPing').onclick = () => pingDevice(ip);
-    
-    document.getElementById('infoPanel').classList.add('show');
+    showDeviceDetails(id, name, type, ip);
 }
 
 function pingDevice(ip) {
@@ -985,6 +1215,150 @@ function openAddModal() {
 function closeAddModal() {
     document.getElementById('addModal').classList.remove('show');
 }
+
+// Edit Device Modal
+function openEditModal(id, name, type, ip, model, location) {
+    document.getElementById('editDeviceId').value = id;
+    document.getElementById('editDeviceName').value = name;
+    document.getElementById('editDeviceIp').value = ip;
+    document.getElementById('editDeviceType').value = type;
+    document.getElementById('editDeviceModel').value = model || '';
+    document.getElementById('editDeviceLocation').value = location || '';
+    document.getElementById('editDeviceModal').classList.add('show');
+}
+
+function closeEditModal() {
+    document.getElementById('editDeviceModal').classList.remove('show');
+}
+
+function deleteDevice() {
+    if(confirm('Are you sure you want to delete this device?')) {
+        const id = document.getElementById('editDeviceId').value;
+        fetch('api/network_topology.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'action=delete_device&id=' + id
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+document.getElementById('editDeviceForm').onsubmit = function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.append('action', 'edit_device');
+    
+    fetch('api/network_topology.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            alert('Device updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+};
+
+// Cable Modal
+let currentCableFrom = null;
+let currentCableTo = null;
+
+function openCableModal(fromId, toId, type, name) {
+    currentCableFrom = fromId;
+    currentCableTo = toId;
+    document.getElementById('cableFromId').value = fromId;
+    document.getElementById('cableToId').value = toId;
+    document.getElementById('cableType').value = type || 'copper';
+    document.getElementById('cableName').value = name || '';
+    document.getElementById('cableModal').classList.add('show');
+}
+
+function closeCableModal() {
+    document.getElementById('cableModal').classList.remove('show');
+}
+
+function deleteCable() {
+    if(confirm('Delete this cable connection?')) {
+        const fromId = document.getElementById('cableFromId').value;
+        const toId = document.getElementById('cableToId').value;
+        fetch('api/network_topology.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'action=delete_connection&from_id=' + fromId + '&to_id=' + toId
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+document.getElementById('cableForm').onsubmit = function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.append('action', 'update_connection');
+    
+    fetch('api/network_topology.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            alert('Cable updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+};
+
+// Click on cable to edit or delete
+document.querySelector('.connections-svg').addEventListener('click', function(e) {
+    if(e.target.tagName === 'line') {
+        const fromId = e.target.dataset.from;
+        const toId = e.target.dataset.to;
+        
+        if(deleteMode) {
+            // Delete cable immediately
+            if(confirm('Delete this cable connection?')) {
+                fetch('api/network_topology.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=delete_connection&from_id=' + fromId + '&to_id=' + toId
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success) {
+                        e.target.remove();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                });
+            }
+        } else {
+            // Edit cable
+            const type = e.target.classList.contains('fiber') ? 'fiber' : 
+                         e.target.classList.contains('copper') ? 'copper' : 'wifi';
+            openCableModal(fromId, toId, type, '');
+        }
+    }
+});
 
 document.getElementById('addDeviceForm').onsubmit = function(e) {
     e.preventDefault();
@@ -1011,19 +1385,47 @@ setTimeout(() => location.reload(), 60000);
 
 // Cable Drawing Mode
 let drawMode = false;
+let deleteMode = false;
 let drawSource = null;
 
 function toggleDrawMode() {
     drawMode = !drawMode;
-    const btn = document.getElementById('drawModeBtn');
+    deleteMode = false;
+    
+    const drawBtn = document.getElementById('drawModeBtn');
+    const deleteBtn = document.getElementById('deleteModeBtn');
+    
     if(drawMode) {
-        btn.classList.add('active');
-        btn.innerHTML = '<i class="fa fa-times"></i> Cancel';
-        alert('Click on a device to start drawing cable. Then click another device to connect.');
-    } else {
-        btn.classList.remove('active');
-        btn.innerHTML = '<i class="fa fa-link"></i> Draw Cable';
+        drawBtn.classList.add('active');
+        drawBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        deleteBtn.classList.remove('active');
+        deleteBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
         drawSource = null;
+        alert('CABLE ADD MODE: Click first device, then click second device to connect!');
+    } else {
+        drawBtn.classList.remove('active');
+        drawBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+        drawSource = null;
+    }
+}
+
+function toggleDeleteMode() {
+    deleteMode = !deleteMode;
+    drawMode = false;
+    drawSource = null;
+    
+    const drawBtn = document.getElementById('drawModeBtn');
+    const deleteBtn = document.getElementById('deleteModeBtn');
+    
+    if(deleteMode) {
+        deleteBtn.classList.add('active');
+        deleteBtn.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+        drawBtn.classList.remove('active');
+        drawBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+        alert('CABLE DELETE MODE: Click on any cable to delete it!');
+    } else {
+        deleteBtn.classList.remove('active');
+        deleteBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
     }
 }
 
@@ -1031,17 +1433,76 @@ function handleDeviceClick(id, name, type, ip) {
     if(drawMode) {
         if(!drawSource) {
             drawSource = {id, name, type, ip};
-            alert('Source: ' + name + '. Now click another device to connect.');
+            // Highlight selected device
+            document.querySelectorAll('.device-node').forEach(n => n.classList.remove('selected'));
+            document.querySelector('.device-node[data-id="' + id + '"]')?.classList.add('selected');
+            alert('Selected: ' + name + ' - Now click another device to connect!');
         } else {
             if(drawSource.id !== id) {
                 createConnection(drawSource.id, id, selectedCableType);
             }
+            document.querySelectorAll('.device-node').forEach(n => n.classList.remove('selected'));
             drawSource = null;
             toggleDrawMode();
         }
         return false;
     }
+    // Show device details
+    showDeviceDetails(id, name, type, ip);
     return true;
+}
+
+function showDeviceDetails(id, name, type, ip) {
+    // Get device status from the clicked node
+    const deviceNode = document.querySelector('.device-node[data-id="' + id + '"]');
+    const status = deviceNode ? deviceNode.dataset.status : 'offline';
+    
+    // Update info panel
+    document.getElementById('infoName').innerText = name;
+    document.getElementById('infoType').innerText = type.toUpperCase();
+    document.getElementById('infoIp').innerText = ip;
+    
+    // Update status
+    const statusEl = document.querySelector('#infoPanel .info-row:last-child .info-value');
+    if(status === 'online') {
+        statusEl.innerHTML = '<span style="color:#10b981;">● Online</span>';
+    } else {
+        statusEl.innerHTML = '<span style="color:#ef4444;">● Offline</span>';
+    }
+    
+    // Update icon
+    const icon = document.getElementById('infoIcon');
+    const iconClass = type === 'olt' ? 'server' : (type === 'mikrotik' ? 'microchip' : (type === 'switch' ? 'network-wired' : 'router'));
+    icon.className = 'fa fa-' + iconClass;
+    icon.style.color = type === 'olt' ? '#ef4444' : (type === 'mikrotik' ? '#f59e0b' : (type === 'switch' ? '#10b981' : '#3b82f6'));
+    
+    // Set manage URL
+    const manageUrl = type === 'olt' ? 'olt_dashboard.php?id=' + id :
+                      type === 'mikrotik' ? 'mikrotik_dashboard.php?id=' + id :
+                      type === 'switch' ? 'switch_dashboard.php?id=' + id : 'nas.php?id=' + id;
+    document.getElementById('btnManage').href = manageUrl;
+    
+    // Set Edit button - get model and location from device card
+    const deviceCard = document.querySelector('.device-card[data-id="' + id + '"]');
+    const model = deviceCard ? deviceCard.dataset.model : '';
+    const location = deviceCard ? deviceCard.dataset.location : '';
+    document.getElementById('btnEdit').onclick = function() {
+        openEditModal(id, name, type, ip, model, location);
+        return false;
+    };
+    
+    // Show panel
+    const infoPanel = document.getElementById('infoPanel');
+    infoPanel.classList.add('show');
+    
+    // Close device panel on mobile
+    if(window.innerWidth <= 768) {
+        document.getElementById('devicePanel').classList.remove('show');
+    }
+}
+
+function closeInfoPanel() {
+    document.getElementById('infoPanel').classList.remove('show');
 }
 
 function createConnection(fromId, toId, cableType) {
@@ -1083,7 +1544,244 @@ function selectCableType(type) {
     document.querySelectorAll('.cable-type-btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
 }
+
+// Drag functionality for devices
+let draggedNode = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const mapArea = document.querySelector('.map-area');
+    
+    document.querySelectorAll('.device-node').forEach(node => {
+        // Mouse events
+        node.addEventListener('mousedown', startDrag);
+        
+        // Touch events for mobile
+        node.addEventListener('touchstart', startDrag, {passive: false});
+    });
+    
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('touchmove', drag, {passive: false});
+    
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+});
+
+function startDrag(e) {
+    if(e.target.closest('.device-node')) {
+        draggedNode = e.target.closest('.device-node');
+        const rect = draggedNode.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragOffsetX = clientX - rect.left;
+        dragOffsetY = clientY - rect.top;
+        draggedNode.style.zIndex = 100;
+    }
+}
+
+function drag(e) {
+    if(!draggedNode) return;
+    e.preventDefault();
+    
+    const mapArea = document.querySelector('.map-area');
+    const mapRect = mapArea.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    let newX = clientX - mapRect.left - dragOffsetX;
+    let newY = clientY - mapRect.top - dragOffsetY;
+    
+    // Bounds
+    newX = Math.max(0, Math.min(newX, mapRect.width - 70));
+    newY = Math.max(0, Math.min(newY, mapRect.height - 100));
+    
+    draggedNode.style.left = newX + 'px';
+    draggedNode.style.top = newY + 'px';
+    draggedNode.style.transform = 'none';
+    
+    updateConnections();
+}
+
+function endDrag() {
+    if(draggedNode) {
+        draggedNode.style.zIndex = 10;
+        draggedNode = null;
+    }
+}
+
+// Update SVG connections on drag
+function updateConnections() {
+    const svg = document.querySelector('.connections-svg');
+    if(!svg) return;
+    
+    document.querySelectorAll('.device-node').forEach(node => {
+        const id = node.dataset.id;
+        const x = parseFloat(node.style.left) + 35;
+        const y = parseFloat(node.style.top) + 35;
+        
+        document.querySelectorAll(`.conn-line[data-from="${id}"]`).forEach(line => {
+            const toId = line.dataset.to;
+            const toNode = document.querySelector(`.device-node[data-id="${toId}"]`);
+            if(toNode) {
+                const toX = parseFloat(toNode.style.left) + 35;
+                const toY = parseFloat(toNode.style.top) + 35;
+                line.setAttribute('x2', toX);
+                line.setAttribute('y2', toY);
+            }
+        });
+        
+        document.querySelectorAll(`.conn-line[data-to="${id}"]`).forEach(line => {
+            const fromId = line.dataset.from;
+            const fromNode = document.querySelector(`.device-node[data-id="${fromId}"]`);
+            if(fromNode) {
+                const fromX = parseFloat(fromNode.style.left) + 35;
+                const fromY = parseFloat(fromNode.style.top) + 35;
+                line.setAttribute('x1', fromX);
+                line.setAttribute('y1', fromY);
+            }
+        });
+    });
+}
+
+// Responsive: Toggle panels on mobile
+function togglePanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if(window.innerWidth <= 768) {
+        panel.classList.toggle('show');
+    }
+}
+
+// Mobile zoom
+let scale = 1;
+function zoomIn() {
+    scale = Math.min(scale + 0.1, 2);
+    document.querySelector('.map-area').style.transform = 'scale(' + scale + ')';
+}
+function zoomOut() {
+    scale = Math.max(scale - 0.1, 0.5);
+    document.querySelector('.map-area').style.transform = 'scale(' + scale + ')';
+}
+function resetZoom() {
+    scale = 1;
+    document.querySelector('.map-area').style.transform = 'scale(1)';
+}
 </script>
+
+<style>
+/* Responsive Styles */
+@media (max-width: 1024px) {
+    .device-panel { width: 280px; }
+    .node-icon { width: 60px; height: 60px; font-size: 22px; }
+    .stats-bar { flex-wrap: wrap; gap: 10px; }
+    .stat-item { padding: 10px 15px; }
+}
+
+@media (max-width: 768px) {
+    .noc-header { flex-direction: column; gap: 10px; padding: 10px 15px; }
+    .noc-title { font-size: 18px; }
+    
+    .stats-bar { 
+        padding: 10px; 
+        justify-content: center;
+    }
+    .stat-item { 
+        flex: 1 1 45%; 
+        min-width: 120px;
+        padding: 8px 12px;
+    }
+    .stat-icon { width: 35px; height: 35px; font-size: 16px; }
+    .stat-count { font-size: 18px; }
+    .stat-label { font-size: 10px; }
+    
+    .main-container { flex-direction: column; height: calc(100vh - 180px); }
+    
+    .device-panel {
+        position: fixed;
+        top: 180px;
+        left: -100%;
+        width: 100%;
+        height: calc(100% - 180px);
+        z-index: 50;
+        transition: left 0.3s;
+        border-right: none;
+    }
+    .device-panel.show { left: 0; }
+    
+    .map-area { width: 100%; }
+    
+    .node-icon { width: 55px; height: 55px; font-size: 20px; }
+    .node-label { font-size: 10px; top: 70px; }
+    .node-ip { top: 88px; font-size: 9px; }
+    
+    .info-panel {
+        position: fixed;
+        bottom: -100%;
+        left: 0;
+        width: 100%;
+        height: auto;
+        max-height: 50%;
+        border-radius: 20px 20px 0 0;
+        transition: bottom 0.3s;
+        z-index: 60;
+    }
+    .info-panel.show { bottom: 0; }
+    
+    .action-buttons { flex-wrap: wrap; }
+    .action-buttons .btn { flex: 1 1 45%; }
+    
+    .mobile-toggle {
+        display: flex !important;
+    }
+    
+    .toolbar { flex-wrap: wrap; gap: 5px; }
+    .toolbar .btn { font-size: 12px; padding: 8px 12px; }
+}
+
+@media (max-width: 480px) {
+    .stat-item { flex: 1 1 100%; }
+    .node-icon { width: 50px; height: 50px; font-size: 18px; }
+    .device-node { transform: scale(0.9); }
+}
+
+.mobile-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    border: none;
+    font-size: 20px;
+    z-index: 40;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.mobile-zoom {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    gap: 10px;
+    z-index: 40;
+}
+
+@media (max-width: 768px) {
+    .mobile-toggle, .mobile-zoom { display: flex; }
+    .mobile-zoom button {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background: rgba(30, 41, 59, 0.9);
+        color: white;
+        border: 1px solid #334155;
+        font-size: 18px;
+    }
+}
+</style>
 
 </body>
 </html>

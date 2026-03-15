@@ -49,26 +49,24 @@ switch ($action) {
         }
         break;
     
-    case 'update_device':
-        $id = intval($_POST['id'] ?? 0);
+    case 'edit_device':
+        $id = intval($_POST['device_id'] ?? 0);
         $nasname = $_POST['nasname'] ?? '';
         $ip_address = $_POST['ip_address'] ?? '';
+        $device_type = $_POST['device_type'] ?? 'router';
+        $model = $_POST['model'] ?? '';
+        $location = $_POST['location'] ?? '';
         
         if (!$id || empty($nasname) || empty($ip_address)) {
             jsonResponse(false, 'Invalid parameters');
         }
         
         $fields = [];
-        if (!empty($nasname)) $fields[] = "nasname = '$nasname'";
-        if (!empty($ip_address)) $fields[] = "ip_address = '$ip_address'";
-        if (isset($_POST['model'])) $fields[] = "model = '" . $_POST['model'] . "'";
-        if (isset($_POST['snmp_community'])) $fields[] = "snmp_community = '" . $_POST['snmp_community'] . "'";
-        if (isset($_POST['api_user'])) $fields[] = "api_user = '" . $_POST['api_user'] . "'";
-        if (isset($_POST['api_pass'])) $fields[] = "api_pass = '" . $_POST['api_pass'] . "'";
-        
-        if (empty($fields)) {
-            jsonResponse(false, 'No fields to update');
-        }
+        $fields[] = "nasname = '$nasname'";
+        $fields[] = "ip_address = '$ip_address'";
+        $fields[] = "device_type = '$device_type'";
+        if (!empty($model)) $fields[] = "model = '$model'";
+        if (!empty($location)) $fields[] = "location = '$location'";
         
         $sql = "UPDATE nas SET " . implode(', ', $fields) . " WHERE id = $id";
         
@@ -152,6 +150,7 @@ switch ($action) {
             from_device_id INT NOT NULL,
             to_device_id INT NOT NULL,
             cable_type ENUM('fiber','copper','wifi') DEFAULT 'copper',
+            cable_name VARCHAR(255) DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY unique_link (from_device_id, to_device_id)
         )");
@@ -186,11 +185,37 @@ switch ($action) {
     
     case 'delete_connection':
         $id = intval($_POST['id'] ?? 0);
-        if ($conn->query("DELETE FROM network_topology_links WHERE id = $id")) {
-            jsonResponse(true, 'Connection deleted');
-        } else {
-            jsonResponse(false, 'Error deleting connection');
+        $from_id = intval($_POST['from_id'] ?? 0);
+        $to_id = intval($_POST['to_id'] ?? 0);
+        
+        if ($id) {
+            $conn->query("DELETE FROM network_topology_links WHERE id = $id");
+        } elseif ($from_id && $to_id) {
+            $conn->query("DELETE FROM network_topology_links WHERE 
+                (from_device_id = $from_id AND to_device_id = $to_id) 
+                OR (from_device_id = $to_id AND to_device_id = $from_id)");
         }
+        jsonResponse(true, 'Connection deleted');
+        break;
+    
+    case 'update_connection':
+        $from_id = intval($_POST['from_id'] ?? 0);
+        $to_id = intval($_POST['to_id'] ?? 0);
+        $cable_type = $_POST['cable_type'] ?? 'copper';
+        $cable_name = $_POST['cable_name'] ?? '';
+        
+        if (!$from_id || !$to_id) {
+            jsonResponse(false, 'Invalid parameters');
+        }
+        
+        // Update the connection
+        $conn->query("UPDATE network_topology_links SET 
+            cable_type = '$cable_type',
+            cable_name = '$cable_name'
+            WHERE (from_device_id = $from_id AND to_device_id = $to_id) 
+            OR (from_device_id = $to_id AND to_device_id = $from_id)");
+        
+        jsonResponse(true, 'Connection updated');
         break;
     
     case 'clear_connections':
