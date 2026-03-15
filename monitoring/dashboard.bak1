@@ -1,0 +1,69 @@
+<?php
+require 'db.php';
+$devices = $mysqli->query("SELECT * FROM devices ORDER BY status DESC, name");
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NOC Monitoring Dashboard</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+        h1 {
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+        .card {
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+        }
+        .up {
+            background: #064e3b;
+            border-left: 8px solid #22c55e;
+        }
+        .down {
+            background: #7f1d1d;
+            border-left: 8px solid #ef4444;
+        }
+        .status {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .time {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+<h1>?? NOC Network Monitoring Dashboard</h1>
+
+<div class="grid">
+<?php while ($d = $devices->fetch_assoc()): ?>
+    <div class="card <?= strtolower($d['status']) ?>">
+        <div class="status">
+            <?= $d['status'] === 'UP' ? '?? UP' : '?? DOWN' ?>
+        </div>
+        <strong><?= htmlspecialchars($d['name']) ?></strong><br>
+        IP: <?= $d['ip_address'] ?><br>
+        <div class="time">
+            Last Check: <?= $d['last_checked'] ?>
+        </div>
+    </div>
+<?php endwhile; ?>
+</div>
+
+</body>
+</html>
+`

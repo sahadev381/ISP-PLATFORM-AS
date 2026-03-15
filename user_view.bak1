@@ -1,0 +1,295 @@
+<?php
+include 'config.php';
+include 'includes/auth.php';
+include 'includes/genieacs_api.php';
+
+/* ============================
+   DELETE USER
+============================ */
+if (isset($_GET['del'])) {
+    $username = $conn->real_escape_string($_GET['del']);
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disconnect'])) {
+        $nas = $conn->query("SELECT * FROM nas WHERE status=1 LIMIT 1")->fetch_assoc();
+        if ($nas) {
+            $cmd = "echo 'User-Name = {$username}' | /usr/bin/radclient -x {$nas['ip_address']}:3799 disconnect {$nas['secret']} 2>&1";
+            exec($cmd);
+        }
+    }
+
+    $conn->begin_transaction();
+    try {
+        $conn->query("DELETE FROM radacct WHERE username='$username'");
+        $conn->query("DELETE FROM radreply WHERE username='$username'");
+        $conn->query("DELETE FROM radcheck WHERE username='$username'");
+        $conn->query("DELETE FROM radusergroup WHERE username='$username'");
+        $conn->query("DELETE FROM customers WHERE username='$username'");
+        $conn->commit();
+        header("Location: users.php?msg=deleted");
+        exit;
+    } catch (Exception $e) {
+        $conn->rollback();
+        die("Delete failed");
+    }
+}
+
+/* ============================
+   LOAD USER
+============================ */
+$username = $_GET['user'] ?? '';
+$user = $conn->query("SELECT * FROM customers WHERE username='$username'")->fetch_assoc();
+if (!$user) die("User not found");
+
+/* ============================
+   CURRENT SESSION
+============================ */
+$current_session = $conn->query("
+    SELECT *, TIMESTAMPDIFF(SECOND, acctstarttime, NOW()) AS session_seconds
+    FROM radacct
+    WHERE username='$username' AND acctstoptime IS NULL
+    ORDER BY acctstarttime DESC LIMIT 1
+");
+
+/* ============================
+   GENIE ACS AUTO LINK (EXPANDED SCAN)
+============================ */
+ $device = null;
+ $genieacsDevice = null;
+
+ $target_serial = strtoupper(trim($user['onu_serial'] ?? ''));
+
+if (!empty($target_serial)) {
+    
+    $devices = genieacs_request("/devices?_limit=1000&_sort=-_lastInform", "GET", null);
+
+    if (is_array($devices)) {
+        foreach ($devices as $d) {
+            $found_serial = strtoupper(trim($d['_deviceId']['_SerialNumber'] ?? ''));
+
+            if ($found_serial === $target_serial) {
+                
+                if (empty($user['tr069_device_id'])) {
+                    $stmt = $conn->prepare("UPDATE customers SET tr069_device_id=? WHERE username=?");
+                    $stmt->bind_param("ss", $d['_id'], $user['username']);
+                    $stmt->execute();
+                }
+
+                $user['tr069_device_id'] = $d['_id'];
+                $device = $d;
+                
+                // PROJECTION: Fetch Basic Info + Indices 1, 2, 3, 4, 5, 11
+                // We fetch up to index 11 because some Huawei/ONT devices map 5G there.
+                $details_projection = json_encode([
+                    ["InternetGatewayDevice", "DeviceInfo", "SerialNumber"],
+                    ["InternetGatewayDevice", "DeviceInfo", "Manufacturer"],
+                    ["InternetGatewayDevice", "DeviceInfo", "ProductClass"],
+                    ["InternetGatewayDevice", "DeviceInfo", "SoftwareVersion"],
+                    
+                    // 2.4G (Usually Index 1)
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "1", "SSID"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "1", "KeyPassphrase"],
+                    
+                    // 5G Candidates (Indices 2, 3, 4, 5, 11)
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "2", "SSID"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "2", "KeyPassphrase"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "3", "SSID"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "3", "KeyPassphrase"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "4", "SSID"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "4", "KeyPassphrase"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "5", "SSID"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "5", "KeyPassphrase"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "11", "SSID"],
+                    ["InternetGatewayDevice", "LANDevice", "1", "WLANConfiguration", "11", "KeyPassphrase"]
+                ]);
+
+                $details_url = "/devices/" . $d['_id'] . "?projection=" . urlencode($details_projection);
+                $genieacsDevice = genieacs_request($details_url, "GET", null);
+                
+                break;
+            }
+        }
+    }
+}
+
+/* ============================
+   TR-069 ACTIONS (DYNAMIC SLOTS)
+============================ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deviceId'])) {
+
+    $deviceId = $_POST['deviceId'];
+
+    if (isset($_POST['reboot'])) {
+        genieacs_request("/devices/$deviceId/tasks", "POST", ["name" => "reboot"]);
+        echo "<div class='alert success'>Reboot command sent</div>";
+    }
+
+    if (isset($_POST['setwifi'])) {
+        $ssid = $_POST['ssid'] ?? '';
+        $pass = $_POST['wifi_pass'] ?? '';
+
+        // Start Parameters
+        $parameters = [
+            ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID", $ssid, "xsd:string"],
+            ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase", $pass, "xsd:string"]
+        ];
+
+        // Check for Dynamic 5G Slots (2, 3, 4, 5, 11)
+        $check_slots = [2, 3, 4, 5, 11];
+        foreach ($check_slots as $slot) {
+            // Only add to parameters if user filled it in
+            $s_val = $_POST['ssid_' . $slot] ?? '';
+            $p_val = $_POST['wifi_pass_' . $slot] ?? '';
+            
+            if (!empty($s_val)) {
+                $parameters[] = ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.$slot.SSID", $s_val, "xsd:string"];
+            }
+            if (!empty($p_val)) {
+                $parameters[] = ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.$slot.KeyPassphrase", $p_val, "xsd:string"];
+            }
+        }
+
+        // Push to Device
+        genieacs_request("/devices/$deviceId/tasks", "POST", [
+            "name" => "setParameterValues",
+            "parameterValues" => $parameters
+        ]);
+
+        echo "<div class='alert success'>WiFi settings updated.</div>";
+    }
+}
+
+include 'includes/header.php';
+include 'includes/sidebar.php';
+include 'includes/topbar.php';
+?>
+
+<div class="main">
+<div class="table-box">
+<h1>Customer Profile</h1>
+
+<div class="action">
+    <a class="btn" href="user_edit.php?user=<?= $user['username'] ?>">Edit</a>
+    <a class="btn" href="change_password.php?user=<?= $user['username'] ?>">Password</a>
+    <a class="btn" href="tickets/ticket_new.php?user=<?= $user['username'] ?>">Ticket</a>
+    <a class="btn" href="recharge.php?user=<?= $user['username'] ?>">Renew</a>
+    <a class="btn" href="invoices.php?user=<?= $user['username'] ?>">Invoice</a>
+    <a class="btn" href="user_log.php?user=<?= $user['username'] ?>">Auth Log</a>
+    <a class="btn" href="user_live_graph.php?user=<?= $user['username'] ?>">Live Graph</a>
+    <a class="btn" href="user_graph.php?user=<?= $user['username'] ?>">Graph Usage</a>
+    <a class="btn danger" href="users.php?del=<?= $user['username'] ?>" onclick="return confirm('Delete this user?')">Delete</a>
+</div>
+
+<p><b>Username:</b> <?= $user['username'] ?></p>
+<p><b>Name:</b> <?= $user['full_name'] ?></p>
+<p><b>Phone:</b> <?= $user['phone'] ?></p>
+<p><b>Email:</b> <?= $user['email'] ?></p>
+<p><b>Address:</b> <?= $user['address'] ?></p>
+<p><b>Expiry:</b> <?= $user['expiry'] ?></p>
+<p><b>Status:</b> <?= ucfirst($user['status']) ?></p>
+<p><b>ONU Serial:</b> <?= $user['onu_serial'] ?? 'N/A' ?></p>
+<p><b>WiFi SSID:</b> <?= $user['wifi_ssid'] ?? 'N/A' ?></p>
+
+<hr>
+
+<h2>Current Session</h2>
+<table>
+<tr>
+<th>Status</th><th>Login</th><th>Duration</th><th>User IP</th><th>NAS</th><th>Download</th><th>Upload</th>
+</tr>
+
+<?php
+if ($current_session->num_rows > 0):
+$s = $current_session->fetch_assoc();
+function fbytes($b) {
+    if ($b >= 1073741824) return round($b/1073741824,2).' GB';
+    if ($b >= 1048576) return round($b/1048576,2).' MB';
+    return round($b/1024,2).' KB';
+}
+?>
+<tr>
+<td><span class="badge active">Online</span></td>
+<td><?= $s['acctstarttime'] ?></td>
+<td><?= gmdate("H:i:s", $s['session_seconds']) ?></td>
+<td><?= $s['framedipaddress'] ?></td>
+<td><?= $s['nasipaddress'] ?></td>
+<td><?= fbytes($s['acctoutputoctets']) ?></td>
+<td><?= fbytes($s['acctinputoctets']) ?></td>
+</tr>
+
+<form method="post">
+    <input type="hidden" name="username" value="<?= $user['username'] ?>">
+    <button class="btn danger" name="disconnect">Disconnect</button>
+</form>
+
+<?php else: ?>
+<tr><td colspan="7" style="text-align:center">Offline</td></tr>
+<?php endif; ?>
+</table>
+
+<hr>
+
+<h2>TR-069 Device Info</h2>
+<?php if ($device): ?>
+<table>
+<tr><th>Serial</th><td><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['SerialNumber']['_value'] ?? 'N/A' ?></td></tr>
+<tr><th>Manufacturer</th><td><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['Manufacturer']['_value'] ?? 'N/A' ?></td></tr>
+<tr><th>Model</th><td><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['ProductClass']['_value'] ?? 'N/A' ?></td></tr>
+<tr><th>Firmware</th><td><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['SoftwareVersion']['_value'] ?? 'N/A' ?></td></tr>
+</table>
+
+<h3>TR-069 Actions</h3>
+<form method="post">
+    <input type="hidden" name="deviceId" value="<?= $user['tr069_device_id'] ?>">
+    <button name="reboot" class="btn">Reboot Device</button>
+</form>
+
+<form method="post" style="margin-top:10px;">
+    <input type="hidden" name="deviceId" value="<?= $user['tr069_device_id'] ?>">
+    
+    <!-- 2.4GHz WiFi -->
+    <fieldset style="padding:10px; margin-bottom:10px; border:1px solid #ccc;">
+        <legend><b>2.4GHz WiFi</b></legend>
+        SSID: <input type="text" name="ssid" placeholder="SSID 2.4G" 
+               value="<?= htmlspecialchars($genieacsDevice['InternetGatewayDevice']['LANDevice']['1']['WLANConfiguration']['1']['SSID']['_value'] ?? '') ?>" required>
+        Pass: <input type="text" name="wifi_pass" placeholder="Password 2.4G" 
+               value="<?= htmlspecialchars($genieacsDevice['InternetGatewayDevice']['LANDevice']['1']['WLANConfiguration']['1']['KeyPassphrase']['_value'] ?? '') ?>" required>
+    </fieldset>
+
+    <!-- 5GHz / Other Bands (Scanning Slots 2, 3, 4, 5, 11) -->
+    <?php 
+    // Define which slots to check for 5G
+    $check_slots = [2, 3, 4, 5, 11];
+    
+    foreach ($check_slots as $slot) {
+        // Check if this slot exists in the device data
+        $ssid_val = $genieacsDevice['InternetGatewayDevice']['LANDevice']['1']['WLANConfiguration'][$slot]['SSID']['_value'] ?? '';
+        
+        // Only show the field if we found data (SSID is not empty)
+        if (!empty($ssid_val)) {
+    ?>
+    <fieldset style="padding:10px; margin-bottom:10px; border:1px solid #ccc;">
+        <legend><b>5GHz / Other WiFi (Slot <?= $slot ?>)</b></legend>
+        SSID: <input type="text" name="ssid_<?= $slot ?>" placeholder="SSID 5G" 
+               value="<?= htmlspecialchars($ssid_val) ?>">
+        Pass: <input type="text" name="wifi_pass_<?= $slot ?>" placeholder="Password 5G" 
+               value="<?= htmlspecialchars($genieacsDevice['InternetGatewayDevice']['LANDevice']['1']['WLANConfiguration'][$slot]['KeyPassphrase']['_value'] ?? '') ?>">
+        <small style="color:gray;">(Leave empty to not update this slot)</small>
+    </fieldset>
+    <?php 
+        } 
+    } 
+    ?>
+
+    <button name="setwifi" class="btn">Update WiFi Settings</button>
+</form>
+
+<?php else: ?>
+<p><b>No TR-069 device linked.</b></p>
+<?php endif; ?>
+
+
+</div>
+</div>
+
+<?php include 'includes/footer.php'; ?>
+

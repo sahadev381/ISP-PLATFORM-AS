@@ -1,0 +1,7 @@
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+table { width:100%; background:#fff; border-collapse:collapse; }
+th,td { padding:10px; border-bottom:1px solid #ddd; }
+.up { color:green; font-weight:bold; }
+.down { color:red; font-weight:bold; }
+.btn { padding:8px 12px; background:#007bff; color:#fff; text-decoration:none; }
+

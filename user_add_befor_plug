@@ -1,0 +1,234 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+include 'config.php';
+include 'includes/auth.php';
+
+$page_title = "Add Customer";
+$active = "users";
+
+/* =========================
+   FETCH PLANS & BRANCHES
+========================= */
+$plans = $conn->query("SELECT * FROM plans");
+$branches = $conn->query("SELECT * FROM branches WHERE status='active'");
+
+/* =========================
+   HELPER: SEND TO GENIEACS
+========================= */
+function sendToACS($deviceId, $data) {
+    $ch = curl_init("http://127.0.0.1:7558/devices/$deviceId/tasks");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_exec($ch);
+    curl_close($ch);
+}
+
+/* =========================
+   HANDLE FORM SUBMIT
+========================= */
+$msg = '';
+
+if (isset($_POST['add'])) {
+
+    $username   = trim($_POST['username']);
+    $password   = trim($_POST['password']);
+    $full_name  = trim($_POST['full_name']);
+    $phone      = trim($_POST['phone']);
+    $email      = trim($_POST['email']);
+    $address    = trim($_POST['address']);
+    $plan_id    = (int)$_POST['plan_id'];
+    $branch_id  = $_POST['branch_id'] ?: null;
+    $expiry     = $_POST['expiry'];
+    $onu_serial = trim($_POST['onu_serial']);
+
+    // Fetch plan
+    $plan = $conn->query("SELECT * FROM plans WHERE id=$plan_id")->fetch_assoc();
+    if (!$plan) die("Invalid plan");
+
+    $plan_name = $plan['name'];
+    $speed = $plan['speed'];
+    $expiry_radius = date("d M Y", strtotime($expiry));
+
+    $wifi_ssid = $username;
+    $wifi_password = $password;
+
+    $conn->begin_transaction();
+
+    try {
+
+        /* ================= RADIUS CONFIG ================= */
+
+        $conn->query("INSERT INTO radreply (username, attribute, op, value)
+                       VALUES ('$username','Mikrotik-Rate-Limit',':=','$speed')");
+
+        $stmt = $conn->prepare("
+            INSERT INTO radcheck (username, attribute, op, value)
+            VALUES (?, 'Cleartext-Password', ':=', ?)
+        ");
+        $stmt->bind_param("ss", $username, $password);
+        $stmt->execute();
+
+        $stmt = $conn->prepare("
+            INSERT INTO radcheck (username, attribute, op, value)
+            VALUES (?, 'Expiration', ':=', ?)
+        ");
+        $stmt->bind_param("ss", $username, $expiry_radius);
+        $stmt->execute();
+
+        $stmt = $conn->prepare("
+            INSERT INTO radusergroup (username, groupname, priority)
+            VALUES (?, ?, 1)
+        ");
+        $stmt->bind_param("ss", $username, $plan_name);
+        $stmt->execute();
+
+        /* ================= CUSTOMER TABLE ================= */
+
+        $stmt = $conn->prepare("
+            INSERT INTO customers
+            (username, password, full_name, phone, email, address, plan_id, branch_id, expiry, status, onu_serial, wifi_ssid, wifi_password)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+        ");
+
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt->bind_param(
+            "ssssssiissss",
+            $username,
+            $hashed,
+            $full_name,
+            $phone,
+            $email,
+            $address,
+            $plan_id,
+            $branch_id,
+            $expiry,
+            $onu_serial,
+            $wifi_ssid,
+            $wifi_password
+        );
+
+        $stmt->execute();
+
+        /* ================= TR-069 AUTO LINK ================= */
+
+        $devices = json_decode(file_get_contents("http://127.0.0.1:7558/devices"), true);
+
+        $deviceId = null;
+
+        foreach ($devices as $device) {
+            $serial = $device["InternetGatewayDevice"]["DeviceInfo"]["SerialNumber"]["_value"] ?? '';
+            if ($serial == $onu_serial) {
+                $deviceId = $device["_id"];
+                break;
+            }
+        }
+
+        if ($deviceId) {
+
+            $conn->query("UPDATE customers SET tr069_device_id='$deviceId' WHERE username='$username'");
+
+            // Push PPPoE
+            sendToACS($deviceId, [
+                "name" => "setParameterValues",
+                "parameterValues" => [
+                    ["InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username", $username, "xsd:string"],
+                    ["InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.Password", $password, "xsd:string"]
+                ]
+            ]);
+
+            // Push WiFi
+            sendToACS($deviceId, [
+                "name" => "setParameterValues",
+                "parameterValues" => [
+                    ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID", $wifi_ssid, "xsd:string"],
+                    ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase", $wifi_password, "xsd:string"]
+                ]
+            ]);
+        }
+
+        $conn->commit();
+        header("Location: users.php?msg=added");
+        exit;
+
+    } catch (Exception $e) {
+        $conn->rollback();
+        $msg = "Error: " . $e->getMessage();
+    }
+}
+
+include 'includes/header.php';
+include 'includes/sidebar.php';
+include 'includes/topbar.php';
+?>
+
+<div class="main">
+
+<?php if($msg){ ?>
+<div class="alert success"><?= htmlspecialchars($msg) ?></div>
+<?php } ?>
+
+<div class="table-box">
+<form method="post">
+
+<table>
+
+<tr><td>Username</td><td><input class="input" name="username" required></td></tr>
+<tr><td>Password</td><td><input class="input" type="password" name="password" required></td></tr>
+<tr><td>Full Name</td><td><input class="input" name="full_name" required></td></tr>
+<tr><td>Phone</td><td><input class="input" name="phone"></td></tr>
+<tr><td>Email</td><td><input class="input" name="email"></td></tr>
+<tr><td>Address</td><td><textarea class="input" name="address"></textarea></td></tr>
+
+<tr>
+<td>ONU Serial</td>
+<td><input class="input" name="onu_serial" required></td>
+</tr>
+
+<tr>
+<td>Plan</td>
+<td>
+<select class="input" name="plan_id" required>
+<option value="">Select Plan</option>
+<?php while($p=$plans->fetch_assoc()){ ?>
+<option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?> (<?= $p['speed'] ?>)</option>
+<?php } ?>
+</select>
+</td>
+</tr>
+
+<tr>
+<td>Branch</td>
+<td>
+<select class="input" name="branch_id">
+<option value="">All</option>
+<?php while($b=$branches->fetch_assoc()){ ?>
+<option value="<?= $b['id'] ?>"><?= htmlspecialchars($b['name']) ?></option>
+<?php } ?>
+</select>
+</td>
+</tr>
+
+<tr>
+<td>Expiry</td>
+<td><input class="input" type="date" name="expiry" required></td>
+</tr>
+
+<tr>
+<td></td>
+<td><button class="btn" name="add">Add Customer</button></td>
+</tr>
+
+</table>
+</form>
+</div>
+
+</div>
+
+<?php include 'includes/footer.php'; ?>
+

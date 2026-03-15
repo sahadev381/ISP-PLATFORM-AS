@@ -1,0 +1,33 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.swk
+*.swm
+*.swl
+*.swj
+*.swn
+
+# IDE
+.vscode/
+.idea/
+*.bak
+
+# Vendor (use composer)
+vendor/
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Config (contains secrets)
+config.php
+!config.php.example
+
+# Logs
+*.log
+
+# Database
+*.sql
+*.db
