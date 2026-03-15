@@ -1057,16 +1057,17 @@ if(empty($connections)) {
             </div>
         </div>
         
-        <!-- Action Buttons - Right Side -->
-        <div style="position:absolute; top:20px; right:80px; display:flex; flex-direction:column; gap:8px; z-index:200;">
-            <button class="add-device-btn" onclick="openAddModal()" title="Add Device" style="background: linear-gradient(135deg, #10b981, #059669);">
+        <!-- Cable Control Panel - Top Right Corner -->
+        <div style="position:absolute; top:10px; right:10px; background:rgba(30,41,59,0.95); padding:10px; border-radius:10px; border:1px solid #475569; z-index:250; display:flex; gap:5px; align-items:center;">
+            <span style="color:#94a3b8; font-size:11px; margin-right:5px;">CABLE:</span>
+            <button onclick="startCableMode()" id="cableAddBtn" style="width:40px; height:40px; border-radius:8px; background:#3b82f6; border:none; color:white; cursor:pointer; font-size:16px;" title="Add Cable">
                 <i class="fa fa-plus"></i>
             </button>
-            <button class="add-device-btn" id="drawModeBtn" onclick="toggleDrawMode()" title="Add Cable" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
-                <i class="fa fa-plug"></i>
-            </button>
-            <button class="add-device-btn" id="deleteModeBtn" onclick="toggleDeleteMode()" title="Remove Cable" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <button onclick="startDeleteMode()" id="cableDeleteBtn" style="width:40px; height:40px; border-radius:8px; background:#ef4444; border:none; color:white; cursor:pointer; font-size:16px;" title="Delete Cable">
                 <i class="fa fa-trash"></i>
+            </button>
+            <button onclick="cancelMode()" id="cableCancelBtn" style="width:40px; height:40px; border-radius:8px; background:#475569; border:none; color:white; cursor:pointer; font-size:16px; display:none;" title="Cancel">
+                <i class="fa fa-times"></i>
             </button>
         </div>
     </div>
@@ -1334,25 +1335,16 @@ document.querySelector('.connections-svg').addEventListener('click', function(e)
         const fromId = e.target.dataset.from;
         const toId = e.target.dataset.to;
         
-        if(deleteMode) {
+        if(cableMode === 'delete') {
             // Delete cable immediately
-            if(confirm('Delete this cable connection?')) {
-                fetch('api/network_topology.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=delete_connection&from_id=' + fromId + '&to_id=' + toId
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if(data.success) {
-                        e.target.remove();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                });
-            }
-        } else {
-            // Edit cable
+            e.target.remove();
+            fetch('api/network_topology.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=delete_connection&from_id=' + fromId + '&to_id=' + toId
+            });
+        } else if(!cableMode) {
+            // Normal click - edit cable
             const type = e.target.classList.contains('fiber') ? 'fiber' : 
                          e.target.classList.contains('copper') ? 'copper' : 'wifi';
             openCableModal(fromId, toId, type, '');
@@ -1383,69 +1375,56 @@ document.getElementById('addDeviceForm').onsubmit = function(e) {
 // Auto-refresh
 setTimeout(() => location.reload(), 60000);
 
-// Cable Drawing Mode
-let drawMode = false;
-let deleteMode = false;
+// Cable Mode System
+let cableMode = null; // 'add' or 'delete' or null
 let drawSource = null;
 
-function toggleDrawMode() {
-    drawMode = !drawMode;
-    deleteMode = false;
-    
-    const drawBtn = document.getElementById('drawModeBtn');
-    const deleteBtn = document.getElementById('deleteModeBtn');
-    
-    if(drawMode) {
-        drawBtn.classList.add('active');
-        drawBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        deleteBtn.classList.remove('active');
-        deleteBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        drawSource = null;
-        alert('CABLE ADD MODE: Click first device, then click second device to connect!');
-    } else {
-        drawBtn.classList.remove('active');
-        drawBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-        drawSource = null;
-    }
+function startCableMode() {
+    cableMode = 'add';
+    drawSource = null;
+    document.getElementById('cableAddBtn').style.background = '#059669';
+    document.getElementById('cableAddBtn').style.transform = 'scale(1.2)';
+    document.getElementById('cableDeleteBtn').style.transform = 'scale(1)';
+    document.getElementById('cableCancelBtn').style.display = 'inline-block';
 }
 
-function toggleDeleteMode() {
-    deleteMode = !deleteMode;
-    drawMode = false;
+function startDeleteMode() {
+    cableMode = 'delete';
     drawSource = null;
-    
-    const drawBtn = document.getElementById('drawModeBtn');
-    const deleteBtn = document.getElementById('deleteModeBtn');
-    
-    if(deleteMode) {
-        deleteBtn.classList.add('active');
-        deleteBtn.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-        drawBtn.classList.remove('active');
-        drawBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-        alert('CABLE DELETE MODE: Click on any cable to delete it!');
-    } else {
-        deleteBtn.classList.remove('active');
-        deleteBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-    }
+    document.getElementById('cableDeleteBtn').style.background = '#dc2626';
+    document.getElementById('cableDeleteBtn').style.transform = 'scale(1.2)';
+    document.getElementById('cableAddBtn').style.transform = 'scale(1)';
+    document.getElementById('cableCancelBtn').style.display = 'inline-block';
+}
+
+function cancelMode() {
+    cableMode = null;
+    drawSource = null;
+    document.getElementById('cableAddBtn').style.background = '#3b82f6';
+    document.getElementById('cableAddBtn').style.transform = 'scale(1)';
+    document.getElementById('cableDeleteBtn').style.background = '#ef4444';
+    document.getElementById('cableDeleteBtn').style.transform = 'scale(1)';
+    document.getElementById('cableCancelBtn').style.display = 'none';
 }
 
 function handleDeviceClick(id, name, type, ip) {
-    if(drawMode) {
+    if(cableMode === 'add') {
         if(!drawSource) {
             drawSource = {id, name, type, ip};
-            // Highlight selected device
-            document.querySelectorAll('.device-node').forEach(n => n.classList.remove('selected'));
-            document.querySelector('.device-node[data-id="' + id + '"]')?.classList.add('selected');
-            alert('Selected: ' + name + ' - Now click another device to connect!');
+            document.querySelectorAll('.device-node').forEach(n => n.style.boxShadow = '');
+            document.querySelector('.device-node[data-id="' + id + '"]')?.style.boxShadow = '0 0 20px #10b981';
         } else {
             if(drawSource.id !== id) {
                 createConnection(drawSource.id, id, selectedCableType);
             }
-            document.querySelectorAll('.device-node').forEach(n => n.classList.remove('selected'));
+            document.querySelectorAll('.device-node').forEach(n => n.style.boxShadow = '');
             drawSource = null;
-            toggleDrawMode();
+            alert('Cable added!');
         }
         return false;
+    }
+    if(cableMode === 'delete') {
+        return false; // Don't show device details when in delete mode
     }
     // Show device details
     showDeviceDetails(id, name, type, ip);
