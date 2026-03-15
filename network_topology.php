@@ -28,23 +28,11 @@ $stats = [
 function checkDeviceStatus($ip) {
     if(empty($ip)) return 'offline';
     
-    // Try to connect to common ports (SSH=22, HTTP=80, HTTPS=443)
-    $ports = [22, 80, 443, 8728, 8729];
-    $timeout = 2;
+    // Fast ping check (1 second timeout)
+    $ping = stripos(PHP_OS, 'WIN') === 0 ? "ping -n 1 -w 1 $ip" : "ping -c 1 -W 1 $ip";
+    $output = @shell_exec($ping . " 2>&1");
     
-    foreach($ports as $port) {
-        $connection = @fsockopen($ip, $port, $errno, $errstr, $timeout);
-        if($connection) {
-            fclose($connection);
-            return 'online';
-        }
-    }
-    
-    // Try system ping as fallback
-    $ping = stripos(PHP_OS, 'WIN') === 0 ? "ping -n 1 -w 2 $ip" : "ping -c 1 -W 2 $ip";
-    $output = shell_exec($ping . " 2>&1");
-    
-    if(stripos($output, 'bytes from') !== false || stripos($output, '1 received') !== false) {
+    if($output && (stripos($output, 'bytes from') !== false || stripos($output, '1 received') !== false)) {
         return 'online';
     }
     
