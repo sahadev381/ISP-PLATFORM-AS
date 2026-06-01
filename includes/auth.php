@@ -54,6 +54,7 @@ if (isset($_SESSION['last_activity'])) {
 $_SESSION['last_activity'] = time();
 
 $USER_ID   = $_SESSION['user_id'];
+$admin_id  = $USER_ID;
 $USERNAME  = $_SESSION['username'];
 $ROLE      = $_SESSION['role'] ?? '';
 $BRANCH_ID = $_SESSION['branch_id'] ?? null;

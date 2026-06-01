@@ -13,9 +13,6 @@ if (isset($_POST['change'])) {
     } else {
         $hash = password_hash($new_password, PASSWORD_DEFAULT);
 
-        // assuming auth.php sets admin ID
-        //$admin_id = $_SESSION['admin_id'];
-
         $stmt = $conn->prepare("UPDATE admins SET password=? WHERE id=?");
         $stmt->bind_param("si", $hash, $admin_id);
 
