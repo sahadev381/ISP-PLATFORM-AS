@@ -7,6 +7,9 @@ require 'twilio.php';
 
 $devices = $conn->query("SELECT * FROM devices");
 
+$markDownIds = [];
+$increaseFailIds = [];
+$markUpIds = [];
 
 while ($d = $devices->fetch_assoc()) {
 
@@ -28,24 +31,11 @@ while ($d = $devices->fetch_assoc()) {
                  . "Time: " . date('Y-m-d H:i:s');
 
             sendWhatsApp($msg);
-
-            $stmt = $conn->prepare(
-                "UPDATE devices 
-                 SET status='DOWN', fail_count=?, last_checked=NOW() 
-                 WHERE id=?"
-            );
-            $stmt->bind_param("ii", $failCount, $d['id']);
-            $stmt->execute();
+            $markDownIds[] = (int)$d['id'];
 
         } else {
             // Just increase fail count
-            $stmt = $conn->prepare(
-                "UPDATE devices 
-                 SET fail_count=?, last_checked=NOW() 
-                 WHERE id=?"
-            );
-            $stmt->bind_param("ii", $failCount, $d['id']);
-            $stmt->execute();
+            $increaseFailIds[] = (int)$d['id'];
         }
 
     }
@@ -64,13 +54,22 @@ while ($d = $devices->fetch_assoc()) {
         }
 
         // Reset fail count
-        $stmt = $conn->prepare(
-            "UPDATE devices 
-             SET status='UP', fail_count=0, last_checked=NOW() 
-             WHERE id=?"
-        );
-        $stmt->bind_param("i", $d['id']);
-        $stmt->execute();
+        $markUpIds[] = (int)$d['id'];
     }
 }
 
+// Bulk Updates
+if (!empty($markDownIds)) {
+    $ids = implode(',', $markDownIds);
+    $conn->query("UPDATE devices SET status='DOWN', fail_count=fail_count+1, last_checked=NOW() WHERE id IN ($ids)");
+}
+
+if (!empty($increaseFailIds)) {
+    $ids = implode(',', $increaseFailIds);
+    $conn->query("UPDATE devices SET fail_count=fail_count+1, last_checked=NOW() WHERE id IN ($ids)");
+}
+
+if (!empty($markUpIds)) {
+    $ids = implode(',', $markUpIds);
+    $conn->query("UPDATE devices SET status='UP', fail_count=0, last_checked=NOW() WHERE id IN ($ids)");
+}

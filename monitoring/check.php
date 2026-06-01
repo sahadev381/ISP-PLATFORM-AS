@@ -17,6 +17,17 @@ function pingDevice($ip) {
     }
 }
 
+function httpCheck($ip) {
+    $ch = curl_init($ip);
+    curl_setopt($ch, CURLOPT_NOBODY, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return ($http_code >= 200 && $http_code < 400);
+}
+
 
 while ($device = $result->fetch_assoc()) {
     $ip = $device['ip_address'];
@@ -26,19 +37,10 @@ while ($device = $result->fetch_assoc()) {
 
     if ($type == 'ping') {
         // Ping check
-        $safe_ip = escapeshellarg($ip);
-        exec("ping -c 1 $safe_ip", $out, $return_var);
-        $status = ($return_var === 0) ? 'UP' : 'DOWN';
+        $status = pingDevice($ip) ? 'UP' : 'DOWN';
     } elseif ($type == 'http') {
         // HTTP check
-        $ch = curl_init($ip);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        $status = ($http_code >= 200 && $http_code < 400) ? 'UP' : 'DOWN';
+        $status = httpCheck($ip) ? 'UP' : 'DOWN';
     }
 
     // Update device status
