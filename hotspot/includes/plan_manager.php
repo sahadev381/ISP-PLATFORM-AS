@@ -8,10 +8,14 @@
 class PlanManager {
     private $conn;
     
-    public function __construct() {
-        chdir(__DIR__ . '/../..');
-        include 'config.php';
-        $this->conn = $conn;
+    public function __construct($conn = null) {
+        if ($conn) {
+            $this->conn = $conn;
+        } else {
+            chdir(__DIR__ . '/../..');
+            include 'config.php';
+            $this->conn = $conn;
+        }
     }
     
     // ==================== PLAN MANAGEMENT ====================
