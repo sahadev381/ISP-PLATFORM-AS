@@ -19,8 +19,13 @@ if ($action == 'add_node') {
     if($stmt->execute()) {
         $node_id = $conn->insert_id;
         if ($capacity > 0) {
+            $values = [];
             for ($i = 1; $i <= $capacity; $i++) {
-                $conn->query("INSERT INTO port_assignments (node_id, port_number) VALUES ($node_id, $i)");
+                $values[] = "($node_id, $i)";
+            }
+            if (!empty($values)) {
+                $sql = "INSERT INTO port_assignments (node_id, port_number) VALUES " . implode(',', $values);
+                $conn->query($sql);
             }
         }
         echo json_encode(['status' => 'success', 'id' => $node_id]);
