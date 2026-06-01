@@ -31,3 +31,6 @@ config.php
 # Database
 *.sql
 *.db
+
+# PHPUnit
+.phpunit.cache/

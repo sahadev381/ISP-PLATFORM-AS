@@ -2,6 +2,7 @@
 include 'config.php';
 include 'includes/auth.php';
 include 'includes/mikrotik_api.php';
+include_once 'includes/utils.php';
 
 $page_title = "MikroTik SDN Controller";
 $active = "nas";
@@ -234,16 +235,6 @@ include 'includes/topbar.php';
         </div>
     </div>
 </div>
-
-<?php
-function formatBytes($bytes) {
-    if ($bytes == 0) return '0 B';
-    $k = 1024;
-    $sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $i = floor(log($bytes, $k));
-    return round($bytes / pow($k, $i), 2) . ' ' . $sizes[$i];
-}
-?>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

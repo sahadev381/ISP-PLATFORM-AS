@@ -6,6 +6,7 @@
 
 header('Content-Type: application/json');
 include_once '../config.php';
+include_once '../includes/utils.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -297,12 +298,4 @@ function getSwitchStats($device) {
     }
     
     return $stats;
-}
-
-function formatBytes($bytes) {
-    if ($bytes == 0) return '0 B';
-    $k = 1024;
-    $sizes = ['B', 'KB', 'MB', 'GB'];
-    $i = floor(log($bytes, $k));
-    return round($bytes / pow($k, $i), 2) . ' ' . $sizes[$i];
 }
