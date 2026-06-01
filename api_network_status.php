@@ -2,20 +2,47 @@
 include 'config.php';
 header('Content-Type: application/json');
 
-function ping($host) {
-    // Standard ICMP ping (works on Linux)
-    $output = []; $result = 0;
-    exec("ping -c 1 -W 1 " . escapeshellarg($host), $output, $result);
-    return ($result === 0);
+$devices_query = $conn->query("SELECT id, nasname, ip_address, device_type FROM nas");
+$devices = [];
+$ips = [];
+
+while($d = $devices_query->fetch_assoc()) {
+    $devices[] = $d;
+    $ips[] = $d['ip_address'];
 }
 
-$devices = $conn->query("SELECT id, nasname, ip_address, device_type FROM nas");
-$results = [];
+$results_map = [];
+if (!empty($ips)) {
+    // Run nmap in parallel to check all IPs at once
+    $ips_string = implode(' ', array_map('escapeshellarg', array_unique($ips)));
+    $xml_output = shell_exec("nmap -sn -n -oX - $ips_string");
 
-while($d = $devices->fetch_assoc()) {
-    $start_time = microtime(true);
-    $is_online = ping($d['ip_address']);
-    $latency = round((microtime(true) - $start_time) * 1000, 2);
+    if ($xml_output) {
+        $xml = simplexml_load_string($xml_output);
+        if ($xml) {
+            foreach ($xml->host as $host) {
+                $ip = (string)$host->address['addr'];
+                $status = (string)$host->status['state'];
+                $latency = 0;
+                if (isset($host->times)) {
+                    // srtt is in microseconds
+                    $latency = round((int)$host->times['srtt'] / 1000, 2);
+                }
+                $results_map[$ip] = [
+                    'online' => ($status === 'up'),
+                    'latency' => $latency
+                ];
+            }
+        }
+    }
+}
+
+$results = [];
+foreach ($devices as $d) {
+    $ip = $d['ip_address'];
+    $is_online = isset($results_map[$ip]) ? $results_map[$ip]['online'] : false;
+    $latency = isset($results_map[$ip]) ? $results_map[$ip]['latency'] : 0;
+
     $status_val = $is_online ? 1 : 0;
     
     // Update DB status column silently
