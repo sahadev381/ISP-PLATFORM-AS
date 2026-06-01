@@ -87,7 +87,7 @@ include 'includes/topbar.php';
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-top:20px;">
                     <?php while($u = $uptime_stats->fetch_assoc()): 
                         $val = round($u['uptime_pct'] ?? 100, 2);
-                        $color = ($val > 99.9) ? '#10b981' : (($val > 98) ? '#f59e0b' : '#ef4444');
+                        $color = ($val >= 99.9) ? '#10b981' : (($val > 98) ? '#f59e0b' : '#ef4444');
                     ?>
                         <div style="text-align:center; padding:20px; border:1px solid #f1f5f9; border-radius:12px;">
                             <div style="font-size:11px; color:#64748b; margin-bottom:5px;"><?= $u['nasname'] ?></div>
