@@ -128,6 +128,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             outline: none;
             border-color: var(--primary);
         }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-main);
+        }
+
+        .password-toggle:focus {
+            outline: 2px solid var(--primary);
+            border-radius: 0.25rem;
+            color: var(--text-main);
+        }
         
         .btn {
             width: 100%;
@@ -186,16 +217,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="message error"><?= htmlspecialchars($message) ?></div>
             <?php endif; ?>
             
-            <form method="POST">
+            <form method="POST" aria-label="Login form">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required 
+                    <input type="text" id="username" name="username" required aria-required="true"
+                           placeholder="Enter your username"
                            value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
                 </div>
                 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" required aria-required="true"
+                               placeholder="Enter your password" style="padding-right: 2.5rem;">
+                        <button type="button" id="togglePassword" class="password-toggle" aria-label="Show password" title="Show password">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn">
@@ -208,5 +246,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.querySelector('#togglePassword');
+            const password = document.querySelector('#password');
+            const icon = togglePassword.querySelector('i');
+
+            togglePassword.addEventListener('click', function() {
+                // Toggle the type attribute
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+
+                // Toggle the icon
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+
+                // Toggle ARIA label
+                const isPassword = type === 'password';
+                this.setAttribute('aria-label', isPassword ? 'Show password' : 'Hide password');
+                this.setAttribute('title', isPassword ? 'Show password' : 'Hide password');
+            });
+        });
+    </script>
 </body>
 </html>

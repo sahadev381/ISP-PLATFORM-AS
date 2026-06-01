@@ -195,6 +195,26 @@ include 'includes/topbar.php';
     .input-wrapper { position: relative; }
     .input-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
     .input-wrapper .form-control { padding-left: 45px; }
+
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+        z-index: 10;
+        pointer-events: auto;
+    }
+    .password-toggle:hover { color: #3b82f6; }
+    .password-toggle:focus { outline: none; color: #3b82f6; }
     
     .btn-submit { background: #3b82f6; color: #fff; padding: 12px 30px; border-radius: 10px; border: none; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 10px; }
     .btn-submit:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
@@ -378,8 +398,10 @@ include 'includes/topbar.php';
                             <label>Set New Password <small style="color: #94a3b8; font-weight: normal;">(Leave empty to keep current)</small></label>
                             <div class="input-wrapper">
                                 <i class="fa fa-key"></i>
-                                <input type="password" name="password" id="new_pass" class="form-control" placeholder="••••••••">
-                                <i class="fa fa-eye" id="togglePass" style="left: auto; right: 15px; cursor: pointer; pointer-events: auto;"></i>
+                                <input type="password" name="password" id="new_pass" class="form-control" placeholder="••••••••" style="padding-right: 45px;">
+                                <button type="button" id="togglePass" class="password-toggle" aria-label="Show password" title="Show password">
+                                    <i class="fa fa-eye"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -429,7 +451,13 @@ document.getElementById('togglePass').addEventListener('click', function() {
     const passInput = document.getElementById('new_pass');
     const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
     passInput.setAttribute('type', type);
-    this.classList.toggle('fa-eye-slash');
+    const icon = this.querySelector('i');
+    icon.classList.toggle('fa-eye');
+    icon.classList.toggle('fa-eye-slash');
+
+    const isPassword = type === 'password';
+    this.setAttribute('aria-label', isPassword ? 'Show password' : 'Hide password');
+    this.setAttribute('title', isPassword ? 'Show password' : 'Hide password');
 });
 </script>
 
