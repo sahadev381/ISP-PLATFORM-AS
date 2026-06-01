@@ -47,11 +47,21 @@ if ($action == 'get_entries') {
     $result = $conn->query($query);
     $entries = $result->fetch_all(MYSQLI_ASSOC);
     
-    // Get comments for each entry
-    foreach ($entries as &$entry) {
-        $did = $entry['id'];
-        $c_res = $conn->query("SELECT c.*, a.username FROM diary_comments c LEFT JOIN admins a ON c.admin_id = a.id WHERE c.diary_id = $did ORDER BY c.created_at ASC");
-        $entry['comments'] = $c_res->fetch_all(MYSQLI_ASSOC);
+    if (!empty($entries)) {
+        $diary_ids = array_column($entries, 'id');
+        $ids_str = implode(',', array_map('intval', $diary_ids));
+
+        $c_res = $conn->query("SELECT c.*, a.username FROM diary_comments c LEFT JOIN admins a ON c.admin_id = a.id WHERE c.diary_id IN ($ids_str) ORDER BY c.created_at ASC");
+        $all_comments = $c_res->fetch_all(MYSQLI_ASSOC);
+
+        $comments_map = [];
+        foreach ($all_comments as $comment) {
+            $comments_map[$comment['diary_id']][] = $comment;
+        }
+
+        foreach ($entries as &$entry) {
+            $entry['comments'] = $comments_map[$entry['id']] ?? [];
+        }
     }
     
     echo json_encode($entries);
