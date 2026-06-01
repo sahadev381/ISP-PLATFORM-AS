@@ -315,8 +315,13 @@ function showTab(tabId, btn) {
                 <h3><i class="fa fa-chart-pie"></i> Monthly FUP Usage</h3>
                 <?php 
                     $limit = (float)($user['data_limit'] ?? 0);
-                    $monthly = $conn->query("SELECT SUM(acctoutputoctets+acctinputoctets) as total FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc();
-                    $used = (float)($monthly['total'] ?? 0);
+                    $usage_stmt = $conn->prepare("SELECT SUM(acctoutputoctets) as d, SUM(acctinputoctets) as u FROM radacct WHERE username=? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())");
+                    $usage_stmt->bind_param("s", $username);
+                    $usage_stmt->execute();
+                    $usage_res = $usage_stmt->get_result()->fetch_assoc();
+                    $used_d = (float)($usage_res['d'] ?? 0);
+                    $used_u = (float)($usage_res['u'] ?? 0);
+                    $used = $used_d + $used_u;
                     $percent = ($limit > 0) ? min(100, round(($used / $limit) * 100, 1)) : 0;
                     $color = ($percent > 90) ? '#ef4444' : (($percent > 70) ? '#f59e0b' : '#10b981');
                 ?>
@@ -330,11 +335,11 @@ function showTab(tabId, btn) {
                 </div>
                 <div class="detail-row">
                     <label>Downloaded</label>
-                    <span><?= formatBytes($conn->query("SELECT SUM(acctoutputoctets) as d FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc()['d'] ?? 0) ?></span>
+                    <span><?= formatBytes($used_d) ?></span>
                 </div>
                 <div class="detail-row">
                     <label>Uploaded</label>
-                    <span><?= formatBytes($conn->query("SELECT SUM(acctinputoctets) as u FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc()['u'] ?? 0) ?></span>
+                    <span><?= formatBytes($used_u) ?></span>
                 </div>
                 <?php if($limit > 0): ?>
                 <div class="usage-bar-bg">
@@ -441,7 +446,10 @@ function showTab(tabId, btn) {
                 <thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
                 <tbody>
                     <?php 
-                    $tks = $conn->query("SELECT * FROM tickets WHERE customer_id = (SELECT id FROM customers WHERE username='$username') ORDER BY id DESC");
+                    $tk_stmt = $conn->prepare("SELECT * FROM tickets WHERE customer_id = ? ORDER BY id DESC");
+                    $tk_stmt->bind_param("i", $user['id']);
+                    $tk_stmt->execute();
+                    $tks = $tk_stmt->get_result();
                     while($tk = $tks->fetch_assoc()): ?>
                         <tr>
                             <td>#<?= $tk['id'] ?></td>
