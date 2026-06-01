@@ -44,8 +44,16 @@ if ($action == 'update_port') {
 
 if ($action == 'get_node_details') {
     $id = $_GET['id'];
-    $node = $conn->query("SELECT * FROM ftth_nodes WHERE id = $id")->fetch_assoc();
-    $ports = $conn->query("SELECT p.*, n.name as linked_node_name FROM port_assignments p LEFT JOIN ftth_nodes n ON p.linked_node_id = n.id WHERE p.node_id = $id")->fetch_all(MYSQLI_ASSOC);
+    $stmt = $conn->prepare("SELECT * FROM ftth_nodes WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $node = $stmt->get_result()->fetch_assoc();
+
+    $stmt = $conn->prepare("SELECT p.*, n.name as linked_node_name FROM port_assignments p LEFT JOIN ftth_nodes n ON p.linked_node_id = n.id WHERE p.node_id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $ports = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
     echo json_encode(['node' => $node, 'ports' => $ports]);
 }
 
@@ -64,7 +72,10 @@ if ($action == 'save_route') {
 if ($action == 'predict_fault') {
     $route_id = $_POST['route_id'];
     $distance = (float)$_POST['distance'];
-    $route = $conn->query("SELECT * FROM fiber_routes WHERE id = $route_id")->fetch_assoc();
+    $stmt = $conn->prepare("SELECT * FROM fiber_routes WHERE id = ?");
+    $stmt->bind_param("i", $route_id);
+    $stmt->execute();
+    $route = $stmt->get_result()->fetch_assoc();
     if (!$route) die(json_encode(['status' => 'error']));
     $path = json_decode($route['path_data'], true);
     $current_dist = 0; $predicted_point = null;
@@ -109,6 +120,10 @@ if ($action == 'update_node_pos') {
     echo json_encode(['status' => 'success']);
 }
 if ($action == 'delete_node') {
-    $id = $_POST['id']; $conn->query("DELETE FROM ftth_nodes WHERE id = $id"); echo json_encode(['status' => 'success']);
+    $id = $_POST['id'];
+    $stmt = $conn->prepare("DELETE FROM ftth_nodes WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    echo json_encode(['status' => 'success']);
 }
 ?>
