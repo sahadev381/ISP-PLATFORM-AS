@@ -120,6 +120,25 @@ include 'includes/topbar.php';
     .input-wrapper { position: relative; }
     .input-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; }
     
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+        z-index: 10;
+    }
+    .password-toggle:hover { color: #3b82f6; }
+    .password-toggle:focus { outline: none; color: #3b82f6; }
+
     .form-control { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s; color: #1e293b; }
     .form-control:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
     textarea.form-control { min-height: 80px; padding-top: 10px; }
@@ -254,7 +273,10 @@ include 'includes/topbar.php';
                             <label>PPP Password</label>
                             <div class="input-wrapper">
                                 <i class="fa fa-lock"></i>
-                                <input type="password" name="password" class="form-control" placeholder="Secret password" required>
+                                <input type="password" name="password" id="password" class="form-control" placeholder="Secret password" required style="padding-right: 40px;">
+                                <button type="button" id="togglePass" class="password-toggle" aria-label="Show password" title="Show password">
+                                    <i class="fa fa-eye"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -352,4 +374,18 @@ function showError(error) {
             break;
     }
 }
+
+// Password Toggle
+document.getElementById('togglePass').addEventListener('click', function() {
+    const passInput = document.getElementById('password');
+    const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passInput.setAttribute('type', type);
+    const icon = this.querySelector('i');
+    icon.classList.toggle('fa-eye');
+    icon.classList.toggle('fa-eye-slash');
+
+    const isPassword = type === 'password';
+    this.setAttribute('aria-label', isPassword ? 'Show password' : 'Hide password');
+    this.setAttribute('title', isPassword ? 'Show password' : 'Hide password');
+});
 </script>
