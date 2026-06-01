@@ -34,15 +34,19 @@ switch ($action) {
         }
         
         // Check if device already exists
-        $existing = $conn->query("SELECT id FROM nas WHERE ip_address = '$ip_address'");
+        $stmt = $conn->prepare("SELECT id FROM nas WHERE ip_address = ?");
+        $stmt->bind_param("s", $ip_address);
+        $stmt->execute();
+        $existing = $stmt->get_result();
         if ($existing->num_rows > 0) {
             jsonResponse(false, 'Device with this IP already exists');
         }
         
-        $sql = "INSERT INTO nas (nasname, ip_address, device_type, model, snmp_community, api_user, api_pass, shortname)
-                VALUES ('$nasname', '$ip_address', '$device_type', '$model', '$snmp_community', '$api_user', '$api_pass', '$nasname')";
+        $stmt = $conn->prepare("INSERT INTO nas (nasname, ip_address, device_type, model, snmp_community, api_user, api_pass, shortname)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssssss", $nasname, $ip_address, $device_type, $model, $snmp_community, $api_user, $api_pass, $nasname);
         
-        if ($conn->query($sql)) {
+        if ($stmt->execute()) {
             jsonResponse(true, 'Device added successfully', ['id' => $conn->insert_id]);
         } else {
             jsonResponse(false, 'Error adding device: ' . $conn->error);
@@ -62,15 +66,40 @@ switch ($action) {
         }
         
         $fields = [];
-        $fields[] = "nasname = '$nasname'";
-        $fields[] = "ip_address = '$ip_address'";
-        $fields[] = "device_type = '$device_type'";
-        if (!empty($model)) $fields[] = "model = '$model'";
-        if (!empty($location)) $fields[] = "location = '$location'";
+        $params = [];
+        $types = "";
         
-        $sql = "UPDATE nas SET " . implode(', ', $fields) . " WHERE id = $id";
+        $fields[] = "nasname = ?";
+        $params[] = $nasname;
+        $types .= "s";
         
-        if ($conn->query($sql)) {
+        $fields[] = "ip_address = ?";
+        $params[] = $ip_address;
+        $types .= "s";
+
+        $fields[] = "device_type = ?";
+        $params[] = $device_type;
+        $types .= "s";
+
+        if (!empty($model)) {
+            $fields[] = "model = ?";
+            $params[] = $model;
+            $types .= "s";
+        }
+        if (!empty($location)) {
+            $fields[] = "location = ?";
+            $params[] = $location;
+            $types .= "s";
+        }
+
+        $params[] = $id;
+        $types .= "i";
+
+        $sql = "UPDATE nas SET " . implode(', ', $fields) . " WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param($types, ...$params);
+
+        if ($stmt->execute()) {
             jsonResponse(true, 'Device updated successfully');
         } else {
             jsonResponse(false, 'Error updating device');
@@ -95,12 +124,23 @@ switch ($action) {
         $type = $_GET['type'] ?? '';
         
         $sql = "SELECT * FROM nas WHERE 1=1";
+        $params = [];
+        $types = "";
+
         if ($type) {
-            $sql .= " AND device_type = '$type'";
+            $sql .= " AND device_type = ?";
+            $params[] = $type;
+            $types .= "s";
         }
         $sql .= " ORDER BY device_type, nasname";
         
-        $devices = $conn->query($sql);
+        $stmt = $conn->prepare($sql);
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $devices = $stmt->get_result();
+
         $data = [];
         while ($d = $devices->fetch_assoc()) {
             $data[] = $d;
@@ -156,18 +196,22 @@ switch ($action) {
         )");
         
         // Check if connection already exists
-        $check = $conn->query("SELECT id FROM network_topology_links 
-            WHERE (from_device_id = $from_id AND to_device_id = $to_id) 
-            OR (from_device_id = $to_id AND to_device_id = $from_id)");
+        $stmt = $conn->prepare("SELECT id FROM network_topology_links
+            WHERE (from_device_id = ? AND to_device_id = ?)
+            OR (from_device_id = ? AND to_device_id = ?)");
+        $stmt->bind_param("iiii", $from_id, $to_id, $to_id, $from_id);
+        $stmt->execute();
+        $check = $stmt->get_result();
         
         if ($check->num_rows > 0) {
             jsonResponse(false, 'Connection already exists');
         }
         
-        $sql = "INSERT INTO network_topology_links (from_device_id, to_device_id, cable_type) 
-                VALUES ($from_id, $to_id, '$cable_type')";
+        $stmt = $conn->prepare("INSERT INTO network_topology_links (from_device_id, to_device_id, cable_type)
+                VALUES (?, ?, ?)");
+        $stmt->bind_param("iis", $from_id, $to_id, $cable_type);
         
-        if ($conn->query($sql)) {
+        if ($stmt->execute()) {
             jsonResponse(true, 'Connection created');
         } else {
             jsonResponse(false, 'Error: ' . $conn->error);
@@ -209,13 +253,18 @@ switch ($action) {
         }
         
         // Update the connection
-        $conn->query("UPDATE network_topology_links SET 
-            cable_type = '$cable_type',
-            cable_name = '$cable_name'
-            WHERE (from_device_id = $from_id AND to_device_id = $to_id) 
-            OR (from_device_id = $to_id AND to_device_id = $from_id)");
+        $stmt = $conn->prepare("UPDATE network_topology_links SET
+            cable_type = ?,
+            cable_name = ?
+            WHERE (from_device_id = ? AND to_device_id = ?)
+            OR (from_device_id = ? AND to_device_id = ?)");
+        $stmt->bind_param("ssiiii", $cable_type, $cable_name, $from_id, $to_id, $to_id, $from_id);
         
-        jsonResponse(true, 'Connection updated');
+        if ($stmt->execute()) {
+            jsonResponse(true, 'Connection updated');
+        } else {
+            jsonResponse(false, 'Error updating connection: ' . $conn->error);
+        }
         break;
     
     case 'clear_connections':
