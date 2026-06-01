@@ -37,9 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         // Add new permissions
         if (!empty($_POST['permissions'])) {
+            $values = [];
             foreach ($_POST['permissions'] as $perm) {
                 $perm = $conn->real_escape_string($perm);
-                $conn->query("INSERT INTO role_permissions (role_id, permission) VALUES ($roleId, '$perm')");
+                $values[] = "($roleId, '$perm')";
+            }
+            if (!empty($values)) {
+                $sql = "INSERT INTO role_permissions (role_id, permission) VALUES " . implode(', ', $values);
+                $conn->query($sql);
             }
         }
         $message = "Permissions updated!";
