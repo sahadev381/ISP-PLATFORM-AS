@@ -31,6 +31,22 @@ $result = $conn->query($sql);
 $updated = 0;
 $errors = 0;
 
+// 2. Fetch Usage for all users for Current Month in one go (Performance Optimization)
+$start_date = date('Y-m-01 00:00:00');
+$usage_cache = [];
+$bulk_usage_sql = "
+    SELECT username, SUM(acctinputoctets + acctoutputoctets) as total_usage
+    FROM radacct
+    WHERE acctstarttime >= '$start_date'
+    GROUP BY username
+";
+$bulk_usage_res = $conn->query($bulk_usage_sql);
+if ($bulk_usage_res) {
+    while ($row = $bulk_usage_res->fetch_assoc()) {
+        $usage_cache[$row['username']] = (float)$row['total_usage'];
+    }
+}
+
 while ($user = $result->fetch_assoc()) {
     $username = $user['username'];
     $plan_id = $user['plan_id'];
@@ -46,19 +62,10 @@ while ($user = $result->fetch_assoc()) {
     $t3_limit = (float)$user['fup3_limit'];
     $t3_speed = $user['fup3_speed'];
 
-    // 2. Calculate Usage for Current Month
-    $start_date = date('Y-m-01 00:00:00'); 
-    
-    $usage_sql = "
-        SELECT COALESCE(SUM(acctinputoctets + acctoutputoctets), 0) as total_usage
-        FROM radacct
-        WHERE username = '$username'
-        AND acctstarttime >= '$start_date'
-    ";
-    $usage_res = $conn->query($usage_sql)->fetch_assoc();
-    $current_usage = (float)$usage_res['total_usage'];
+    // 3. Get Usage from Cache
+    $current_usage = $usage_cache[$username] ?? 0.0;
 
-    // 3. Update Cache Table (Preserve fup_reset)
+    // 4. Update Cache Table (Preserve fup_reset)
     // If fup_reset is set, clear used_quota (monthly reset)
     if ($fup_reset === 1) {
         $conn->query("UPDATE data_usage SET used_quota = 0, fup_reset = 0, updated_at = NOW() WHERE username = '$username'");
@@ -74,7 +81,7 @@ while ($user = $result->fetch_assoc()) {
         ");
     }
 
-    // 4. Determine Target Speed
+    // 5. Determine Target Speed
     $target_speed = $base_speed;
     $status = "Normal (Base: $base_speed)";
 
@@ -104,7 +111,7 @@ while ($user = $result->fetch_assoc()) {
         $status = "No FUP (Base: $base_speed)";
     }
 
-    // 5. Update Radreply if changed
+    // 6. Update Radreply if changed
     $check = $conn->query("SELECT value FROM radreply WHERE username='$username' AND attribute='Mikrotik-Rate-Limit'")->fetch_assoc();
     
     if (!$check || $check['value'] !== $target_speed) {
