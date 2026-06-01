@@ -89,8 +89,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Get hotels
-$hotels = $conn->query("SELECT * FROM hotspot_hotels WHERE status='active'");
+// Get hotels with room statistics
+$hotels = $conn->query("
+    SELECT h.*,
+           SUM(CASE WHEN r.status = 'occupied' THEN 1 ELSE 0 END) AS occupied_cnt,
+           SUM(CASE WHEN r.status = 'available' THEN 1 ELSE 0 END) AS available_cnt
+    FROM hotspot_hotels h
+    LEFT JOIN hotspot_rooms r ON h.id = r.hotel_id
+    WHERE h.status = 'active'
+    GROUP BY h.id
+");
 
 // Get plans for dropdown
 $plans = $conn->query("SELECT * FROM hotspot_profiles WHERE status='active'");
@@ -124,15 +132,8 @@ include 'includes/header_hotspot.php';
 
             <div class="row">
                 <?php while ($hotel = $hotels->fetch_assoc()): 
-                    $roomStats = $conn->query("
-                        SELECT status, COUNT(*) as cnt FROM hotspot_rooms 
-                        WHERE hotel_id = {$hotel['id']} GROUP BY status
-                    ")->fetch_all(MYSQLI_ASSOC);
-                    $occupied = 0; $available = 0;
-                    foreach ($roomStats as $s) {
-                        if ($s['status'] == 'occupied') $occupied = $s['cnt'];
-                        if ($s['status'] == 'available') $available = $s['cnt'];
-                    }
+                    $occupied = $hotel['occupied_cnt'] ?? 0;
+                    $available = $hotel['available_cnt'] ?? 0;
                 ?>
                 <div class="col-md-4 mb-4">
                     <div class="card">
