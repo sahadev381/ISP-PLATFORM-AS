@@ -1,5 +1,6 @@
 <?php
 include 'config.php';
+include 'includes/auth.php';
 include 'includes/genieacs_api.php';
 
 header('Content-Type: application/json');

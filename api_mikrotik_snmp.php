@@ -4,6 +4,7 @@
  */
 
 header('Content-Type: application/json');
+include 'includes/auth.php';
 
 $host = $_GET['host'] ?? '192.168.5.20';
 $community = $_GET['community'] ?? 'public';

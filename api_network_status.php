@@ -1,5 +1,6 @@
 <?php
 include 'config.php';
+include 'includes/auth.php';
 header('Content-Type: application/json');
 
 function ping($host) {

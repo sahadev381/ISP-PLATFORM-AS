@@ -7,6 +7,7 @@
 
 header('Content-Type: application/json');
 include_once '../config.php';
+include_once '../includes/auth.php';
 include_once '../includes/mikrotik_api.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';

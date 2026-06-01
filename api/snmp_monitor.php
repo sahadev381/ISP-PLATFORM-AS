@@ -6,6 +6,7 @@
 
 header('Content-Type: application/json');
 include_once '../config.php';
+include_once '../includes/auth.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 

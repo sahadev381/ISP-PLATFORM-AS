@@ -6,6 +6,7 @@
 
 header('Content-Type: application/json');
 include_once '../config.php';
+include_once '../includes/auth.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -17,11 +18,6 @@ function jsonResponse($success, $message = '', $data = []) {
         'data' => $data
     ]);
     exit;
-}
-
-// Check authentication
-if (!isset($_SESSION['user_id']) && !isset($_GET['test'])) {
-    jsonResponse(false, 'Unauthorized');
 }
 
 switch ($action) {
