@@ -1,5 +1,6 @@
 <?php
 include "db.php";
+require_once "parallel_checker.php";
 
 // Fetch all devices from the database
 $result = $conn->query("SELECT * FROM devices");
@@ -7,44 +8,62 @@ if (!$result) {
     die("Error fetching devices: " . $conn->error);
 }
 
-function pingDevice($ip) {
-    // Use exec or shell_exec to ping
-    $pingResult = shell_exec("ping -c 1 -W 1 " . escapeshellarg($ip));
-    if (strpos($pingResult, '1 packets transmitted, 1 received') !== false) {
-        return true; // device is up
-    } else {
-        return false; // device is down
+$devices = [];
+while ($row = $result->fetch_assoc()) {
+    $devices[] = $row;
+}
+
+// Group devices by type
+$ping_devices = [];
+$http_devices = [];
+
+foreach ($devices as $device) {
+    if ($device['type'] == 'ping') {
+        $ping_devices[] = $device;
+    } elseif ($device['type'] == 'http') {
+        $http_devices[] = $device;
     }
 }
 
+// Extract IPs/URLs for parallel checking
+$ping_ips = array_column($ping_devices, 'ip_address');
+$http_urls = array_column($http_devices, 'ip_address');
 
-while ($device = $result->fetch_assoc()) {
-    $ip = $device['ip_address'];
-    $type = $device['type'];
-    $id = $device['id'];
-    $status = 'DOWN'; // default status
+// Perform parallel checks
+$ping_results = parallelPing($ping_ips);
+$http_results = parallelHttpCheck($http_urls);
 
-    if ($type == 'ping') {
-        // Ping check
-        $safe_ip = escapeshellarg($ip);
-        exec("ping -c 1 $safe_ip", $out, $return_var);
-        $status = ($return_var === 0) ? 'UP' : 'DOWN';
-    } elseif ($type == 'http') {
-        // HTTP check
-        $ch = curl_init($ip);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        $status = ($http_code >= 200 && $http_code < 400) ? 'UP' : 'DOWN';
-    }
+// Combine results
+$all_results = [];
+foreach ($ping_devices as $device) {
+    $all_results[$device['id']] = $ping_results[$device['ip_address']] ?? 'DOWN';
+}
+foreach ($http_devices as $device) {
+    $all_results[$device['id']] = $http_results[$device['ip_address']] ?? 'DOWN';
+}
 
-    // Update device status
-    $stmt = $conn->prepare("UPDATE devices SET status=?, last_checked=NOW() WHERE id=?");
+// Update device statuses
+$stmt = $conn->prepare("UPDATE devices SET status=?, last_checked=NOW() WHERE id=?");
+foreach ($all_results as $id => $status) {
     $stmt->bind_param("si", $status, $id);
     $stmt->execute();
-    $stmt->close();
+}
+$stmt->close();
+
+/**
+ * Kept for backward compatibility if used elsewhere,
+ * but now uses the logic from parallel_checker if possible or just sequential for single.
+ */
+function pingDevice($ip) {
+    $results = parallelPing([$ip]);
+    return isset($results[$ip]) && $results[$ip] === 'UP';
+}
+
+/**
+ * Added for completeness and consistency with monitor.php
+ */
+function httpCheck($url) {
+    $results = parallelHttpCheck([$url]);
+    return isset($results[$url]) && $results[$url] === 'UP';
 }
 ?>
