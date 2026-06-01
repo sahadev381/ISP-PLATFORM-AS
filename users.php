@@ -12,22 +12,33 @@ $active = "users";
 
 /* ============================
    ONLINE USERS LIST
+   Optimization: Use associative array (hash map) for O(1) lookup
 ============================ */
 $online_list = [];
 $res_online = $conn->query("SELECT DISTINCT username FROM radacct WHERE acctstoptime IS NULL");
 if($res_online){
     while ($row = $res_online->fetch_assoc()) {
-        $online_list[] = $row['username'];
+        $online_list[$row['username']] = true;
     }
 }
 
 /*=====================
    STATS CALCULATION
+   Optimization: Combine multiple COUNT queries into one using conditional aggregation
 ============================ */
-$total_users   = $conn->query("SELECT COUNT(*) c FROM customers")->fetch_assoc()['c'];
-$active_users  = $conn->query("SELECT COUNT(*) c FROM customers WHERE status='active'")->fetch_assoc()['c'];
-$expired_users = $conn->query("SELECT COUNT(*) c FROM customers WHERE expiry < CURDATE()")->fetch_assoc()['c'];
-$online_users  = $conn->query("SELECT COUNT(DISTINCT username) c FROM radacct WHERE acctstoptime IS NULL")->fetch_assoc()['c'];
+$stats = $conn->query("
+    SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN expiry < CURDATE() THEN 1 ELSE 0 END) as expired
+    FROM customers
+")->fetch_assoc();
+
+$total_users   = $stats['total'] ?? 0;
+$active_users  = $stats['active'] ?? 0;
+$expired_users = $stats['expired'] ?? 0;
+// Re-use the already fetched online list to avoid another DB query
+$online_users  = count($online_list);
 
 /* ============================
    SEARCH & FILTER LOGIC
@@ -160,7 +171,8 @@ include 'includes/topbar.php';
                     <?php if ($users && $users->num_rows > 0): ?>
                         <?php while($u = $users->fetch_assoc()): 
                             $initials = strtoupper(substr($u['username'], 0, 2));
-                            $is_online = in_array($u['username'], $online_list);
+                            // Optimization: O(1) lookup instead of O(N) in_array()
+                            $is_online = isset($online_list[$u['username']]);
                             $is_expired = strtotime($u['expiry']) < time();
                         ?>
                         <tr>
