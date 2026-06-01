@@ -12,9 +12,18 @@ $olt_online = $mikrotik_online = $switch_online = 0;
 $device_list = [];
 while($d = $devices->fetch_assoc()) {
     $device_list[] = $d;
-    if($d['device_type'] == 'olt') { $olt_count++; }
-    if($d['device_type'] == 'mikrotik') { $mikrotik_count++; }
-    if($d['device_type'] == 'switch') { $switch_count++; }
+    if($d['device_type'] == 'olt') {
+        $olt_count++;
+        if($d['status'] == 1) $olt_online++;
+    }
+    if($d['device_type'] == 'mikrotik') {
+        $mikrotik_count++;
+        if($d['status'] == 1) $mikrotik_online++;
+    }
+    if($d['device_type'] == 'switch') {
+        $switch_count++;
+        if($d['status'] == 1) $switch_online++;
+    }
 }
 
 include 'includes/header.php';

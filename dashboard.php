@@ -11,19 +11,34 @@ $active = "dashboard";
 
 include 'includes/auth.php';
 
-// Main stats
-$total_users   = $conn->query("SELECT COUNT(*) c FROM customers")->fetch_assoc()['c'] ?? 0;
-$active_users  = $conn->query("SELECT COUNT(*) c FROM customers WHERE status='active'")->fetch_assoc()['c'] ?? 0;
-$expired_users = $conn->query("SELECT COUNT(*) c FROM customers WHERE expiry < CURDATE()")->fetch_assoc()['c'] ?? 0;
+// Combined Main stats
+$main_stats = $conn->query("
+    SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN expiry < CURDATE() THEN 1 ELSE 0 END) as expired,
+        SUM(CASE WHEN expiry BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiring_soon
+    FROM customers
+")->fetch_assoc();
+
+$total_users   = $main_stats['total'] ?? 0;
+$active_users  = $main_stats['active'] ?? 0;
+$expired_users = $main_stats['expired'] ?? 0;
+$expiring_soon = $main_stats['expiring_soon'] ?? 0;
+
 $online_users  = $conn->query("SELECT COUNT(*) c FROM radacct WHERE acctstoptime IS NULL")->fetch_assoc()['c'] ?? 0;
-
-// Financial stats
-$today_revenue = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM invoices WHERE DATE(created_at) = CURDATE()")->fetch_assoc()['total'] ?? 0;
-$month_revenue = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM invoices WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())")->fetch_assoc()['total'] ?? 0;
-
-// Expiring soon
-$expiring_soon = $conn->query("SELECT COUNT(*) c FROM customers WHERE expiry BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)")->fetch_assoc()['c'] ?? 0;
 $total_tickets = $conn->query("SELECT COUNT(*) c FROM tickets WHERE status='Open'")->fetch_assoc()['c'] ?? 0;
+
+// Combined Financial stats
+$fin_stats = $conn->query("
+    SELECT
+        SUM(CASE WHEN DATE(created_at) = CURDATE() THEN amount ELSE 0 END) as today,
+        SUM(CASE WHEN MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE()) THEN amount ELSE 0 END) as month
+    FROM invoices
+")->fetch_assoc();
+
+$today_revenue = $fin_stats['today'] ?? 0;
+$month_revenue = $fin_stats['month'] ?? 0;
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -147,7 +162,12 @@ include 'includes/topbar.php';
         </div>
 
         <!-- NEW: Network Health Card -->
-        <div class="monitor-card" style="border-left: 5px solid #ef4444; background: #fff;">
+    <div class="monitor-card" style="border-left: 5px solid #10b981; background: #fff;">
+        <div style="float: right;">
+            <span class="badge" style="background: #d1fae5; color: #065f46; font-size: 10px; padding: 4px 8px; border-radius: 20px;">
+                <i class="fa fa-award"></i> 99.9% Uptime SLA
+            </span>
+        </div>
             <h4><i class="fa fa-triangle-exclamation" style="color: #ef4444;"></i> Infrastructure Alarms</h4>
             <div id="network-alarms" style="max-height: 100px; overflow-y: auto;">
                 <div style="padding: 10px; text-align: center; color: #10b981; font-size: 13px;">
