@@ -1,5 +1,6 @@
 <?php
 include '../config.php';
+include_once '../includes/utils.php';
 // session_start(); handled in config.php
 
 if (!isset($_SESSION['customer_user'])) {
@@ -8,13 +9,6 @@ if (!isset($_SESSION['customer_user'])) {
 }
 
 $username = $_SESSION['customer_user'];
-
-function formatBytes($bytes, $precision = 2) {
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    return round($bytes / pow(1024, $pow), $precision) . ' ' . $units[$pow];
-}
 
 function getGB($bytes) {
     return round($bytes / (1024 * 1024 * 1024), 2);

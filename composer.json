@@ -2,5 +2,8 @@
     "require": {
         "phpoffice/phpspreadsheet": "^5.3",
         "twilio/sdk": "^8.10"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10"
     }
 }

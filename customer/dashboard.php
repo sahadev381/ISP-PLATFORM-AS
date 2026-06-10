@@ -1,5 +1,6 @@
 <?php
 include '../config.php';
+include_once '../includes/utils.php';
 // session_start(); removed as it's in config.php
 
 if (!isset($_SESSION['customer_user'])) {
@@ -18,13 +19,6 @@ $user = $conn->query("
     LEFT JOIN data_usage du ON c.username = du.username
     WHERE c.username = '$username'
 ")->fetch_assoc();
-
-function formatBytes($bytes, $precision = 2) {
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    return round($bytes / pow(1024, $pow), $precision) . ' ' . $units[$pow];
-}
 
 $page_title = "Customer Dashboard";
 ?>
