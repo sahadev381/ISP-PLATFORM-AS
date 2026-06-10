@@ -11,6 +11,8 @@ function ping($host) {
 
 $devices = $conn->query("SELECT id, nasname, ip_address, device_type FROM nas");
 $results = [];
+$status_updates = [];
+$log_entries = [];
 
 while($d = $devices->fetch_assoc()) {
     $start_time = microtime(true);
@@ -18,18 +20,14 @@ while($d = $devices->fetch_assoc()) {
     $latency = round((microtime(true) - $start_time) * 1000, 2);
     $status_val = $is_online ? 1 : 0;
     
-    // Update DB status column silently
-    $upd = $conn->prepare("UPDATE nas SET status = ? WHERE id = ?");
-    $upd->bind_param("ii", $status_val, $d['id']);
-    $upd->execute();
+    $status_updates[$d['id']] = $status_val;
+    $log_entries[] = [
+        'type' => strtoupper($d['device_type'] ?: 'UNKNOWN'),
+        'id' => $d['id'],
+        'status' => $is_online ? 'online' : 'offline',
+        'latency' => $latency
+    ];
 
-    // Log for 99.9% Uptime Tracking
-    $status_str = $is_online ? 'online' : 'offline';
-    $target_type = strtoupper($d['device_type'] ?: 'UNKNOWN');
-    $stmt = $conn->prepare("INSERT INTO uptime_logs (target_type, target_id, status, latency_ms, checked_at) VALUES (?, ?, ?, ?, NOW())");
-    $stmt->bind_param("sisd", $target_type, $d['id'], $status_str, $latency);
-    $stmt->execute();
-    
     $results[] = [
         'id' => $d['id'],
         'name' => $d['nasname'],
@@ -37,6 +35,31 @@ while($d = $devices->fetch_assoc()) {
         'status' => $is_online,
         'latency' => $latency
     ];
+}
+
+// Batch update NAS status
+if (!empty($status_updates)) {
+    $ids = implode(',', array_keys($status_updates));
+    $cases = "";
+    foreach ($status_updates as $id => $val) {
+        $cases .= "WHEN id = " . (int)$id . " THEN " . (int)$val . " ";
+    }
+    $conn->query("UPDATE nas SET status = CASE $cases END WHERE id IN ($ids)");
+}
+
+// Batch insert logs
+if (!empty($log_entries)) {
+    $values = [];
+    foreach ($log_entries as $log) {
+        $values[] = sprintf(
+            "('%s', %d, '%s', %f, NOW())",
+            $conn->real_escape_string($log['type']),
+            (int)$log['id'],
+            $conn->real_escape_string($log['status']),
+            (float)$log['latency']
+        );
+    }
+    $conn->query("INSERT INTO uptime_logs (target_type, target_id, status, latency_ms, checked_at) VALUES " . implode(',', $values));
 }
 
 echo json_encode($results);
