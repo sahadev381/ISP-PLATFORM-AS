@@ -163,6 +163,7 @@ include 'includes/topbar.php';
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="assets/js/network_utils.js"></script>
 
 <script>
     function openLeaseManager() {
@@ -500,12 +501,6 @@ include 'includes/topbar.php';
             total += latlngs[i].distanceTo(latlngs[i+1]);
         }
         return total; // meters
-    }
-
-    function predictSignalLoss(lengthM, spliceCount = 2) {
-        const lossPerKm = 0.35; // Standard 1310nm
-        const spliceLoss = 0.1;
-        return (lengthM / 1000 * lossPerKm) + (spliceCount * spliceLoss);
     }
 
     map.on(L.Draw.Event.CREATED, function (e) {

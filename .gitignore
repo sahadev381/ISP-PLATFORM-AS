@@ -17,6 +17,9 @@ Thumbs.db
 # Vendor (use composer)
 vendor/
 
+# Node modules
+node_modules/
+
 # Uploads
 uploads/*
 !uploads/.gitkeep

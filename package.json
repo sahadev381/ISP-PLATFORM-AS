@@ -1,0 +1,11 @@
+{
+  "name": "isp-management-system",
+  "version": "1.0.0",
+  "description": "ISP Management System",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6"
+  }
+}
