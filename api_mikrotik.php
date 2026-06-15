@@ -4,6 +4,7 @@
  */
 
 header('Content-Type: application/json');
+include 'includes/auth.php';
 
 $host = $_GET['host'] ?? '192.168.5.20';
 $user = $_GET['user'] ?? 'apiuser';

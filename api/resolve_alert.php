@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 include_once '../config.php';
+include_once '../includes/auth.php';
 
 $id = intval($_GET['id'] ?? 0);
 

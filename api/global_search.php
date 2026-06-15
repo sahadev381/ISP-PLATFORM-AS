@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: text/html');
 include_once '../config.php';
+include_once '../includes/auth.php';
 
 $query = $_GET['q'] ?? '';
 $query = $conn->real_escape_string($query);
