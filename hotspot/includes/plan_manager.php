@@ -8,10 +8,16 @@
 class PlanManager {
     private $conn;
     
-    public function __construct() {
-        chdir(__DIR__ . '/../..');
-        include 'config.php';
-        $this->conn = $conn;
+    public function __construct($conn = null) {
+        if ($conn !== null) {
+            $this->conn = $conn;
+        } else {
+            chdir(__DIR__ . '/../..');
+            if (file_exists('config.php')) {
+                include 'config.php';
+                $this->conn = $conn;
+            }
+        }
     }
     
     // ==================== PLAN MANAGEMENT ====================
@@ -163,7 +169,8 @@ class PlanManager {
      * Generate vouchers
      */
     public function generateVouchers($voucherTypeId, $count = 10, $profileId = null) {
-        $type = $this->conn->query("SELECT * FROM hotspot_voucher_types WHERE id = $voucherTypeId")->fetch_assoc();
+        $typeRes = $this->conn->query("SELECT * FROM hotspot_voucher_types WHERE id = $voucherTypeId");
+        $type = $typeRes ? $typeRes->fetch_assoc() : null;
         if (!$type) {
             return ['status' => 'error', 'message' => 'Voucher type not found'];
         }
@@ -182,12 +189,12 @@ class PlanManager {
             if (!$assignedProfile) {
                 // Find matching profile based on voucher type
                 if ($type['type'] == 'data_topup') {
-                    $result = $this->conn->query("SELECT id FROM hotspot_profiles WHERE type = 'data' ORDER BY data_limit_mb DESC LIMIT 1");
+                    $profileRes = $this->conn->query("SELECT id FROM hotspot_profiles WHERE type = 'data' ORDER BY data_limit_mb DESC LIMIT 1");
                 } else {
-                    $result = $this->conn->query("SELECT id FROM hotspot_profiles WHERE type = 'time' ORDER BY validity_hours DESC LIMIT 1");
+                    $profileRes = $this->conn->query("SELECT id FROM hotspot_profiles WHERE type = 'time' ORDER BY validity_hours DESC LIMIT 1");
                 }
-                if ($result && $result->num_rows > 0) {
-                    $p = $result->fetch_assoc();
+                if ($profileRes && $profileRes->num_rows > 0) {
+                    $p = $profileRes->fetch_assoc();
                     $assignedProfile = $p['id'];
                 }
             }
