@@ -5,6 +5,7 @@ error_reporting(E_ALL);
 
 include 'config.php';
 include 'includes/auth.php';
+require_once 'includes/radius_utils.php';
 
 $username = isset($_GET['user']) ? trim($_GET['user']) : '';
 
@@ -34,22 +35,6 @@ include 'includes/header.php';
 include 'includes/sidebar.php';
 include 'includes/topbar.php';
 
-/* Failure reason detector (PHP 7 compatible) */
-function radius_reason($reply, $pass) {
-
-    if ($reply === 'Access-Accept') {
-        return 'Login successful';
-    }
-
-    if ($reply === 'Access-Reject') {
-        if ($pass === '' || $pass === null) {
-            return 'Password not provided';
-        }
-        return 'Authentication rejected (wrong password / MAC lock )';
-    }
-
-    return 'Unknown result';
-}
 ?>
 
 <div class="main">
