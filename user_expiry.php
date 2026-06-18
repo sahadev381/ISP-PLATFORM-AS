@@ -56,8 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->query("INSERT INTO radcheck (username, attribute, op, value) VALUES ('$username', 'Expiration', ':=', '$radius_expiry')");
         }
 
-        // 3. Optional: Add to recharge log if you have one
-        // $conn->query("INSERT INTO recharge (username, amount, created_at) VALUES ('$username', '0', NOW())");
 
         echo "<script>alert('Expiry updated successfully for $username'); window.location='user_view.php?username=$username';</script>";
         exit;
