@@ -9,15 +9,18 @@ include 'includes/tr069_pppoe.php';
    LOAD USER
 ============================ */
 $username = $_GET['user'] ?? '';
-$user = $conn->query("
+$stmt = $conn->prepare("
     SELECT u.*, p.name as plan_name, p.speed as plan_speed, p.data_limit, b.name as branch_name,
     COALESCE(du.used_quota, 0) as used_quota
     FROM customers u 
     LEFT JOIN plans p ON u.plan_id = p.id 
     LEFT JOIN branches b ON u.branch_id = b.id 
     LEFT JOIN data_usage du ON u.username = du.username
-    WHERE u.username='$username'
-")->fetch_assoc();
+    WHERE u.username=?
+");
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
 
 if (!$user) die("User not found");
 
@@ -33,48 +36,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'add_grace') {
         $days = (int)$_POST['grace_days'];
         if ($days > 0) {
-            $conn->query("UPDATE customers SET expiry = DATE_ADD(expiry, INTERVAL $days DAY), status='active' WHERE username='$username'");
+            $stmt = $conn->prepare("UPDATE customers SET expiry = DATE_ADD(expiry, INTERVAL ? DAY), status='active' WHERE username=?");
+            $stmt->bind_param("is", $days, $username);
+            $stmt->execute();
             $success_msg = "Grace period of $days days added successfully.";
             // Reload user data
             $user['expiry'] = date('Y-m-d', strtotime($user['expiry'] . " + $days days"));
         }
     } elseif ($action === 'lock_pppoe') {
         $mac = '';
-        $session_res = $conn->query("SELECT callingstationid FROM radacct WHERE username='$username' AND acctstoptime IS NULL LIMIT 1");
+        $stmt = $conn->prepare("SELECT callingstationid FROM radacct WHERE username=? AND acctstoptime IS NULL LIMIT 1");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $session_res = $stmt->get_result();
         if ($session_res->num_rows > 0) {
             $mac = $session_res->fetch_assoc()['callingstationid'];
         } else {
-            $history_res = $conn->query("SELECT callingstationid FROM radacct WHERE username='$username' AND callingstationid != '' ORDER BY acctstarttime DESC LIMIT 1");
+            $stmt = $conn->prepare("SELECT callingstationid FROM radacct WHERE username=? AND callingstationid != '' ORDER BY acctstarttime DESC LIMIT 1");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $history_res = $stmt->get_result();
             if ($history_res && $history_res->num_rows > 0) $mac = $history_res->fetch_assoc()['callingstationid'];
         }
         if ($mac) {
-            $conn->query("DELETE FROM radcheck WHERE username='$username' AND attribute='Calling-Station-Id'");
-            $conn->query("INSERT INTO radcheck (username, attribute, op, value) VALUES ('$username', 'Calling-Station-Id', '==', '$mac')");
+            $stmt = $conn->prepare("DELETE FROM radcheck WHERE username=? AND attribute='Calling-Station-Id'");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+
+            $stmt = $conn->prepare("INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Calling-Station-Id', '==', ?)");
+            $stmt->bind_param("ss", $username, $mac);
+            $stmt->execute();
             $success_msg = "Locked to MAC: $mac";
         }
     } elseif ($action === 'unlock_pppoe') {
-        $conn->query("DELETE FROM radcheck WHERE username='$username' AND attribute='Calling-Station-Id'");
+        $stmt = $conn->prepare("DELETE FROM radcheck WHERE username=? AND attribute='Calling-Station-Id'");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
         $success_msg = "MAC Lock Removed";
     } elseif ($action === 'reset_fup') {
         // 1. Set fup_reset flag to reset usage tracking
-        $conn->query("UPDATE data_usage SET used_quota = 0, fup_reset = 1, updated_at = NOW() WHERE username = '$username'");
+        $stmt = $conn->prepare("UPDATE data_usage SET used_quota = 0, fup_reset = 1, updated_at = NOW() WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
         
         // 2. Get base plan speed
-        $plan = $conn->query("SELECT p.speed FROM plans p JOIN customers c ON c.plan_id = p.id WHERE c.username = '$username'")->fetch_assoc();
+        $stmt = $conn->prepare("SELECT p.speed FROM plans p JOIN customers c ON c.plan_id = p.id WHERE c.username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $plan = $stmt->get_result()->fetch_assoc();
         $plan_speed = $plan['speed'] ?? '10M/10M';
         
         // 3. Reset Speed in radreply to base plan speed
-        $conn->query("DELETE FROM radreply WHERE username='$username' AND attribute='Mikrotik-Rate-Limit'");
-        $conn->query("INSERT INTO radreply (username, attribute, op, value) VALUES ('$username', 'Mikrotik-Rate-Limit', ':=', '$plan_speed')");
+        $stmt = $conn->prepare("DELETE FROM radreply WHERE username=? AND attribute='Mikrotik-Rate-Limit'");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+
+        $stmt = $conn->prepare("INSERT INTO radreply (username, attribute, op, value) VALUES (?, 'Mikrotik-Rate-Limit', ':=', ?)");
+        $stmt->bind_param("ss", $username, $plan_speed);
+        $stmt->execute();
         
         $success_msg = "FUP reset! Usage cleared. Speed restored to $plan_speed.";
         $user['used_quota'] = 0;
     } elseif ($action === 'disconnect') {
-        $nas = $conn->query("SELECT * FROM nas WHERE status=1 LIMIT 1")->fetch_assoc();
+        $stmt = $conn->prepare("SELECT * FROM nas WHERE status=1 LIMIT 1");
+        $stmt->execute();
+        $nas = $stmt->get_result()->fetch_assoc();
         if ($nas) {
             $nas_ip = $nas['ip_address'];
             $nas_secret = $nas['secret'];
-            shell_exec("echo 'User-Name = $username' | /usr/bin/radclient -x $nas_ip:3799 disconnect $nas_secret 2>&1");
+            $safe_username = escapeshellarg($username);
+            shell_exec("echo 'User-Name = $safe_username' | /usr/bin/radclient -x $nas_ip:3799 disconnect $nas_secret 2>&1");
             $success_msg = "Disconnect command sent to NAS.";
         }
     } elseif (isset($_POST['reboot'])) {
@@ -95,7 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase", $pass, "xsd:string"]
                 ]
             ]);
-            $conn->query("UPDATE customers SET wifi_ssid='$ssid', wifi_password='$pass' WHERE username='$username'");
+            $stmt = $conn->prepare("UPDATE customers SET wifi_ssid=?, wifi_password=? WHERE username=?");
+            $stmt->bind_param("sss", $ssid, $pass, $username);
+            $stmt->execute();
             $success_msg = "WiFi updated and synced.";
         }
     }
@@ -115,7 +148,9 @@ if (!empty($target_serial)) {
         if (is_array($devices) && count($devices) > 0) {
             $device = $devices[0];
             $deviceId = $device['_id'];
-            $conn->query("UPDATE customers SET tr069_device_id='$deviceId' WHERE username='$username'");
+            $stmt = $conn->prepare("UPDATE customers SET tr069_device_id=? WHERE username=?");
+            $stmt->bind_param("ss", $deviceId, $username);
+            $stmt->execute();
         }
     }
     
@@ -134,12 +169,15 @@ if (!empty($target_serial)) {
 /* ============================
    CURRENT SESSION
 ============================ */
-$session = $conn->query("
+$stmt = $conn->prepare("
     SELECT *, TIMESTAMPDIFF(SECOND, acctstarttime, NOW()) AS duration 
     FROM radacct 
-    WHERE username='$username' AND acctstoptime IS NULL 
+    WHERE username=? AND acctstoptime IS NULL
     ORDER BY acctstarttime DESC LIMIT 1
-")->fetch_assoc();
+");
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$session = $stmt->get_result()->fetch_assoc();
 
 function formatBytes($bytes, $precision = 2) {
     $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -300,7 +338,12 @@ function showTab(tabId, btn) {
 
             <div class="info-card">
                 <h3><i class="fa fa-shield-alt"></i> Account Security</h3>
-                <?php $is_locked = $conn->query("SELECT * FROM radcheck WHERE username='$username' AND attribute='Calling-Station-Id' LIMIT 1")->num_rows > 0; ?>
+                <?php
+                    $stmt = $conn->prepare("SELECT 1 FROM radcheck WHERE username=? AND attribute='Calling-Station-Id' LIMIT 1");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $is_locked = $stmt->get_result()->num_rows > 0;
+                ?>
                 <p>MAC Lock Status: <b style="color:<?= $is_locked?'#ef4444':'#10b981' ?>;"><?= $is_locked?'LOCKED':'UNLOCKED' ?></b></p>
                 <form method="POST" style="margin-top: 15px;">
                     <input type="hidden" name="action" value="<?= $is_locked ? 'unlock_pppoe' : 'lock_pppoe' ?>">
@@ -315,10 +358,23 @@ function showTab(tabId, btn) {
                 <h3><i class="fa fa-chart-pie"></i> Monthly FUP Usage</h3>
                 <?php 
                     $limit = (float)($user['data_limit'] ?? 0);
-                    $monthly = $conn->query("SELECT SUM(acctoutputoctets+acctinputoctets) as total FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc();
+                    $stmt = $conn->prepare("SELECT SUM(acctoutputoctets+acctinputoctets) as total FROM radacct WHERE username=? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $monthly = $stmt->get_result()->fetch_assoc();
                     $used = (float)($monthly['total'] ?? 0);
                     $percent = ($limit > 0) ? min(100, round(($used / $limit) * 100, 1)) : 0;
                     $color = ($percent > 90) ? '#ef4444' : (($percent > 70) ? '#f59e0b' : '#10b981');
+
+                    $stmt = $conn->prepare("SELECT SUM(acctoutputoctets) as d FROM radacct WHERE username=? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $downloaded = $stmt->get_result()->fetch_assoc()['d'] ?? 0;
+
+                    $stmt = $conn->prepare("SELECT SUM(acctinputoctets) as u FROM radacct WHERE username=? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $uploaded = $stmt->get_result()->fetch_assoc()['u'] ?? 0;
                 ?>
                 <div class="detail-row">
                     <label>Data Limit</label>
@@ -330,11 +386,11 @@ function showTab(tabId, btn) {
                 </div>
                 <div class="detail-row">
                     <label>Downloaded</label>
-                    <span><?= formatBytes($conn->query("SELECT SUM(acctoutputoctets) as d FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc()['d'] ?? 0) ?></span>
+                    <span><?= formatBytes($downloaded) ?></span>
                 </div>
                 <div class="detail-row">
                     <label>Uploaded</label>
-                    <span><?= formatBytes($conn->query("SELECT SUM(acctinputoctets) as u FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc()['u'] ?? 0) ?></span>
+                    <span><?= formatBytes($uploaded) ?></span>
                 </div>
                 <?php if($limit > 0): ?>
                 <div class="usage-bar-bg">
@@ -394,17 +450,20 @@ function showTab(tabId, btn) {
                 </thead>
                 <tbody>
                     <?php 
-                    $usage_history = $conn->query("
+                    $stmt = $conn->prepare("
                         SELECT 
                             DATE_FORMAT(acctstarttime, '%Y-%M') as month,
                             SUM(acctoutputoctets) as download,
                             SUM(acctinputoctets) as upload
                         FROM radacct 
-                        WHERE username = '$username' 
+                        WHERE username = ?
                         GROUP BY month 
                         ORDER BY acctstarttime DESC 
                         LIMIT 12
                     ");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $usage_history = $stmt->get_result();
                     if($usage_history->num_rows > 0):
                         while($uh = $usage_history->fetch_assoc()): ?>
                             <tr>
@@ -441,7 +500,10 @@ function showTab(tabId, btn) {
                 <thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
                 <tbody>
                     <?php 
-                    $tks = $conn->query("SELECT * FROM tickets WHERE customer_id = (SELECT id FROM customers WHERE username='$username') ORDER BY id DESC");
+                    $stmt = $conn->prepare("SELECT * FROM tickets WHERE customer_id = (SELECT id FROM customers WHERE username=?) ORDER BY id DESC");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $tks = $stmt->get_result();
                     while($tk = $tks->fetch_assoc()): ?>
                         <tr>
                             <td>#<?= $tk['id'] ?></td>
@@ -464,7 +526,10 @@ function showTab(tabId, btn) {
                 <thead><tr><th>ID</th><th>Amount</th><th>Months</th><th>Expiry</th><th>Date</th></tr></thead>
                 <tbody>
                     <?php 
-                    $invs = $conn->query("SELECT * FROM invoices WHERE username='$username' ORDER BY id DESC");
+                    $stmt = $conn->prepare("SELECT * FROM invoices WHERE username=? ORDER BY id DESC");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $invs = $stmt->get_result();
                     while($inv = $invs->fetch_assoc()): ?>
                         <tr>
                             <td>#<?= $inv['id'] ?></td>
@@ -557,7 +622,10 @@ function showTab(tabId, btn) {
                 <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Reason</th></tr></thead>
                 <tbody>
                     <?php 
-                    $logs = $conn->query("SELECT * FROM radpostauth WHERE username='$username' ORDER BY authdate DESC LIMIT 20");
+                    $stmt = $conn->prepare("SELECT * FROM radpostauth WHERE username=? ORDER BY authdate DESC LIMIT 20");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $logs = $stmt->get_result();
                     $i=1; while($log = $logs->fetch_assoc()): 
                         $success = ($log['reply'] === 'Access-Accept');
                     ?>
