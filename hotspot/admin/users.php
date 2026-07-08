@@ -22,100 +22,149 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action == 'save_user') {
-        $username = $conn->real_escape_string($_POST['username']);
-        $phone = $conn->real_escape_string($_POST['phone']);
-        $planType = $conn->real_escape_string($_POST['plan_type']);
-        $authMethod = $conn->real_escape_string($_POST['auth_method']);
-        $macAddress = $conn->real_escape_string($_POST['mac_address']);
-        $ipAddress = $conn->real_escape_string($_POST['ip_address']);
-        $maxDevices = (int)$_POST['max_devices'];
+        $username = $_POST['username'] ?? '';
+        $phone = $_POST['phone'] ?? '';
+        $planType = $_POST['plan_type'] ?? '';
+        $authMethod = $_POST['auth_method'] ?? '';
+        $macAddress = $_POST['mac_address'] ?? '';
+        $ipAddress = $_POST['ip_address'] ?? '';
+        $maxDevices = (int)($_POST['max_devices'] ?? 0);
         $singleSession = isset($_POST['single_session']) ? 1 : 0;
         $hosEnabled = isset($_POST['hos_enabled']) ? 1 : 0;
-        $hosStart = $_POST['hos_start'];
-        $hosEnd = $_POST['hos_end'];
-        $dataLimit = (int)$_POST['data_limit_mb'];
-        $speed = (int)$_POST['speed_kbps'];
-        $validUntil = $_POST['valid_until'];
+        $hosStart = $_POST['hos_start'] ?? '';
+        $hosEnd = $_POST['hos_end'] ?? '';
+        $dataLimit = (int)($_POST['data_limit_mb'] ?? 0);
+        $speed = (int)($_POST['speed_kbps'] ?? 0);
+        $validUntil = $_POST['valid_until'] ?? '';
         
         if (!empty($_POST['user_id'])) {
             $userId = (int)$_POST['user_id'];
-            $sql = "UPDATE hotspot_users SET 
-                phone = '$phone', plan_type = '$planType', auth_method = '$authMethod',
-                mac_address = '$macAddress', ip_address = '$ipAddress',
-                max_devices = $maxDevices, single_session = $singleSession,
-                hos_enabled = $hosEnabled, hos_start = '$hosStart', hos_end = '$hosEnd',
-                data_limit_mb = $dataLimit, fup_speed_kbps = $speed,
-                valid_until = '$validUntil' WHERE id = $userId";
-            
             if (!empty($_POST['password'])) {
                 $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-                $conn->query("UPDATE hotspot_users SET password = '$password' WHERE id = $userId");
+                $stmt = $conn->prepare("UPDATE hotspot_users SET
+                    phone = ?, plan_type = ?, auth_method = ?,
+                    mac_address = ?, ip_address = ?,
+                    max_devices = ?, single_session = ?,
+                    hos_enabled = ?, hos_start = ?, hos_end = ?,
+                    data_limit_mb = ?, fup_speed_kbps = ?,
+                    valid_until = ?, password = ? WHERE id = ?");
+                $stmt->bind_param("sssssiiissiissi", $phone, $planType, $authMethod, $macAddress, $ipAddress, $maxDevices, $singleSession, $hosEnabled, $hosStart, $hosEnd, $dataLimit, $speed, $validUntil, $password, $userId);
+            } else {
+                $stmt = $conn->prepare("UPDATE hotspot_users SET
+                    phone = ?, plan_type = ?, auth_method = ?,
+                    mac_address = ?, ip_address = ?,
+                    max_devices = ?, single_session = ?,
+                    hos_enabled = ?, hos_start = ?, hos_end = ?,
+                    data_limit_mb = ?, fup_speed_kbps = ?,
+                    valid_until = ? WHERE id = ?");
+                $stmt->bind_param("sssssiiissiisi", $phone, $planType, $authMethod, $macAddress, $ipAddress, $maxDevices, $singleSession, $hosEnabled, $hosStart, $hosEnd, $dataLimit, $speed, $validUntil, $userId);
             }
-            $conn->query($sql);
+            $stmt->execute();
             $message = json_encode(['type' => 'success', 'msg' => 'User updated successfully!']);
         } else {
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $conn->query("INSERT INTO hotspot_users (username, password, phone, plan_type, auth_method, mac_address, ip_address, max_devices, single_session, hos_enabled, hos_start, hos_end, data_limit_mb, fup_speed_kbps, valid_until, status) 
-                VALUES ('$username', '$password', '$phone', '$planType', '$authMethod', '$macAddress', '$ipAddress', $maxDevices, $singleSession, $hosEnabled, '$hosStart', '$hosEnd', $dataLimit, $speed, '$validUntil', 'active')");
+            $stmt = $conn->prepare("INSERT INTO hotspot_users (username, password, phone, plan_type, auth_method, mac_address, ip_address, max_devices, single_session, hos_enabled, hos_start, hos_end, data_limit_mb, fup_speed_kbps, valid_until, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')");
+            $stmt->bind_param("sssssssiiissiis", $username, $password, $phone, $planType, $authMethod, $macAddress, $ipAddress, $maxDevices, $singleSession, $hosEnabled, $hosStart, $hosEnd, $dataLimit, $speed, $validUntil);
+            $stmt->execute();
             $message = json_encode(['type' => 'success', 'msg' => 'User created successfully!']);
         }
     }
     
     if ($action == 'delete_user' && isset($_POST['user_id'])) {
-        $conn->query("DELETE FROM hotspot_users WHERE id = " . (int)$_POST['user_id']);
+        $userId = (int)$_POST['user_id'];
+        $stmt = $conn->prepare("DELETE FROM hotspot_users WHERE id = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
         $message = json_encode(['type' => 'success', 'msg' => 'User deleted successfully!']);
     }
     
     if ($action == 'toggle_status' && isset($_POST['user_id'])) {
         $userId = (int)$_POST['user_id'];
-        $user = $conn->query("SELECT status FROM hotspot_users WHERE id = $userId")->fetch_assoc();
+        $stmt = $conn->prepare("SELECT status FROM hotspot_users WHERE id = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+
         $newStatus = $user['status'] == 'active' ? 'blocked' : 'active';
-        $conn->query("UPDATE hotspot_users SET status = '$newStatus' WHERE id = $userId");
+        $stmt = $conn->prepare("UPDATE hotspot_users SET status = ? WHERE id = ?");
+        $stmt->bind_param("si", $newStatus, $userId);
+        $stmt->execute();
         $message = json_encode(['type' => 'success', 'msg' => "User $newStatus successfully!"]);
     }
     
     if ($action == 'topup' && isset($_POST['user_id'])) {
         $userId = (int)$_POST['user_id'];
         $mb = (int)$_POST['topup_mb'];
-        $conn->query("UPDATE hotspot_users SET data_limit_mb = data_limit_mb + $mb WHERE id = $userId");
+        $stmt = $conn->prepare("UPDATE hotspot_users SET data_limit_mb = data_limit_mb + ? WHERE id = ?");
+        $stmt->bind_param("ii", $mb, $userId);
+        $stmt->execute();
         $message = json_encode(['type' => 'success', 'msg' => "Added {$mb}MB to user account"]);
     }
     
     if ($action == 'recharge' && isset($_POST['user_id'])) {
         $userId = (int)$_POST['user_id'];
         $amount = (float)$_POST['recharge_amount'];
-        $conn->query("UPDATE hotspot_users SET current_balance = current_balance + $amount WHERE id = $userId");
-        $conn->query("INSERT INTO hotspot_invoices (user_id, description, amount, total, status, paid_at) VALUES ($userId, 'Manual Recharge', $amount, $amount, 'paid', NOW())");
+        $stmt = $conn->prepare("UPDATE hotspot_users SET current_balance = current_balance + ? WHERE id = ?");
+        $stmt->bind_param("di", $amount, $userId);
+        $stmt->execute();
+
+        $desc = 'Manual Recharge';
+        $status = 'paid';
+        $stmt = $conn->prepare("INSERT INTO hotspot_invoices (user_id, description, amount, total, status, paid_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->bind_param("isdds", $userId, $desc, $amount, $amount, $status);
+        $stmt->execute();
+
         $message = json_encode(['type' => 'success', 'msg' => "Added Rs.{$amount} to balance"]);
     }
     
     if ($action == 'bulk_action' && !empty($_POST['user_ids'])) {
         $userIds = array_map('intval', $_POST['user_ids']);
         $bulkAction = $_POST['bulk_action'];
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $types = str_repeat('i', count($userIds));
         
         if ($bulkAction == 'delete') {
-            $conn->query("DELETE FROM hotspot_users WHERE id IN (" . implode(',', $userIds) . ")");
+            $stmt = $conn->prepare("DELETE FROM hotspot_users WHERE id IN ($placeholders)");
+            $stmt->bind_param($types, ...$userIds);
+            $stmt->execute();
             $message = json_encode(['type' => 'success', 'msg' => count($userIds) . ' users deleted']);
-        } elseif ($bulkAction == 'active') {
-            $conn->query("UPDATE hotspot_users SET status = 'active' WHERE id IN (" . implode(',', $userIds) . ")");
-            $message = json_encode(['type' => 'success', 'msg' => count($userIds) . ' users activated']);
-        } elseif ($bulkAction == 'blocked') {
-            $conn->query("UPDATE hotspot_users SET status = 'blocked' WHERE id IN (" . implode(',', $userIds) . ")");
-            $message = json_encode(['type' => 'success', 'msg' => count($userIds) . ' users blocked']);
+        } elseif ($bulkAction == 'active' || $bulkAction == 'blocked') {
+            $status = $bulkAction == 'active' ? 'active' : 'blocked';
+            $stmt = $conn->prepare("UPDATE hotspot_users SET status = ? WHERE id IN ($placeholders)");
+            $stmt->bind_param("s" . $types, $status, ...$userIds);
+            $stmt->execute();
+            $message = json_encode(['type' => 'success', 'msg' => count($userIds) . " users $status"]);
         }
     }
 }
 
 // Build query
 $where = "1=1";
-if ($filter == 'active') $where .= " AND u.status = 'active'";
-if ($filter == 'blocked') $where .= " AND u.status = 'blocked'";
-if ($search) {
-    $search = $conn->real_escape_string($search);
-    $where .= " AND (u.username LIKE '%$search%' OR u.phone LIKE '%$search%')";
+$params = [];
+$types = "";
+
+if ($filter == 'active') {
+    $where .= " AND u.status = 'active'";
+} elseif ($filter == 'blocked') {
+    $where .= " AND u.status = 'blocked'";
 }
 
-$users = $conn->query("SELECT u.*, p.name as profile_name FROM hotspot_users u LEFT JOIN hotspot_profiles p ON u.profile_id = p.id WHERE $where ORDER BY u.id DESC LIMIT 500");
+if ($search) {
+    $where .= " AND (u.username LIKE ? OR u.phone LIKE ?)";
+    $searchTerm = "%$search%";
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $types .= "ss";
+}
+
+$sql = "SELECT u.*, p.name as profile_name FROM hotspot_users u LEFT JOIN hotspot_profiles p ON u.profile_id = p.id WHERE $where ORDER BY u.id DESC LIMIT 500";
+$stmt = $conn->prepare($sql);
+if ($types) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$users = $stmt->get_result();
 
 $stats = $conn->query("SELECT COUNT(*) as total, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status='blocked' THEN 1 ELSE 0 END) as blocked FROM hotspot_users")->fetch_assoc();
 
