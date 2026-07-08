@@ -190,6 +190,21 @@ A comprehensive ISP/WISP billing and network management system similar to Splynx
 - Video tutorials for common tasks
 - Community forum and professional support options
 
+### 🔒 Security & Configuration
+The system uses environment variables for sensitive configurations.
+
+#### Khalti Payment Gateway
+To configure Khalti, set the following environment variables in your server environment or `.env` file:
+- `KHALTI_PUBLIC_KEY`: Your Khalti public key.
+- `KHALTI_SECRET_KEY`: Your Khalti secret key.
+- `KHALTI_VERIFY_URL`: (Optional) The verification URL (defaults to production).
+
+Example for Linux/Docker:
+```bash
+export KHALTI_PUBLIC_KEY="live_public_key_..."
+export KHALTI_SECRET_KEY="live_secret_key_..."
+```
+
 --- 
 
 *Feature list updated as of version 2.0.0 - Continuously evolving with community feedback!*

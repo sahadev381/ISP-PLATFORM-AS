@@ -1,0 +1,8 @@
+<?php
+// Khalti Payment Gateway Configuration Example
+// Copy this file to config/khalti_config.php and set your real keys as environment variables
+// or replace the getenv calls with your actual keys (not recommended for production).
+
+define('KHALTI_PUBLIC_KEY', getenv('KHALTI_PUBLIC_KEY') ?: 'your_test_public_key_here');
+define('KHALTI_SECRET_KEY', getenv('KHALTI_SECRET_KEY') ?: 'your_test_secret_key_here');
+define('KHALTI_VERIFY_URL', getenv('KHALTI_VERIFY_URL') ?: 'https://khalti.com/api/v2/payment/verify/');
