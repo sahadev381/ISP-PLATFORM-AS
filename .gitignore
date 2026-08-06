@@ -28,6 +28,9 @@ config.php
 # Logs
 *.log
 
+# PHPUnit
+.phpunit.result.cache
+
 # Database
 *.sql
 *.db
