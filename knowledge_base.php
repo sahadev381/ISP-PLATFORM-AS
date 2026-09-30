@@ -12,10 +12,10 @@ if (isset($_POST['add'])) {
     $content = $_POST['content'];
     $is_public = isset($_POST['is_public']) ? 1 : 0;
     
-    $conn->query("
+    db_exec($conn, "
         INSERT INTO knowledge_base (category, title, content, is_public, created_by)
-        VALUES ('$category', '$title', '$content', $is_public, $USER_ID)
-    ");
+        VALUES (?, ?, ?, ?, ?)
+    ", [$category, $title, $content, $is_public, (int) $USER_ID]);
     
     header("Location: knowledge_base.php");
     exit;

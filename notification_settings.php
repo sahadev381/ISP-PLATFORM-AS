@@ -21,11 +21,11 @@ if (isset($_POST['save'])) {
     ];
     
     foreach ($settings as $key => $value) {
-        $conn->query("
+        db_exec($conn, "
             INSERT INTO system_settings (setting_key, setting_value)
-            VALUES ('$key', '$value')
-            ON DUPLICATE KEY UPDATE setting_value = '$value'
-        ");
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        ", [$key, $value]);
     }
     
     $success = "Settings saved successfully!";

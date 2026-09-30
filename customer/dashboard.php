@@ -10,14 +10,20 @@ if (!isset($_SESSION['customer_user'])) {
 $username = $_SESSION['customer_user'];
 
 // Fetch detailed customer info
-$user = $conn->query("
+$user = db_one($conn, "
     SELECT c.*, p.name as plan_name, p.speed as plan_speed,
     COALESCE(du.used_quota, 0) as used_quota
     FROM customers c
     LEFT JOIN plans p ON c.plan_id = p.id
     LEFT JOIN data_usage du ON c.username = du.username
-    WHERE c.username = '$username'
-")->fetch_assoc();
+    WHERE c.username = ?
+", [$username]);
+
+if (!$user) {
+    session_destroy();
+    header("Location: index.php");
+    exit;
+}
 
 function formatBytes($bytes, $precision = 2) {
     $units = ['B', 'KB', 'MB', 'GB', 'TB'];

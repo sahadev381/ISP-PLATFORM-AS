@@ -32,10 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 $filter_status = $_GET['status'] ?? '';
 
 $where = [];
-if ($filter_status) $where[] = "t.status = '$filter_status'";
+$where_params = [];
+if ($filter_status) {
+    $where[] = "t.status = ?";
+    $where_params[] = $filter_status;
+}
 $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-$transactions = $conn->query("
+$transactions = db_all($conn, "
     SELECT t.*, c.username, c.full_name, c.email, c.phone,
            g.gateway_name
     FROM payment_transactions t
@@ -43,11 +47,11 @@ $transactions = $conn->query("
     LEFT JOIN payment_gateways g ON t.gateway_id = g.id
     $where_clause
     ORDER BY t.created_at DESC
-");
+", $where_params);
 
-$total_received = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions WHERE status = 'completed'")->fetch_assoc()['total'] ?? 0;
-$total_pending = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions WHERE status = 'pending'")->fetch_assoc()['total'] ?? 0;
-$total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions WHERE status = 'failed'")->fetch_assoc()['total'] ?? 0;
+$total_received = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_transactions WHERE status = 'completed'", [], 0);
+$total_pending = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_transactions WHERE status = 'pending'", [], 0);
+$total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_transactions WHERE status = 'failed'", [], 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -318,7 +322,7 @@ $total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM paym
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($t = $transactions->fetch_assoc()): ?>
+                            <?php foreach ($transactions as $t): ?>
                             <tr>
                                 <td><code><?= substr($t['transaction_id'], 0, 16) ?>...</code></td>
                                 <td>
@@ -351,8 +355,8 @@ $total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM paym
                                     </div>
                                 </td>
                             </tr>
-                            <?php endwhile; ?>
-                            <?php if ($transactions->num_rows == 0): ?>
+                            <?php endforeach; ?>
+                            <?php if (count($transactions) == 0): ?>
                             <tr><td colspan="8" style="text-align: center; color: #64748b; padding: 40px;">No transactions found</td></tr>
                             <?php endif; ?>
                         </tbody>

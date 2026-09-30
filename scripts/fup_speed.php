@@ -1,21 +1,24 @@
 <?php
-include '../config.php';
+require_once __DIR__ . '/../config.php';
 
 function getSpeedByUsage($username) {
     global $conn;
     
-    $result = $conn->query("
-        SELECT 
+    $row = db_one($conn, "
+        SELECT
             COALESCE(u.used_quota, 0) as used,
             COALESCE(p.data_limit, 1073741824000) as total
         FROM customers c
         LEFT JOIN data_usage u ON c.username = u.username
         LEFT JOIN plans p ON c.plan_id = p.id
-        WHERE c.username = '$username'
-    ");
-    
-    $row = $result->fetch_assoc();
-    
+        WHERE c.username = ?
+    ", [$username]);
+
+    // An unknown username produced a fatal on the array access below.
+    if (!$row) {
+        return null;
+    }
+
     $used = floatval($row['used']);
     $total = floatval($row['total']);
     

@@ -79,19 +79,20 @@ class DefaultOLT {
     }
     
     public function getAllOnus() {
-        include 'config.php';
-        $result = $conn->query("
-            SELECT c.*, 
+        require_once __DIR__ . '/../config.php';
+        global $conn;
+        $result = db_all($conn, "
+            SELECT c.*,
                    (SELECT r.callingstationid FROM radacct r WHERE r.username=c.username AND r.acctstoptime IS NULL LIMIT 1) as mac,
                    (SELECT r.framedipaddress FROM radacct r WHERE r.username=c.username AND r.acctstoptime IS NULL LIMIT 1) as ip
             FROM customers c
-            WHERE c.olt = '{$this->olt['nasname']}' AND c.olt_port > 0
+            WHERE c.olt = ? AND c.olt_port > 0
             ORDER BY c.olt_port, c.username
             LIMIT 100
-        ");
-        
+        ", [$this->olt['nasname']]);
+
         $onus = [];
-        while ($row = $result->fetch_assoc()) {
+        foreach ($result as $row) {
             $onus[] = [
                 'port' => $row['olt_port'] ?? 1,
                 'onu_id' => $row['id'] ?? '',

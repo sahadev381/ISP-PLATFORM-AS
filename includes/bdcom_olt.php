@@ -92,17 +92,17 @@ class BDCOM_OLT {
             if (empty($ponPorts)) {
                 $totalPorts = $this->olt['pon_ports'] ?? 8;
                 for ($i = 1; $i <= $totalPorts; $i++) {
-                    $onus = $this->conn->query("
-                        SELECT COUNT(*) as cnt FROM customers 
-                        WHERE olt = '{$this->olt['nasname']}' AND olt_port = $i
-                    ")->fetch_assoc()['cnt'] ?? 0;
-                    
-                    $online = $this->conn->query("
-                        SELECT COUNT(DISTINCT c.id) as cnt FROM customers c
+                    $onus = db_value($this->conn, "
+                        SELECT COUNT(*) FROM customers
+                        WHERE olt = ? AND olt_port = ?
+                    ", [$this->olt['nasname'], $i], 0);
+
+                    $online = db_value($this->conn, "
+                        SELECT COUNT(DISTINCT c.id) FROM customers c
                         JOIN radacct r ON c.username = r.username
-                        WHERE c.olt = '{$this->olt['nasname']}' AND c.olt_port = $i
+                        WHERE c.olt = ? AND c.olt_port = ?
                         AND r.acctstoptime IS NULL
-                    ")->fetch_assoc()['cnt'] ?? 0;
+                    ", [$this->olt['nasname'], $i], 0);
                     
                     $ponPorts[] = [
                         'port' => $i,
@@ -155,17 +155,17 @@ class BDCOM_OLT {
         $totalPorts = $this->olt['pon_ports'] ?? 8;
         
         for ($i = 1; $i <= $totalPorts; $i++) {
-            $onus = $this->conn->query("
-                SELECT COUNT(*) as cnt FROM customers 
-                WHERE olt = '{$this->olt['nasname']}' AND olt_port = $i
-            ")->fetch_assoc()['cnt'] ?? 0;
-            
-            $online = $this->conn->query("
-                SELECT COUNT(DISTINCT c.id) as cnt FROM customers c
+            $onus = db_value($this->conn, "
+                SELECT COUNT(*) FROM customers
+                WHERE olt = ? AND olt_port = ?
+            ", [$this->olt['nasname'], $i], 0);
+
+            $online = db_value($this->conn, "
+                SELECT COUNT(DISTINCT c.id) FROM customers c
                 JOIN radacct r ON c.username = r.username
-                WHERE c.olt = '{$this->olt['nasname']}' AND c.olt_port = $i
+                WHERE c.olt = ? AND c.olt_port = ?
                 AND r.acctstoptime IS NULL
-            ")->fetch_assoc()['cnt'] ?? 0;
+            ", [$this->olt['nasname'], $i], 0);
             
             $ports[] = [
                 'port' => $i,
@@ -193,14 +193,14 @@ class BDCOM_OLT {
         }
         
         // Fallback to database
-        return $this->conn->query("
-            SELECT c.*, 
+        return db_all($this->conn, "
+            SELECT c.*,
                    (SELECT r.callingstationid FROM radacct r WHERE r.username=c.username AND r.acctstoptime IS NULL LIMIT 1) as mac,
                    (SELECT r.framedipaddress FROM radacct r WHERE r.username=c.username AND r.acctstoptime IS NULL LIMIT 1) as ip
             FROM customers c
-            WHERE c.olt = '{$this->olt['nasname']}' AND c.olt_port = $port
+            WHERE c.olt = ? AND c.olt_port = ?
             ORDER BY c.username
-        ");
+        ", [$this->olt['nasname'], (int) $port]);
     }
     
     /**
@@ -220,20 +220,20 @@ class BDCOM_OLT {
         }
         
         // Fallback to database
-        $result = $this->conn->query("
-            SELECT c.*, 
+        $result = db_all($this->conn, "
+            SELECT c.*,
                    (SELECT r.callingstationid FROM radacct r WHERE r.username=c.username AND r.acctstoptime IS NULL LIMIT 1) as mac,
                    (SELECT r.framedipaddress FROM radacct r WHERE r.username=c.username AND r.acctstoptime IS NULL LIMIT 1) as ip,
                    (SELECT o.rx_power FROM optical_power_history o WHERE o.customer_username=c.username ORDER BY o.recorded_at DESC LIMIT 1) as rx_power,
                    (SELECT o.status FROM optical_power_history o WHERE o.customer_username=c.username ORDER BY o.recorded_at DESC LIMIT 1) as power_status
             FROM customers c
-            WHERE c.olt = '{$this->olt['nasname']}' AND c.olt_port > 0
+            WHERE c.olt = ? AND c.olt_port > 0
             ORDER BY c.olt_port, c.username
             LIMIT 100
-        ");
+        ", [$this->olt['nasname']]);
         
         $onus = [];
-        while ($row = $result->fetch_assoc()) {
+        foreach ($result as $row) {
             $onus[] = $row;
         }
         return $onus;
@@ -341,11 +341,11 @@ class BDCOM_OLT {
         }
         
         // Fallback to database
-        $power = $this->conn->query("
-            SELECT * FROM optical_power_history 
-            WHERE customer_username = (SELECT username FROM customers WHERE onu_serial = '$sn')
+        $power = db_one($this->conn, "
+            SELECT * FROM optical_power_history
+            WHERE customer_username = (SELECT username FROM customers WHERE onu_serial = ?)
             ORDER BY recorded_at DESC LIMIT 1
-        ")->fetch_assoc();
+        ", [$sn]);
         
         if ($power) {
             return [

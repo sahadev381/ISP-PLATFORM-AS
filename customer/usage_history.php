@@ -20,19 +20,17 @@ function getGB($bytes) {
     return round($bytes / (1024 * 1024 * 1024), 2);
 }
 
-$usage_history = $conn->query("
-    SELECT 
+$data = db_all($conn, "
+    SELECT
         DATE_FORMAT(acctstarttime, '%b %Y') as month,
         SUM(acctoutputoctets) as download,
         SUM(acctinputoctets) as upload
-    FROM radacct 
-    WHERE username = '$username' 
-    GROUP BY month 
-    ORDER BY acctstarttime ASC 
+    FROM radacct
+    WHERE username = ?
+    GROUP BY month
+    ORDER BY acctstarttime ASC
     LIMIT 12
-");
-
-$data = $usage_history->fetch_all(MYSQLI_ASSOC);
+", [$username]);
 ?>
 <!DOCTYPE html>
 <html lang="en">

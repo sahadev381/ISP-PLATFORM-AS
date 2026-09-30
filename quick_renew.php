@@ -1,6 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 /* SHOW ERRORS (important) */
 
@@ -9,6 +10,8 @@ $error = "";
 
 /* RENEW USER */
 if (isset($_POST['renew'])) {
+
+    csrf_check();
 
     if (!isset($_POST['username'], $_POST['months'])) {
         $error = "Invalid request!";
@@ -22,22 +25,20 @@ if (isset($_POST['renew'])) {
         } else {
 
             /* Get customer + plan */
-            $q = $conn->query("
-                SELECT 
+            $row = db_one($conn, "
+                SELECT
                     c.username,
                     c.expiry,
                     p.price,
                     p.validity
                 FROM customers c
                 JOIN plans p ON c.plan_id = p.id
-                WHERE c.username = '$username'
-            ");
+                WHERE c.username = ?
+            ", [$username]);
 
-            if ($q === false || $q->num_rows == 0) {
+            if (!$row) {
                 $error = "User not found!";
             } else {
-
-                $row = $q->fetch_assoc();
 
                 /* Calculate amount */
                 $amount = $row['price'] * $months;
@@ -45,24 +46,35 @@ if (isset($_POST['renew'])) {
                 /* Calculate expiry */
                 $today = date('Y-m-d');
                 $baseDate = ($row['expiry'] >= $today) ? $row['expiry'] : $today;
-                $days = $row['validity'] * $months;
+                $days = (int) $row['validity'] * $months;
 
                 $newExpiry = date('Y-m-d', strtotime("+$days days", strtotime($baseDate)));
 
-                /* Update customer */
-                $conn->query("
-                    UPDATE customers 
-                    SET expiry='$newExpiry', status='active'
-                    WHERE username='$username'
-                ");
+                // Expiry and the invoice must move together, otherwise a
+                // failure between the two leaves the customer renewed with no
+                // invoice (or billed with no extension).
+                $conn->begin_transaction();
+                try {
+                    /* Update customer */
+                    db_exec($conn, "
+                        UPDATE customers
+                        SET expiry = ?, status = 'active'
+                        WHERE username = ?
+                    ", [$newExpiry, $username]);
 
-                /* Insert invoice */
-                $conn->query("
-                    INSERT INTO invoices (username, amount, created_at, status)
-                    VALUES ('$username', '$amount', NOW(), 'paid')
-                ");
+                    /* Insert invoice */
+                    db_exec($conn, "
+                        INSERT INTO invoices (username, amount, created_at, status)
+                        VALUES (?, ?, NOW(), 'paid')
+                    ", [$username, $amount]);
 
-                $msg = "Renewal successful! New expiry: $newExpiry";
+                    $conn->commit();
+                    $msg = "Renewal successful! New expiry: $newExpiry";
+                } catch (Throwable $e) {
+                    $conn->rollback();
+                    error_log('quick_renew failed: ' . $e->getMessage());
+                    $error = "Renewal failed. Please try again.";
+                }
             }
         }
     }

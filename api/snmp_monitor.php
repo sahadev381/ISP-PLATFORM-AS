@@ -41,8 +41,9 @@ switch ($action) {
         
         // Store in database
         foreach ($metrics as $m) {
-            $conn->query("INSERT INTO snmp_metrics (device_id, device_ip, metric_type, metric_value)
-                VALUES ($device_id, '{$device['ip_address']}', '{$m['type']}', {$m['value']})");
+            db_exec($conn, "INSERT INTO snmp_metrics (device_id, device_ip, metric_type, metric_value)
+                VALUES (?, ?, ?, ?)",
+                [(int) $device_id, $device['ip_address'], $m['type'], $m['value']]);
         }
         
         jsonResponse(true, 'Device polled successfully', $metrics);
@@ -57,32 +58,27 @@ switch ($action) {
             jsonResponse(false, 'Device ID required');
         }
         
-        $history = $conn->query("
-            SELECT * FROM snmp_metrics 
-            WHERE device_id = $device_id 
-            AND recorded_at > DATE_SUB(NOW(), INTERVAL $hours HOUR)
+        $data = db_all($conn, "
+            SELECT * FROM snmp_metrics
+            WHERE device_id = ?
+            AND recorded_at > DATE_SUB(NOW(), INTERVAL ? HOUR)
             ORDER BY recorded_at ASC
-        ");
-        
-        $data = [];
-        while ($row = $history->fetch_assoc()) {
-            $data[] = $row;
-        }
+        ", [(int) $device_id, (int) $hours]);
         
         jsonResponse(true, '', $data);
         break;
     
     // Get all devices status
     case 'all_devices_status':
-        $devices = $conn->query("SELECT * FROM nas WHERE device_type IN ('mikrotik', 'olt', 'switch')");
-        
+        $devices = db_all($conn, "SELECT * FROM nas WHERE device_type IN ('mikrotik', 'olt', 'switch')");
+
         $data = [];
-        while ($d = $devices->fetch_assoc()) {
-            $lastMetric = $conn->query("
-                SELECT * FROM snmp_metrics 
-                WHERE device_id = {$d['id']} 
+        foreach ($devices as $d) {
+            $lastMetric = db_one($conn, "
+                SELECT * FROM snmp_metrics
+                WHERE device_id = ?
                 ORDER BY recorded_at DESC LIMIT 1
-            ")->fetch_assoc();
+            ", [(int) $d['id']]);
             
             $data[] = [
                 'id' => $d['id'],

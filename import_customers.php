@@ -47,10 +47,10 @@ include 'includes/sidebar.php';
                         $plan_id = intval($row[5] ?? 1);
                         $address = trim($row[6] ?? '');
                         
-                        $conn->query("
+                        db_exec($conn, "
                             INSERT INTO customers (username, password, full_name, email, phone, plan_id, address, status, created_at)
-                            VALUES ('$username', '$password', '$full_name', '$email', '$phone', $plan_id, '$address', 'active', CURDATE())
-                        ");
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'active', CURDATE())
+                        ", [$username, $password, $full_name, $email, $phone, $plan_id, $address]);
                         $count++;
                     }
                 }

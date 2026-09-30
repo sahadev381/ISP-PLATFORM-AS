@@ -128,28 +128,29 @@ class Security {
             $stmt->execute();
             return $stmt->get_result();
         } else {
-            return $this->conn->query("
-                SELECT * FROM activity_log 
+            $stmt = $this->conn->prepare("
+                SELECT * FROM activity_log
                 ORDER BY created_at DESC
-                LIMIT $limit
+                LIMIT ?
             ");
+            $stmt->bind_param("i", $limit);
+            $stmt->execute();
+            return $stmt->get_result();
         }
     }
     
     public function clearOldAttempts($days = 30) {
-        $this->conn->query("
-            DELETE FROM login_attempts 
-            WHERE attempt_time < DATE_SUB(NOW(), INTERVAL $days DAY)
-        ");
+        db_exec($this->conn, "
+            DELETE FROM login_attempts
+            WHERE attempt_time < DATE_SUB(NOW(), INTERVAL ? DAY)
+        ", [(int) $days]);
     }
     
     public function getSetting($key, $default = '') {
-        $result = $this->conn->query("
-            SELECT setting_value FROM system_settings 
-            WHERE setting_key = '$key'
-        ");
-        $row = $result->fetch_assoc();
-        return $row ? $row['setting_value'] : $default;
+        return db_value($this->conn, "
+            SELECT setting_value FROM system_settings
+            WHERE setting_key = ?
+        ", [$key], $default);
     }
     
     public function updateSetting($key, $value) {

@@ -23,31 +23,23 @@ function generateMonthlyInvoices() {
         if ($daysUntilExpiry <= 7) {
             // Check if invoice already exists for this month
             $monthStart = date('Y-m-01');
-            $existing = $conn->query("
-                SELECT id FROM invoices 
-                WHERE username = '{$customer['username']}'
-                AND created_at >= '$monthStart'
-                LIMIT 1
-            ");
-            
-            if ($existing->num_rows == 0) {
+            $existing = db_value($conn, "
+                SELECT COUNT(*) FROM invoices
+                WHERE username = ?
+                AND created_at >= ?
+            ", [$customer['username'], $monthStart], 0);
+
+            if ($existing == 0) {
                 // Calculate new expiry
                 $validity = $customer['validity'] ?? 30;
                 $newExpiry = date('Y-m-d', strtotime("+$validity days", $expiry));
                 
                 // Create invoice
                 $amount = $customer['price'] ?? 0;
-                $conn->query("
+                db_exec($conn, "
                     INSERT INTO invoices (username, amount, expiry_date, status, admin, months)
-                    VALUES (
-                        '{$customer['username']}',
-                        $amount,
-                        '$newExpiry',
-                        'pending',
-                        'system',
-                        1
-                    )
-                ");
+                    VALUES (?, ?, ?, 'pending', 'system', 1)
+                ", [$customer['username'], $amount, $newExpiry]);
                 
                 $count++;
             }

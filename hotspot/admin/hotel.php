@@ -127,10 +127,10 @@ include 'includes/header_hotspot.php';
 
             <div class="row">
                 <?php while ($hotel = $hotels->fetch_assoc()): 
-                    $roomStats = $conn->query("
-                        SELECT status, COUNT(*) as cnt FROM hotspot_rooms 
-                        WHERE hotel_id = {$hotel['id']} GROUP BY status
-                    ")->fetch_all(MYSQLI_ASSOC);
+                    $roomStats = db_all($conn, "
+                        SELECT status, COUNT(*) as cnt FROM hotspot_rooms
+                        WHERE hotel_id = ? GROUP BY status
+                    ", [(int) $hotel['id']]);
                     $occupied = 0; $available = 0;
                     foreach ($roomStats as $s) {
                         if ($s['status'] == 'occupied') $occupied = $s['cnt'];

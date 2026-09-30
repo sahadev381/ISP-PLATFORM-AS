@@ -47,12 +47,12 @@ $public_key = KHALTI_PUBLIC_KEY;
         </div>
         
         <?php
-        $transactions = $conn->query("
-            SELECT * FROM wallet_transactions 
-            WHERE username = '$username' 
-            ORDER BY created_at DESC 
+        $transactions = db_all($conn, "
+            SELECT * FROM wallet_transactions
+            WHERE username = ?
+            ORDER BY created_at DESC
             LIMIT 10
-        ");
+        ", [$username]);
         ?>
         
         <table>
@@ -66,8 +66,8 @@ $public_key = KHALTI_PUBLIC_KEY;
                 </tr>
             </thead>
             <tbody>
-                <?php if($transactions && $transactions->num_rows > 0): ?>
-                    <?php while($t = $transactions->fetch_assoc()): ?>
+                <?php if(count($transactions) > 0): ?>
+                    <?php foreach($transactions as $t): ?>
                         <tr>
                             <td><?= date('Y-m-d H:i', strtotime($t['created_at'])) ?></td>
                             <td><?= number_format($t['amount'], 2) ?></td>
@@ -83,7 +83,7 @@ $public_key = KHALTI_PUBLIC_KEY;
                             </td>
                             <td><?= htmlspecialchars($t['txn_id'] ?? 'N/A') ?></td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
                         <td colspan="5" style="text-align: center; color: var(--text-muted);">
