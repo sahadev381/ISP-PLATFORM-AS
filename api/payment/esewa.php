@@ -1,15 +1,16 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
 
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/cors.php';
+
+// This endpoint used to answer every origin with a wildcard. Gateway
+// callbacks are server-to-server and our own pages are same-origin, so
+// neither needs CORS; anything else must be listed in
+// CORS_ALLOWED_ORIGINS. Also handles the preflight.
+cors_apply(['POST', 'GET']);
+
+require_once __DIR__ . '/../../includes/api_auth.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -21,6 +22,7 @@ $action = $input['action'] ?? ($_GET['action'] ?? '');
 
 switch ($action) {
     case 'initiate':
+        api_require_payment_caller();
         initiatePayment($input);
         break;
     case 'callback':
@@ -46,6 +48,15 @@ function initiatePayment($data) {
     // otherwise a caller can settle a Rs 5000 invoice by posting amount=1.
     $invoice = db_one($conn, "SELECT id, customer_id, total_amount, status FROM billing_invoices WHERE id = ?", [$invoice_id]);
     if (!$invoice) {
+        echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+        return;
+    }
+
+    // A customer may only pay their own invoice; an admin or API key
+    // caller may act for anyone.
+    $caller_customer_id = api_customer_id();
+    if ($caller_customer_id !== null && !api_is_logged_in() && !api_has_valid_key()
+        && (int) $invoice['customer_id'] !== $caller_customer_id) {
         echo json_encode(['success' => false, 'error' => 'Invoice not found']);
         return;
     }

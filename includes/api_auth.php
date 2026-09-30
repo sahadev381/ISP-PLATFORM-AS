@@ -55,6 +55,23 @@ if (!function_exists('api_require_auth')) {
         return !empty($_SESSION['user_id']);
     }
 
+    /**
+     * The id of the logged-in customer portal user, or null.
+     *
+     * Customer sessions are separate from admin sessions: customer/*.php
+     * sets customer_id / customer_user, never user_id. Endpoints that
+     * customers may reach (paying their own invoice) have to accept this
+     * as well, and must then scope the record to the returned id.
+     */
+    function api_customer_id(): ?int
+    {
+        if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
+            session_start();
+        }
+        $id = (int) ($_SESSION['customer_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     function api_fail(int $code, string $message): void
     {
         http_response_code($code);
@@ -88,6 +105,30 @@ if (!function_exists('api_require_auth')) {
                 api_fail(403, 'Insufficient permissions');
             }
         }
+    }
+
+    /**
+     * Who may ask us to start or check a payment.
+     *
+     * The payment endpoints had no authentication at all, so any origin
+     * could drive the gateway with them. A caller must now be an
+     * authenticated admin (session or API key) or a logged-in customer;
+     * a customer must additionally be confined to their own records by
+     * the endpoint, via api_customer_id().
+     *
+     * Gateway-driven actions (webhook/callback) are deliberately exempt:
+     * they arrive server-to-server with no session, and are validated by
+     * re-checking the payment with the gateway instead.
+     */
+    function api_require_payment_caller(): void
+    {
+        if (PHP_SAPI === 'cli' || api_has_valid_key() || api_is_logged_in()) {
+            return;
+        }
+        if (api_customer_id() !== null) {
+            return;
+        }
+        api_fail(401, 'Authentication required');
     }
 
     /**

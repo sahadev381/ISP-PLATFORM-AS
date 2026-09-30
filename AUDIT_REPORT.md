@@ -541,3 +541,75 @@ Repo मा composer dev dependency छैन र CI ले runtime मात्
 LINT: 204 files, 0 parse errors
 105 assertions, 105 passed, 0 failed
 ```
+
+---
+
+## §13 — Phase 7: payment endpoint exposure (CORS + missing auth)
+
+§8 item 3 was recorded as "wildcard CORS". Looking at it closely, the
+CORS header was the smaller half of the problem.
+
+### What was wrong
+
+`api/payment/esewa.php` and `api/payment/khalti.php` each opened with:
+
+```php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+```
+
+and had **no authentication of any kind** — no session check, no API
+key, nothing. Any page on the internet could make a visitor's browser
+call `action=initiate` or `action=verify`. Grepping the repo found that
+**no page in the application calls these endpoints at all**, so the
+wildcard was not serving a real caller; it was pure attack surface.
+
+### Fixes
+
+1. **New `includes/cors.php`.** Default is to send *no* CORS headers.
+   Gateway callbacks are server-to-server (CORS does not apply) and our
+   own pages are same-origin (CORS not needed), so nothing legitimate
+   is lost. A genuinely separate front-end can be allowed through
+   `CORS_ALLOWED_ORIGINS` in `.env` (comma-separated, exact origins).
+   Only an exact match is echoed back, `Vary: Origin` is always sent so
+   caches cannot cross-serve, and `*` is rejected even if configured.
+
+2. **Authentication on the money-moving actions.** New
+   `api_require_payment_caller()` in `includes/api_auth.php` accepts an
+   admin session, a valid API key, or a logged-in customer, and
+   otherwise returns 401. Applied to eSewa `initiate` and Khalti
+   `initiate` / `verify`.
+
+3. **Ownership scoping.** Customer sessions are separate from admin
+   sessions (`$_SESSION['customer_id']`, not `user_id`), so the new
+   `api_customer_id()` exposes them. After the invoice is loaded, a
+   customer caller who does not own the invoice gets the same
+   "Invoice not found" answer as for a nonexistent one — no enumeration.
+
+4. `webhook` / `callback` stay reachable without a session on purpose:
+   the gateway calls them machine-to-machine, and they are already
+   validated by re-checking the payment against the gateway's own API
+   (Phase 1).
+
+5. `khalti.php` used `include_once '../../includes/payment_gateway.php'`,
+   a working-directory-relative path that breaks under cron/CLI. Now
+   `__DIR__`-relative, like everything else in the file.
+
+### Verification
+
+`tests/cors_test.php` adds 25 assertions: allowlist parsing, wildcard
+rejection, and that matching is exact (a subdomain, a suffix, a
+different scheme and a different port must all fail — the classic CORS
+bypasses); plus the API-key rules (an empty or short `API_KEY`
+authenticates nobody) and that an admin session is never mistaken for a
+customer.
+
+Full run: **206 files, 0 parse errors; 130 assertions, 130 passed.**
+
+### Still open from §8
+
+1. CSRF fields on the remaining forms · 2. truncated
+`hotspot/admin/users.php` · 4. duplicate-page merge · 5. split
+oversized files. There is also a wider cleanup worth doing: ~40 sites
+still use working-directory-relative `include '../config.php';`.
