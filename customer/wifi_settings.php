@@ -94,7 +94,7 @@ if ($deviceId) {
         <h3><i class="fa fa-sliders"></i> Manage Router</h3>
         <p style="color:#64748b; font-size:14px; margin-bottom:25px;">You can change your Wi-Fi name and password here. The update may take 30-60 seconds.</p>
 
-        <?php if($msg): ?><div class="alert alert-<?= $msg_type ?>"><?= $msg ?></div><?php endif; ?>
+        <?php if($msg): ?><div class="alert alert-<?= e($msg_type) ?>"><?= e($msg) ?></div><?php endif; ?>
 
         <form method="POST">
             <?= csrf_field() ?>

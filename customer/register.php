@@ -331,8 +331,8 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
                     <select name="plan_id" class="form-control" required>
                         <option value="">-- Select Plan --</option>
                         <?php while($plan = $plans->fetch_assoc()): ?>
-                            <option value="<?= $plan['id'] ?>">
-                                <?= htmlspecialchars($plan['name']) ?> - <?= htmlspecialchars($plan['speed']) ?> - NPR <?= number_format($plan['price']) ?>/<?= $plan['validity'] ?> days
+                            <option value="<?= e($plan['id']) ?>">
+                                <?= htmlspecialchars($plan['name']) ?> - <?= htmlspecialchars($plan['speed']) ?> - NPR <?= number_format($plan['price']) ?>/<?= e($plan['validity']) ?> days
                             </option>
                         <?php endwhile; ?>
                     </select>

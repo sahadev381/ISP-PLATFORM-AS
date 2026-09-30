@@ -94,7 +94,7 @@ include 'includes/topbar.php';
 <div class="edit-container">
     
     <?php if($msg): ?>
-        <div class="alert alert-<?= $msg_type ?>">
+        <div class="alert alert-<?= e($msg_type) ?>">
             <i class="fa <?= $msg_type == 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
         </div>

@@ -127,7 +127,7 @@ include 'includes/sidebar.php';
         <select class="input" name="branch_id" id="branch_id">
             <option value="">All Branches</option>
             <?php while($b=$branches->fetch_assoc()){ ?>
-                <option value="<?= $b['id'] ?>"><?= $b['name'] ?></option>
+                <option value="<?= e($b['id']) ?>"><?= e($b['name']) ?></option>
             <?php } ?>
         </select>
     </td>
@@ -163,10 +163,10 @@ include 'includes/sidebar.php';
 
     <?php while($a = $admins->fetch_assoc()){ ?>
     <tr>
-        <td><?= $a['id'] ?></td>
+        <td><?= e($a['id']) ?></td>
         <td><?= htmlspecialchars($a['username']) ?></td>
-        <td><?= strtoupper($a['role'] ?? '') ?></td>
-        <td><?= $a['branch_name'] ?? 'All' ?></td>
+        <td><?= e(strtoupper($a['role'] ?? '')) ?></td>
+        <td><?= e($a['branch_name'] ?? 'All') ?></td>
         <td>
 <?php
 $isSelf = ($a['id'] == $_SESSION['user_id']);
@@ -184,26 +184,26 @@ $isSuper = ($a['role'] === 'superadmin');
 <?php } else { ?>
 
 <!-- EDIT -->
-<a class="btn" href="admin_edit.php?id=<?= $a['id'] ?>">
+<a class="btn" href="admin_edit.php?id=<?= e($a['id']) ?>">
             <i class="fa fa-edit"></i> Edit
         </a>
 
 
     <!-- CHANGE PASSWORD (ONLY ONCE) -->
     <button class="btn" style="background:#3498db;color:#fff;"
-        onclick="document.getElementById('changePass<?= $a['id'] ?>').style.display='block'">
+        onclick="document.getElementById('changePass<?= e($a['id']) ?>').style.display='block'">
         <i class="fa fa-key"></i> Password
     </button>
 
     <!-- DELETE -->
     <a class="btn" style="background:#e74c3c;color:#fff;"
-       href="?del=<?= $a['id'] ?>"
+       href="?del=<?= e($a['id']) ?>"
        onclick="return confirm('Delete this admin?')">
        <i class="fa fa-trash"></i>
     </a>
 
     <!-- CHANGE PASSWORD MODAL -->
-    <div id="changePass<?= $a['id'] ?>"
+    <div id="changePass<?= e($a['id']) ?>"
          style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);">
         <div style="background:#fff;padding:20px;border-radius:10px;width:320px;margin:120px auto;position:relative;">
             <span style="position:absolute;top:10px;right:15px;cursor:pointer;font-weight:bold;"
@@ -212,7 +212,7 @@ $isSuper = ($a['role'] === 'superadmin');
             <h4>Change Password</h4>
 
             <form method="post">
-                <input type="hidden" name="admin_id" value="<?= $a['id'] ?>">
+                <input type="hidden" name="admin_id" value="<?= e($a['id']) ?>">
 
                 <input class="input" type="password" name="new_password"
                        placeholder="New Password" required>

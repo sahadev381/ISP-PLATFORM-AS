@@ -35,9 +35,9 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
     ?>
     <Placemark>
         <name><?= htmlspecialchars($n['type'] . ': ' . $n['name']) ?></name>
-        <description>Capacity: <?= $n['capacity'] ?></description>
-        <styleUrl>#<?= $style ?></styleUrl>
-        <Point><coordinates><?= $n['lng'] ?>,<?= $n['lat'] ?>,0</coordinates></Point>
+        <description>Capacity: <?= e($n['capacity']) ?></description>
+        <styleUrl>#<?= e($style) ?></styleUrl>
+        <Point><coordinates><?= e($n['lng']) ?>,<?= e($n['lat']) ?>,0</coordinates></Point>
     </Placemark>
     <?php endwhile; ?>
 </Folder>
@@ -55,7 +55,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
         <styleUrl>#fiberStyle</styleUrl>
         <LineString>
             <tessellate>1</tessellate>
-            <coordinates><?= implode(' ', $coords) ?></coordinates>
+            <coordinates><?= e(implode(' ', $coords)) ?></coordinates>
         </LineString>
     </Placemark>
     <?php endif; endwhile; ?>
@@ -66,7 +66,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
     <?php while($c = $customers->fetch_assoc()): ?>
     <Placemark>
         <name><?= htmlspecialchars($c['full_name']) ?></name>
-        <Point><coordinates><?= $c['lng'] ?>,<?= $c['lat'] ?>,0</coordinates></Point>
+        <Point><coordinates><?= e($c['lng']) ?>,<?= e($c['lat']) ?>,0</coordinates></Point>
     </Placemark>
     <?php endwhile; ?>
 </Folder>

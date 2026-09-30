@@ -131,20 +131,20 @@ test_login.php test_pass.php test_pass2.php test_post.php test_session.php test.
 ### P0 — अहिल्यै (security)
 1. **`hotspot/includes/auth.php` सबै query prepared statement मा बदल्ने** — यो unauthenticated हो
 2. **`customer/index.php:17` को `|| $password === $user['password']` हटाउने**, अनि `customer/index.php` लाई पूरै हटाएर `customer/login.php` मात्र राख्ने
-3. **सबै `api/*.php` मा auth guard थप्ने** — session वा API key + HMAC
-4. **Hardcoded DB password हटाउने**: सबैलाई `require __DIR__.'/config.php'` गराउने, credentials `.env` वा gitignored `config.php` मा
-5. **Git history बाट secret हटाउने** + ती password हरू rotate गर्ने (`radiuspass`, `admin123`)
-6. **`test_*.php` सबै delete** — production मा deploy भए password oracle बन्छ
-7. `ini_set('display_errors', 1)` सबै हटाएर एकै ठाउँ (`config.php`) मा env-based राख्ने
+2. **सबै `api/*.php` मा auth guard थप्ने** — session वा API key + HMAC
+3. **Hardcoded DB password हटाउने**: सबैलाई `require __DIR__.'/config.php'` गराउने, credentials `.env` वा gitignored `config.php` मा
+4. **Git history बाट secret हटाउने** + ती password हरू rotate गर्ने (`radiuspass`, `admin123`)
+5. **`test_*.php` सबै delete** — production मा deploy भए password oracle बन्छ
+6. `ini_set('display_errors', 1)` सबै हटाएर एकै ठाउँ (`config.php`) मा env-based राख्ने
 
 ### P1 — छिट्टै
-8. **CSRF token helper** बनाएर सबै POST form मा लगाउने:
+7. **CSRF token helper** बनाएर सबै POST form मा लगाउने:
    ```php
    // includes/csrf.php
    function csrf_token(){ return $_SESSION['csrf'] ??= bin2hex(random_bytes(32)); }
    function csrf_check(){ if(!hash_equals($_SESSION['csrf']??'', $_POST['_csrf']??'')) { http_response_code(419); exit('CSRF'); } }
    ```
-9. **`user_view.php` + `recharge.php` को `$_GET['user']` parameterize गर्ने** — यी दुई सबैभन्दा धेरै touch हुने page
+8. **`user_view.php` + `recharge.php` को `$_GET['user']` parameterize गर्ने** — यी दुई सबैभन्दा धेरै touch हुने page
 10. **`disconnect_user.php` fix**: quoting मिलाउने, `$nas['secret']`/`ip` पनि `escapeshellarg()` गर्ने, error message बाट secret हटाउने
 11. Login पछि **`session_regenerate_id(true)`**, र `session_set_cookie_params(['httponly'=>true,'samesite'=>'Lax','secure'=>true])`
 12. **XSS**: सबै echo मा `htmlspecialchars()` — छोटो helper `e($v)` बनाउने
@@ -298,8 +298,7 @@ Phase 1 पछि बाँकी रहेका सबै interpolated query �
 
 ## 8. ◻ अझै बाँकी (अर्को phase)
 
-1. **XSS** — सबै `echo`/`<?=` मा `e()` लगाउने (अहिले आंशिक मात्र)। सबैभन्दा ठूलो बाँकी काम यही हो।
-2. बाँकी सबै form मा `csrf_field()` (जोखिमपूर्ण write path हरू सकिए)
+1. बाँकी सबै form मा `csrf_field()` (जोखिमपूर्ण write path हरू सकिए)
 3. `hotspot/admin/users.php` — HTML output truncated, `<form>` छैन, JS ले नभएका DOM id खोज्छ
 4. RBAC/branch isolation query-level मा enforce (अहिले `$_SESSION['role']` UI मा मात्र)
 5. `api/payment/*` मा `Access-Control-Allow-Origin: *` — payment endpoint मा origin सीमित गर्ने
@@ -307,3 +306,56 @@ Phase 1 पछि बाँकी रहेका सबै interpolated query �
 7. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
 8. DB schema SQL repo मा राख्ने (अहिले कतै छैन — clone गरेर table बनाउन सकिँदैन)
 9. Automated test सुरु गर्ने — अहिले शून्य; CI मा `php -l` मात्र छ
+
+---
+
+## 9. ✅ Phase 3 — XSS / output escaping (सकियो)
+
+### 9.1 केन्द्रीय helper: `includes/html.php`
+
+`config.php` ले अब `includes/html.php` require गर्छ, त्यसैले हरेक page मा यी function उपलब्ध छन्:
+
+| Function | कहाँ प्रयोग गर्ने |
+|---|---|
+| `e($v)` | HTML text र quoted attribute value. `null`→`''`, bool/array पनि सुरक्षित handle गर्छ |
+| `e_attr($v)` | `e()` कै alias, attribute context स्पष्ट पार्न |
+| `e_js($v)` | `<script>` भित्र। पूरै JS literal (quote सहित) फर्काउँछ — **`e()` यहाँ गलत हो** |
+| `e_url($v)` | query-string / path segment (`rawurlencode`) |
+| `e_href($v)` | पूरा URL। relative वा `http/https/mailto/tel` बाहेक `#` फर्काउँछ, त्यसैले `javascript:` block हुन्छ |
+
+पहिले `e()` सिधै `config.php.example` भित्र लेखिएको थियो; अब एउटै ठाउँमा आयो।
+
+### 9.2 PHP output escaping
+
+Repo भरि **१,३८५ वटा `<?= … ?>` site** classify गरियो:
+
+| वर्ग | संख्या | कारबाही |
+|---|---|---|
+| पहिले नै सुरक्षित | 688 | `htmlspecialchars()`, `number_format()`, `csrf_token()`, constant-only ternary (`'selected'`/`''`, color code) आदि |
+| Auto-wrapped | **677** | `<?= $x ?>` → `<?= e($x) ?>` — 82 फाइलमा |
+| `<script>` भित्र | 12 | numeric लाई `(int)` cast; string लाई `e_js()` |
+| हातले | 8 | nested ternary, `href` build, `(int)` cast |
+
+Constant मात्र निकाल्ने expression (जस्तै `$row['status']=='active' ? 'badge-success' : 'badge-danger'`) मा जानाजान `e()` लगाइएको छैन — त्यहाँ user data कहिल्यै output मा पुग्दैन।
+
+### 9.3 JavaScript DOM-XSS (PHP escaping ले नछुने बग)
+
+`innerHTML` मा template literal हालेर render गर्ने ठाउँमा **stored XSS** भेटियो — यो `e()` ले समाधान हुँदैन, किनकि data JSON API बाट client-side आउँछ:
+
+| फाइल | बग |
+|---|---|
+| `work_diary.php` | `${entry.title}`, `${entry.content}`, `${c.comment}` — कुनै पनि staff ले diary entry मा `<img src=x onerror=…>` लेखे सबै admin को browser मा script चल्थ्यो |
+| `mobile_tech.php` | `${j.full_name}`, `${j.address}`, `${j.subject}` — customer ले आफ्नै नाम/ठेगानामा payload राखे technician app मा execute हुन्थ्यो |
+| `map.php` | `${c.full_name}`, `${n.name}`, `${r.name}` (Leaflet `bindPopup`) |
+| `olt_dashboard.php` | `${ont.onu_serial}`, `${ont.status}` |
+
+तीनवटै फाइलमा client-side `esc()` / `escJs()` / `num()` helper थपेर हरेक interpolation wrap गरियो। साथै:
+
+- `work_diary.php` — `'<?php echo $_SESSION['role'] ?>'` भन्ने nested-quote hack हटाएर `IS_SUPERADMIN` boolean बनाइयो (delete को असली check server-side मै छ, यो button देखाउन मात्र हो); fetch URL मा `encodeURIComponent()`
+- `mobile_tech.php` — `Debug OTP: ${res.debug_otp}` हटाइयो (API ले अब OTP फर्काउँदैन, dead reference थियो); `tel:` link मा `encodeURIComponent()`
+- `map.php` / `olt_dashboard.php` — inline `onclick="fn('${serial}')"` मा `escJs()`, id हरूमा `num()`
+
+### 9.4 प्रमाणीकरण
+
+- Delimiter-balance checker: 85 फाइल, **0 problem**
+- SQL regression: interpolated SQL **0** (बाँकी दुई hit `exec()` shell call हुन्, `escapeshellarg()` लागेको छ)

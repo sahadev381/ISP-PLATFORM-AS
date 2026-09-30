@@ -296,8 +296,8 @@ body { background: #f3f4f6; }
 <div class="container-fluid p-4">
     <?php if($message): ?>
     <?php $msg = json_decode($message, true); ?>
-    <div class="alert alert-<?= $msg['type'] ?> alert-dismissible fade show" role="alert">
-        <i class="fas fa-<?= $msg['type'] == 'success' ? 'check-circle' : 'info-circle' ?>"></i> <?= $msg['msg'] ?>
+    <div class="alert alert-<?= e($msg['type']) ?> alert-dismissible fade show" role="alert">
+        <i class="fas fa-<?= $msg['type'] == 'success' ? 'check-circle' : 'info-circle' ?>"></i> <?= e($msg['msg']) ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <?php endif; ?>
@@ -321,7 +321,7 @@ body { background: #f3f4f6; }
                     <div class="d-flex justify-content-between">
                         <div>
                             <p class="opacity-75 mb-1">Total Users</p>
-                            <h2 class="mb-0"><?= $stats['total'] ?? 0 ?></h2>
+                            <h2 class="mb-0"><?= e($stats['total'] ?? 0) ?></h2>
                         </div>
                         <div style="opacity: 0.5;"><i class="fas fa-users fa-2x"></i></div>
     </div>

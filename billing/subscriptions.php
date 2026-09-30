@@ -62,7 +62,7 @@ $counts = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -300,7 +300,7 @@ $counts = [
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -321,7 +321,7 @@ $counts = [
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -333,7 +333,7 @@ $counts = [
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-label">Active</div>
-                        <div class="stat-value"><?= $counts['active'] ?></div>
+                        <div class="stat-value"><?= e($counts['active']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -342,7 +342,7 @@ $counts = [
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-label">Pending</div>
-                        <div class="stat-value"><?= $counts['pending'] ?></div>
+                        <div class="stat-value"><?= e($counts['pending']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -351,7 +351,7 @@ $counts = [
                             <i class="fas fa-pause-circle"></i>
                         </div>
                         <div class="stat-label">Suspended</div>
-                        <div class="stat-value"><?= $counts['suspended'] ?></div>
+                        <div class="stat-value"><?= e($counts['suspended']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -360,7 +360,7 @@ $counts = [
                             <i class="fas fa-times-circle"></i>
                         </div>
                         <div class="stat-label">Cancelled</div>
-                        <div class="stat-value"><?= $counts['cancelled'] ?></div>
+                        <div class="stat-value"><?= e($counts['cancelled']) ?></div>
                     </div>
                 </div>
             </div>
@@ -390,12 +390,12 @@ $counts = [
                         <tbody>
                             <?php while ($sub = $subscriptions->fetch_assoc()): ?>
                             <tr>
-                                <td><?= $sub['id'] ?></td>
+                                <td><?= e($sub['id']) ?></td>
                                 <td>
-                                    <strong><?= $sub['full_name'] ?></strong><br>
-                                    <small style="color: #64748b;"><?= $sub['username'] ?></small>
+                                    <strong><?= e($sub['full_name']) ?></strong><br>
+                                    <small style="color: #64748b;"><?= e($sub['username']) ?></small>
                                 </td>
-                                <td><?= $sub['plan_name'] ?></td>
+                                <td><?= e($sub['plan_name']) ?></td>
                                 <td>Rs.<?= number_format($sub['plan_price'], 2) ?></td>
                                 <td><?= date('M d, Y', strtotime($sub['start_date'])) ?></td>
                                 <td><?= $sub['next_billing_date'] ? date('M d, Y', strtotime($sub['next_billing_date'])) : '-' ?></td>
@@ -405,22 +405,22 @@ $counts = [
                                         ($sub['status'] == 'pending' ? 'badge-warning' : 
                                         ($sub['status'] == 'suspended' ? 'badge-danger' : 'badge-secondary'))
                                     ?>">
-                                        <?= ucfirst($sub['status']) ?>
+                                        <?= e(ucfirst($sub['status'])) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($sub['status'] == 'active'): ?>
-                                            <button class="btn btn-warning btn-sm" onclick="submitAction('suspend_subscription', <?= $sub['id'] ?>)" title="Suspend">
+                                            <button class="btn btn-warning btn-sm" onclick="submitAction('suspend_subscription', <?= e($sub['id']) ?>)" title="Suspend">
                                                 <i class="fas fa-pause"></i>
                                             </button>
                                         <?php elseif ($sub['status'] == 'suspended'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('reactivate_subscription', <?= $sub['id'] ?>)" title="Reactivate">
+                                            <button class="btn btn-success btn-sm" onclick="submitAction('reactivate_subscription', <?= e($sub['id']) ?>)" title="Reactivate">
                                                 <i class="fas fa-play"></i>
                                             </button>
                                         <?php endif; ?>
                                         <?php if ($sub['status'] != 'cancelled'): ?>
-                                            <button class="btn btn-danger btn-sm" onclick="submitAction('cancel_subscription', <?= $sub['id'] ?>)" title="Cancel">
+                                            <button class="btn btn-danger btn-sm" onclick="submitAction('cancel_subscription', <?= e($sub['id']) ?>)" title="Cancel">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         <?php endif; ?>
@@ -455,7 +455,7 @@ $counts = [
                             <?php
                             $customers = $conn->query("SELECT id, username, full_name FROM customers ORDER BY username");
                             while ($c = $customers->fetch_assoc()): ?>
-                                <option value="<?= $c['id'] ?>"><?= $c['username'] ?> - <?= $c['full_name'] ?></option>
+                                <option value="<?= e($c['id']) ?>"><?= e($c['username']) ?> - <?= e($c['full_name']) ?></option>
                             <?php endwhile; ?>
                         </select>
                     </div>
@@ -464,7 +464,7 @@ $counts = [
                         <select name="plan_id" class="form-control" required>
                             <option value="">Select Plan</option>
                             <?php while ($p = $plans->fetch_assoc()): ?>
-                                <option value="<?= $p['id'] ?>"><?= $p['name'] ?> - Rs.<?= $p['price'] ?></option>
+                                <option value="<?= e($p['id']) ?>"><?= e($p['name']) ?> - Rs.<?= e($p['price']) ?></option>
                             <?php endwhile; ?>
                         </select>
                     </div>

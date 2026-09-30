@@ -56,7 +56,7 @@ while ($row = $stats->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -294,7 +294,7 @@ while ($row = $stats->fetch_assoc()) {
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -315,7 +315,7 @@ while ($row = $stats->fetch_assoc()) {
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -327,7 +327,7 @@ while ($row = $stats->fetch_assoc()) {
                             <i class="fas fa-ban"></i>
                         </div>
                         <div class="stat-label">IP Blocked</div>
-                        <div class="stat-value"><?= $counts['ip'] ?></div>
+                        <div class="stat-value"><?= e($counts['ip']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -336,7 +336,7 @@ while ($row = $stats->fetch_assoc()) {
                             <i class="fas fa-desktop"></i>
                         </div>
                         <div class="stat-label">MAC Blocked</div>
-                        <div class="stat-value"><?= $counts['mac'] ?></div>
+                        <div class="stat-value"><?= e($counts['mac']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -345,7 +345,7 @@ while ($row = $stats->fetch_assoc()) {
                             <i class="fas fa-globe"></i>
                         </div>
                         <div class="stat-label">Geo Blocked</div>
-                        <div class="stat-value"><?= $counts['geo'] ?></div>
+                        <div class="stat-value"><?= e($counts['geo']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -354,7 +354,7 @@ while ($row = $stats->fetch_assoc()) {
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-label">Whitelisted</div>
-                        <div class="stat-value"><?= $counts['whitelist'] ?></div>
+                        <div class="stat-value"><?= e($counts['whitelist']) ?></div>
                     </div>
                 </div>
             </div>
@@ -385,7 +385,7 @@ while ($row = $stats->fetch_assoc()) {
                             <tr>
                                 <td>
                                     <span class="badge <?= $e['action'] == 'block' ? 'badge-danger' : 'badge-success' ?>">
-                                        <?= strtoupper($e['list_type']) ?>
+                                        <?= e(strtoupper($e['list_type'])) ?>
                                     </span>
                                 </td>
                                 <td><code><?= htmlspecialchars($e['value']) ?></code></td>
@@ -403,10 +403,10 @@ while ($row = $stats->fetch_assoc()) {
                                 <td><?= date('M d, Y', strtotime($e['created_at'])) ?></td>
                                 <td>
                                     <div class="btn-group">
-                                        <button class="btn <?= $e['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle', <?= $e['id'] ?>)" title="<?= $e['is_active'] ? 'Disable' : 'Enable' ?>">
+                                        <button class="btn <?= $e['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle', <?= e($e['id']) ?>)" title="<?= $e['is_active'] ? 'Disable' : 'Enable' ?>">
                                             <i class="fas <?= $e['is_active'] ? 'fa-ban' : 'fa-check' ?>"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteEntry(<?= $e['id'] ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" onclick="deleteEntry(<?= e($e['id']) ?>)" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>

@@ -50,7 +50,7 @@ while ($row = $result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -196,7 +196,7 @@ while ($row = $result->fetch_assoc()) {
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -217,7 +217,7 @@ while ($row = $result->fetch_assoc()) {
             
             <?php if ($message): ?>
                 <div style="background: #d1fae5; color: #065f46; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -234,7 +234,7 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>SMS API URL</label>
                                     <input type="text" name="sms_api_url" class="form-control" 
-                                           value="<?= $settings['sms_api_url'] ?? '' ?>"
+                                           value="<?= e($settings['sms_api_url'] ?? '') ?>"
                                            placeholder="https://sms.example.com/api/send">
                                 </div>
                             </div>
@@ -242,28 +242,28 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>API Key</label>
                                     <input type="text" name="sms_api_key" class="form-control" 
-                                           value="<?= $settings['sms_api_key'] ?? '' ?>">
+                                           value="<?= e($settings['sms_api_key'] ?? '') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Sender ID</label>
                                     <input type="text" name="sms_sender_id" class="form-control" 
-                                           value="<?= $settings['sms_sender_id'] ?? 'HOTSPOT' ?>">
+                                           value="<?= e($settings['sms_sender_id'] ?? 'HOTSPOT') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Username (if required)</label>
                                     <input type="text" name="sms_username" class="form-control" 
-                                           value="<?= $settings['sms_username'] ?? '' ?>">
+                                           value="<?= e($settings['sms_username'] ?? '') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Password (if required)</label>
                                     <input type="password" name="sms_password" class="form-control" 
-                                           value="<?= $settings['sms_password'] ?? '' ?>">
+                                           value="<?= e($settings['sms_password'] ?? '') ?>">
                                 </div>
                             </div>
                         </div>
@@ -286,14 +286,14 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>Portal Title</label>
                                     <input type="text" name="portal_title" class="form-control" 
-                                           value="<?= $settings['portal_title'] ?? 'Hotspot Portal' ?>">
+                                           value="<?= e($settings['portal_title'] ?? 'Hotspot Portal') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Session Timeout (seconds)</label>
                                     <input type="number" name="session_timeout" class="form-control" 
-                                           value="<?= $settings['session_timeout'] ?? 3600 ?>">
+                                           value="<?= e($settings['session_timeout'] ?? 3600) ?>">
                                     <div class="help-text">3600 = 1 hour, 7200 = 2 hours</div>
                                 </div>
                             </div>
@@ -301,7 +301,7 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>OTP Expiry (seconds)</label>
                                     <input type="number" name="otp_expiry" class="form-control" 
-                                           value="<?= $settings['otp_expiry'] ?? 300 ?>">
+                                           value="<?= e($settings['otp_expiry'] ?? 300) ?>">
                                     <div class="help-text">300 = 5 minutes</div>
                                 </div>
                             </div>

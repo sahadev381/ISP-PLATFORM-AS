@@ -94,12 +94,12 @@ $page_title = "Invoices";
             </tr>
             <?php foreach($invoice_rows as $i){ ?>
             <tr>
-                <td><?= $i['id'] ?></td>
-		<td><?= $i['amount'] ?></td>
-		<td><?= $i['months'] ?></td>
-		<td><?= $i['expiry_date'] ?></td>
-		<td><?= $i['created_at'] ?></td>
-		<td><?= $i['admin'] ?></td>
+                <td><?= e($i['id']) ?></td>
+		<td><?= e($i['amount']) ?></td>
+		<td><?= e($i['months']) ?></td>
+		<td><?= e($i['expiry_date']) ?></td>
+		<td><?= e($i['created_at']) ?></td>
+		<td><?= e($i['admin']) ?></td>
 		<td>
     		<form method="post" style="display:inline"
        		onsubmit="return confirm('Delete this invoice?')">

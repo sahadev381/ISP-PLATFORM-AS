@@ -176,7 +176,7 @@ include 'includes/topbar.php';
                         <tr>
                             <td>
                                 <div class="user-info-cell">
-                                    <div class="user-avatar"><?= $initials ?></div>
+                                    <div class="user-avatar"><?= e($initials) ?></div>
                                     <div>
                                         <div style="font-weight: 600;"><?= htmlspecialchars($u['username']) ?></div>
                                         <div style="font-size: 12px; color: #64748b;"><?= htmlspecialchars($u['full_name'] ?? 'No Name') ?></div>

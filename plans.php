@@ -14,23 +14,23 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
         <div class="form-grid">
             <div class="form-group">
                 <label>Plan Name</label>
-                <input class="form-control" name="name" id="<?= $id_prefix ?>_name" required>
+                <input class="form-control" name="name" id="<?= e($id_prefix) ?>_name" required>
             </div>
             <div class="form-group">
                 <label>Base Speed</label>
-                <input class="form-control" name="speed" id="<?= $id_prefix ?>_speed" placeholder="e.g. 100M/100M" required>
+                <input class="form-control" name="speed" id="<?= e($id_prefix) ?>_speed" placeholder="e.g. 100M/100M" required>
             </div>
             <div class="form-group">
                 <label>Price (NPR)</label>
-                <input type="number" step="0.01" class="form-control" name="price" id="<?= $id_prefix ?>_price" required>
+                <input type="number" step="0.01" class="form-control" name="price" id="<?= e($id_prefix) ?>_price" required>
             </div>
             <div class="form-group">
                 <label>Validity (Days)</label>
-                <input type="number" class="form-control" name="validity" id="<?= $id_prefix ?>_validity" value="30" required>
+                <input type="number" class="form-control" name="validity" id="<?= e($id_prefix) ?>_validity" value="30" required>
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label>Total Data Quota (GB)</label>
-                <input type="number" class="form-control" name="data_limit" id="<?= $id_prefix ?>_data_limit" value="1000">
+                <input type="number" class="form-control" name="data_limit" id="<?= e($id_prefix) ?>_data_limit" value="1000">
             </div>
         </div>
 
@@ -39,11 +39,11 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Limit (GB)</label>
-                    <input type="number" class="form-control" name="fup1_limit" id="<?= $id_prefix ?>_fup1_limit">
+                    <input type="number" class="form-control" name="fup1_limit" id="<?= e($id_prefix) ?>_fup1_limit">
                 </div>
                 <div class="form-group">
                     <label>FUP Speed</label>
-                    <input class="form-control" name="fup1_speed" id="<?= $id_prefix ?>_fup1_speed" placeholder="e.g. 50M/50M">
+                    <input class="form-control" name="fup1_speed" id="<?= e($id_prefix) ?>_fup1_speed" placeholder="e.g. 50M/50M">
                 </div>
             </div>
         </div>
@@ -53,11 +53,11 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Limit (GB)</label>
-                    <input type="number" class="form-control" name="fup2_limit" id="<?= $id_prefix ?>_fup2_limit">
+                    <input type="number" class="form-control" name="fup2_limit" id="<?= e($id_prefix) ?>_fup2_limit">
                 </div>
                 <div class="form-group">
                     <label>FUP Speed</label>
-                    <input class="form-control" name="fup2_speed" id="<?= $id_prefix ?>_fup2_speed" placeholder="e.g. 20M/20M">
+                    <input class="form-control" name="fup2_speed" id="<?= e($id_prefix) ?>_fup2_speed" placeholder="e.g. 20M/20M">
                 </div>
             </div>
         </div>
@@ -67,11 +67,11 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Limit (GB)</label>
-                    <input type="number" class="form-control" name="fup3_limit" id="<?= $id_prefix ?>_fup3_limit">
+                    <input type="number" class="form-control" name="fup3_limit" id="<?= e($id_prefix) ?>_fup3_limit">
                 </div>
                 <div class="form-group">
                     <label>FUP Speed</label>
-                    <input class="form-control" name="fup3_speed" id="<?= $id_prefix ?>_fup3_speed" placeholder="e.g. 10M/10M">
+                    <input class="form-control" name="fup3_speed" id="<?= e($id_prefix) ?>_fup3_speed" placeholder="e.g. 10M/10M">
                 </div>
             </div>
         </div>
@@ -204,20 +204,20 @@ include 'includes/topbar.php';
                         <td>
                             <div style="font-size: 11px; line-height: 1.4;">
                                 <?php if($p['fup1_limit'] > 0): ?>
-                                    <span style="color:#64748b;">T1: <?= round($p['fup1_limit']/1073741824) ?>GB &rarr; <?= $p['fup1_speed'] ?></span><br>
+                                    <span style="color:#64748b;">T1: <?= round($p['fup1_limit']/1073741824) ?>GB &rarr; <?= e($p['fup1_speed']) ?></span><br>
                                 <?php endif; ?>
                                 <?php if($p['fup2_limit'] > 0): ?>
-                                    <span style="color:#64748b;">T2: <?= round($p['fup2_limit']/1073741824) ?>GB &rarr; <?= $p['fup2_speed'] ?></span><br>
+                                    <span style="color:#64748b;">T2: <?= round($p['fup2_limit']/1073741824) ?>GB &rarr; <?= e($p['fup2_speed']) ?></span><br>
                                 <?php endif; ?>
                                 <?php if($p['fup3_limit'] > 0): ?>
-                                    <span style="color:#64748b;">T3: <?= round($p['fup3_limit']/1073741824) ?>GB &rarr; <?= $p['fup3_speed'] ?></span>
+                                    <span style="color:#64748b;">T3: <?= round($p['fup3_limit']/1073741824) ?>GB &rarr; <?= e($p['fup3_speed']) ?></span>
                                 <?php endif; ?>
                             </div>
                         </td>
                         <td><span class="badge" style="background:#f0fdf4; color:#16a34a;">NPR <?= number_format($p['price']) ?></span></td>
                         <td>
                             <button onclick='openEditModal(<?= json_encode($p) ?>)' class="btn-icon btn-edit"><i class="fa fa-edit"></i></button>
-                            <a href="?del=<?= $p['id'] ?>" class="btn-icon btn-delete" onclick="return confirm('Delete plan?')"><i class="fa fa-trash"></i></a>
+                            <a href="?del=<?= e($p['id']) ?>" class="btn-icon btn-delete" onclick="return confirm('Delete plan?')"><i class="fa fa-trash"></i></a>
                         </td>
                     </tr>
                     <?php endwhile; ?>

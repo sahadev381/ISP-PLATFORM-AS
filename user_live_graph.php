@@ -36,7 +36,7 @@ include 'includes/topbar.php';
 
 <script>
     const username   = <?= json_encode($user['username']) ?>;
-    const PLAN_SPEED = <?= $planSpeed ?>;
+    const PLAN_SPEED = <?= (int) $planSpeed ?>;
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

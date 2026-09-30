@@ -81,7 +81,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -328,7 +328,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -349,7 +349,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -361,7 +361,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-label">Active Gateways</div>
-                        <div class="stat-value"><?= $active_count ?></div>
+                        <div class="stat-value"><?= e($active_count) ?></div>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -370,7 +370,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                             <i class="fas fa-times-circle"></i>
                         </div>
                         <div class="stat-label">Inactive Gateways</div>
-                        <div class="stat-value"><?= $inactive_count ?></div>
+                        <div class="stat-value"><?= e($inactive_count) ?></div>
                     </div>
                 </div>
             </div>
@@ -403,11 +403,11 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                                         <div class="gateway-icon" style="background: #dbeafe; color: #1d4ed8;">
                                             <i class="fas fa-credit-card"></i>
                                         </div>
-                                        <strong><?= strtoupper($gw['gateway_name']) ?></strong>
+                                        <strong><?= e(strtoupper($gw['gateway_name'])) ?></strong>
                                     </div>
                                 </td>
-                                <td><?= $gw['display_name'] ?></td>
-                                <td><?= $gw['merchant_id'] ?: '-' ?></td>
+                                <td><?= e($gw['display_name']) ?></td>
+                                <td><?= e($gw['merchant_id'] ?: '-') ?></td>
                                 <td>
                                     <span class="badge <?= $gw['is_test_mode'] ? 'badge-warning' : 'badge-success' ?>">
                                         <?= $gw['is_test_mode'] ? 'Test' : 'Live' ?>
@@ -420,13 +420,13 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                                 </td>
                                 <td>
                                     <div class="btn-group">
-                                        <button class="btn btn-primary btn-sm" onclick="editGateway(<?= $gw['id'] ?>, '<?= $gw['gateway_name'] ?>', '<?= $gw['display_name'] ?>', '<?= $gw['merchant_id'] ?>', '<?= $gw['api_key'] ?>', '<?= $gw['api_secret'] ?>', '<?= $gw['public_key'] ?>', <?= $gw['is_active'] ?>, <?= $gw['is_test_mode'] ?>)" title="Edit">
+                                        <button class="btn btn-primary btn-sm" onclick="editGateway(<?= e($gw['id']) ?>, '<?= e($gw['gateway_name']) ?>', '<?= e($gw['display_name']) ?>', '<?= e($gw['merchant_id']) ?>', '<?= e($gw['api_key']) ?>', '<?= e($gw['api_secret']) ?>', '<?= e($gw['public_key']) ?>', <?= e($gw['is_active']) ?>, <?= e($gw['is_test_mode']) ?>)" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle_gateway', <?= $gw['id'] ?>)" title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
+                                        <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle_gateway', <?= e($gw['id']) ?>)" title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
                                             <i class="fas <?= $gw['is_active'] ? 'fa-ban' : 'fa-check' ?>"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteGateway(<?= $gw['id'] ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" onclick="deleteGateway(<?= e($gw['id']) ?>)" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>

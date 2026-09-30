@@ -55,7 +55,7 @@ while ($row = $result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -310,7 +310,7 @@ while ($row = $result->fetch_assoc()) {
         }
         
         .preview-navbar {
-            background: <?= $settings['captive_primary_color'] ?? '#6366f1' ?>;
+            background: <?= e($settings['captive_primary_color'] ?? '#6366f1') ?>;
             padding: 15px 20px;
             display: flex;
             justify-content: space-between;
@@ -325,7 +325,7 @@ while ($row = $result->fetch_assoc()) {
         .preview-content {
             padding: 40px 30px;
             text-align: center;
-            background: linear-gradient(135deg, <?= $settings['captive_primary_color'] ?? '#6366f1' ?> 0%, #3b82f6 100%);
+            background: linear-gradient(135deg, <?= e($settings['captive_primary_color'] ?? '#6366f1') ?> 0%, #3b82f6 100%);
             min-height: 300px;
         }
         
@@ -339,11 +339,11 @@ while ($row = $result->fetch_assoc()) {
         
         /* Background Type Preview */
         .bg-gradient {
-            background: linear-gradient(135deg, <?= $settings['captive_primary_color'] ?? '#6366f1' ?> 0%, #3b82f6 100%);
+            background: linear-gradient(135deg, <?= e($settings['captive_primary_color'] ?? '#6366f1') ?> 0%, #3b82f6 100%);
         }
         
         .bg-solid {
-            background: <?= $settings['captive_primary_color'] ?? '#6366f1' ?>;
+            background: <?= e($settings['captive_primary_color'] ?? '#6366f1') ?>;
         }
         
         .bg-image {
@@ -354,7 +354,7 @@ while ($row = $result->fetch_assoc()) {
             background: 
                 radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                linear-gradient(135deg, <?= $settings['captive_primary_color'] ?? '#6366f1' ?> 0%, #3b82f6 100%);
+                linear-gradient(135deg, <?= e($settings['captive_primary_color'] ?? '#6366f1') ?> 0%, #3b82f6 100%);
         }
         
         .bg-options {
@@ -416,7 +416,7 @@ while ($row = $result->fetch_assoc()) {
     <div class="container">
         <?php if ($message): ?>
             <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> <?= $message ?>
+                <i class="fas fa-check-circle"></i> <?= e($message) ?>
             </div>
         <?php endif; ?>
         
@@ -425,18 +425,18 @@ while ($row = $result->fetch_assoc()) {
             <h4><i class="fas fa-eye"></i> Live Preview</h4>
             <div class="preview-frame">
                 <div class="preview-navbar">
-                    <span><i class="fas fa-wifi"></i> <?= $settings['captive_portal_title'] ?? 'Hotspot Portal' ?></span>
+                    <span><i class="fas fa-wifi"></i> <?= e($settings['captive_portal_title'] ?? 'Hotspot Portal') ?></span>
                     <span style="opacity: 0.8; font-size: 12px;">Menu</span>
                 </div>
-                <div class="preview-content <?= $settings['captive_bg_type'] ?? 'bg-gradient' ?>">
+                <div class="preview-content <?= e($settings['captive_bg_type'] ?? 'bg-gradient') ?>">
                     <div class="preview-card">
                         <h3 style="margin-bottom: 10px; color: #1e293b;">
-                            <?= $settings['captive_welcome_message'] ?? 'Welcome to our WiFi' ?>
+                            <?= e($settings['captive_welcome_message'] ?? 'Welcome to our WiFi') ?>
                         </h3>
                         <p style="color: #64748b; margin-bottom: 20px;">
                             Connect to the internet securely
                         </p>
-                        <button style="background: <?= $settings['captive_primary_color'] ?? '#6366f1' ?>; color: white; border: none; padding: 12px 30px; border-radius: 10px; font-weight: 500;">
+                        <button style="background: <?= e($settings['captive_primary_color'] ?? '#6366f1') ?>; color: white; border: none; padding: 12px 30px; border-radius: 10px; font-weight: 500;">
                             Connect Now
                         </button>
                     </div>
@@ -456,14 +456,14 @@ while ($row = $result->fetch_assoc()) {
                             <div class="form-group">
                                 <label>Portal Title</label>
                                 <input type="text" name="portal_title" class="form-control" 
-                                       value="<?= $settings['captive_portal_title'] ?? 'Hotspot Portal' ?>">
+                                       value="<?= e($settings['captive_portal_title'] ?? 'Hotspot Portal') ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Logo URL</label>
                                 <input type="text" name="logo_url" class="form-control" 
-                                       value="<?= $settings['captive_logo_url'] ?? '' ?>" 
+                                       value="<?= e($settings['captive_logo_url'] ?? '') ?>" 
                                        placeholder="https://example.com/logo.png">
                             </div>
                         </div>
@@ -471,12 +471,12 @@ while ($row = $result->fetch_assoc()) {
                     <div class="form-group">
                         <label>Welcome Message</label>
                         <input type="text" name="welcome_message" class="form-control" 
-                               value="<?= $settings['captive_welcome_message'] ?? 'Welcome to our WiFi' ?>">
+                               value="<?= e($settings['captive_welcome_message'] ?? 'Welcome to our WiFi') ?>">
                     </div>
                     <div class="form-group">
                         <label>Footer Text</label>
                         <textarea name="footer_text" class="form-control" 
-                                  placeholder="© 2026 Your Company. All rights reserved."><?= $settings['captive_footer_text'] ?? '' ?></textarea>
+                                  placeholder="© 2026 Your Company. All rights reserved."><?= e($settings['captive_footer_text'] ?? '') ?></textarea>
                     </div>
                 </div>
             </div>
@@ -491,9 +491,9 @@ while ($row = $result->fetch_assoc()) {
                         <label>Primary Color</label>
                         <div class="color-picker-wrapper">
                             <input type="color" name="primary_color" 
-                                   value="<?= $settings['captive_primary_color'] ?? '#6366f1' ?>">
+                                   value="<?= e($settings['captive_primary_color'] ?? '#6366f1') ?>">
                             <input type="text" class="form-control" 
-                                   value="<?= $settings['captive_primary_color'] ?? '#6366f1' ?>"
+                                   value="<?= e($settings['captive_primary_color'] ?? '#6366f1') ?>"
                                    onchange="document.querySelector('input[type=color]').value = this.value">
                         </div>
                     </div>
@@ -563,7 +563,7 @@ while ($row = $result->fetch_assoc()) {
                     <div class="form-group">
                         <label>Video URL (MP4)</label>
                         <input type="text" name="video_url" class="form-control" 
-                               value="<?= $settings['captive_video_url'] ?? '' ?>"
+                               value="<?= e($settings['captive_video_url'] ?? '') ?>"
                                placeholder="https://example.com/video.mp4">
                         <small style="color: #64748b; margin-top: 5px; display: block;">
                             Enter direct MP4 video URL for background

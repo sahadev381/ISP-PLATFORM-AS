@@ -63,9 +63,9 @@ include $base_path . 'includes/topbar.php';
                     ?>
                     <tr style="border-bottom:1px solid #f8fafc;">
                         <td style="padding:10px 0;"><?= date('M d, h:i A', strtotime($t['created_at'])) ?></td>
-                        <td><?= $t['gateway'] ?></td>
+                        <td><?= e($t['gateway']) ?></td>
                         <td style="font-weight:600;">NPR <?= number_format($t['amount'], 2) ?></td>
-                        <td><span style="color:<?= $t['status']=='completed'?'#10b981':'#ef4444' ?>; font-weight:700;"><?= strtoupper($t['status']) ?></span></td>
+                        <td><span style="color:<?= $t['status']=='completed'?'#10b981':'#ef4444' ?>; font-weight:700;"><?= e(strtoupper($t['status'])) ?></span></td>
                     </tr>
                     <?php endwhile; ?>
                 </tbody>
@@ -99,12 +99,12 @@ function payWithKhalti() {
     let amt = getAmount();
     if(amt) {
         let config = {
-            "publicKey": "<?= $public_key ?>",
-            "productIdentity": "wallet-<?= $username ?>",
+            "publicKey": <?= e_js($public_key) ?>,
+            "productIdentity": "wallet-" + <?= e_js($username) ?>,
             "productName": "ISP Wallet Recharge",
             "eventHandler": {
                 onSuccess: function(payload) {
-                    location.href = `khalti_verify.php?token=${payload.token}&amount=${amt}&username=<?= $username ?>`;
+                    location.href = `khalti_verify.php?token=${payload.token}&amount=${amt}&username=${encodeURIComponent(<?= e_js($username) ?>)}`;
                 },
                 onError: (e) => alert("Khalti Payment Failed")
             }

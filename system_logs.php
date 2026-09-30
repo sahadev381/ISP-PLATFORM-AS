@@ -34,7 +34,7 @@ $message = '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
@@ -93,8 +93,8 @@ $message = '';
                     <p style="margin: 5px 0 0; color: #64748b; font-size: 14px;">Monitor system activities and security events</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <input type="date" class="form-control" value="<?= $filter_date ?>" onchange="window.location.href='?type=<?= $log_type ?>&date='+this.value" style="width: 180px;">
-                    <a href="?type=<?= $log_type ?>" class="btn btn-secondary">
+                    <input type="date" class="form-control" value="<?= e($filter_date) ?>" onchange="window.location.href='?type=<?= e($log_type) ?>&date='+this.value" style="width: 180px;">
+                    <a href="?type=<?= e($log_type) ?>" class="btn btn-secondary">
                         <i class="fa fa-redo"></i> Reset
                     </a>
                 </div>
@@ -183,9 +183,9 @@ $message = '';
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['created_at'])) ?></td>
                                         <td><strong><?= htmlspecialchars($l['username']) ?></strong></td>
-                                        <td><span class="log-level info"><?= strtoupper($l['action']) ?></span></td>
+                                        <td><span class="log-level info"><?= e(strtoupper($l['action'])) ?></span></td>
                                         <td><?= htmlspecialchars($l['description']) ?></td>
-                                        <td><code><?= $l['ip_address'] ?></code></td>
+                                        <td><code><?= e($l['ip_address']) ?></code></td>
                                     </tr>
                                 <?php endforeach;
                                 
@@ -202,7 +202,7 @@ $message = '';
                                                 <span class="log-level danger">Failed</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><code><?= $l['ip_address'] ?? '-' ?></code></td>
+                                        <td><code><?= e($l['ip_address'] ?? '-') ?></code></td>
                                         <td><?= htmlspecialchars($l['message'] ?? '-') ?></td>
                                     </tr>
                                 <?php endforeach;
@@ -216,12 +216,12 @@ $message = '';
                                         <td><?= htmlspecialchars(substr($l['message'], 0, 50)) ?>...</td>
                                         <td>
                                             <?php if($l['status'] == 'sent' || $l['status'] == 'delivered'): ?>
-                                                <span class="log-level success"><?= ucfirst($l['status']) ?></span>
+                                                <span class="log-level success"><?= e(ucfirst($l['status'])) ?></span>
                                             <?php else: ?>
-                                                <span class="log-level danger"><?= ucfirst($l['status'] ?? 'failed') ?></span>
+                                                <span class="log-level danger"><?= e(ucfirst($l['status'] ?? 'failed')) ?></span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= $l['gateway'] ?? '-' ?></td>
+                                        <td><?= e($l['gateway'] ?? '-') ?></td>
                                     </tr>
                                 <?php endforeach;
                                 
@@ -231,7 +231,7 @@ $message = '';
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['checked_at'])) ?></td>
                                         <td><strong><?= htmlspecialchars($l['target_type']) ?></strong></td>
-                                        <td><code><?= $l['target_id'] ?></code></td>
+                                        <td><code><?= e($l['target_id']) ?></code></td>
                                         <td>
                                             <?php if($l['status'] == 'online'): ?>
                                                 <span class="log-level success">UP</span>
@@ -239,7 +239,7 @@ $message = '';
                                                 <span class="log-level danger">DOWN</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= $l['latency_ms'] ?? '-' ?></td>
+                                        <td><?= e($l['latency_ms'] ?? '-') ?></td>
                                     </tr>
                                 <?php endforeach;
                                 
@@ -248,8 +248,8 @@ $message = '';
                                 foreach ($logs as $l): ?>
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['generated_at'])) ?></td>
-                                        <td><?= $l['month_year'] ?></td>
-                                        <td><?= $l['total_invoices'] ?? '-' ?></td>
+                                        <td><?= e($l['month_year']) ?></td>
+                                        <td><?= e($l['total_invoices'] ?? '-') ?></td>
                                     </tr>
                                 <?php endforeach;
                             }
@@ -273,7 +273,7 @@ $message = '';
         });
         
         function exportLogs() {
-            window.location.href = '?type=<?= $log_type ?>&export=1';
+            window.location.href = '?type=' + encodeURIComponent(<?= e_js($log_type) ?>) + '&export=1';
         }
     </script>
     <?php include 'includes/footer.php'; ?>

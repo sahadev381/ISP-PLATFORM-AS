@@ -49,7 +49,7 @@ include 'includes/sidebar.php';
         </div>
         
         <?php if(isset($success)): ?>
-            <div class="alert alert-success"><?= $success ?></div>
+            <div class="alert alert-success"><?= e($success) ?></div>
         <?php endif; ?>
         
         <form method="POST">

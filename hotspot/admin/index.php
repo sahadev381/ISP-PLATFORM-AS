@@ -42,7 +42,7 @@ $stats = $voucherSys->getStats();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -255,14 +255,14 @@ $stats = $voucherSys->getStats();
                 <i class="fa fa-arrow-left"></i> Back to Main
             </a>
             <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1)) ?>
+                <?= e(strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
             </div>
         </div>
     </nav>
     
     <div class="main-content">
         <?php if ($message): ?>
-            <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= $message ?></div>
+            <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= e($message) ?></div>
         <?php endif; ?>
         
         <!-- Stats Cards -->
@@ -278,14 +278,14 @@ $stats = $voucherSys->getStats();
                 <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
                 <div>
                     <div class="stat-label">Available</div>
-                    <div class="stat-value"><?= $stats['available'] ?? 0 ?></div>
+                    <div class="stat-value"><?= e($stats['available'] ?? 0) ?></div>
                 </div>
             </div>
             <div class="stat-card" style="border-left: 4px solid var(--info);">
                 <div class="stat-icon cyan"><i class="fa fa-user-check"></i></div>
                 <div>
                     <div class="stat-label">Used</div>
-                    <div class="stat-value"><?= $stats['used'] ?? 0 ?></div>
+                    <div class="stat-value"><?= e($stats['used'] ?? 0) ?></div>
                 </div>
             </div>
             <div class="stat-card" style="border-left: 4px solid var(--warning);">
@@ -311,7 +311,7 @@ $stats = $voucherSys->getStats();
                             <label style="font-size: 13px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Select Profile</label>
                             <select name="profile_id" class="form-select" style="width: 100%;">
                                 <?php foreach ($profiles as $p): ?>
-                                    <option value="<?= $p['id'] ?>"><?= $p['name'] ?> - Rs.<?= $p['price'] ?></option>
+                                    <option value="<?= e($p['id']) ?>"><?= e($p['name']) ?> - Rs.<?= e($p['price']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -374,15 +374,15 @@ $stats = $voucherSys->getStats();
                     <tbody>
                         <?php foreach ($profiles as $p): ?>
                         <tr>
-                            <td><strong><?= $p['name'] ?></strong></td>
-                            <td><span class="badge <?= $p['type'] == 'data' ? 'badge-primary' : 'badge-info' ?>"><?= ucfirst($p['type']) ?></span></td>
-                            <td><?= $p['data_limit_mb'] > 0 ? $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
-                            <td><?= $p['validity_hours'] ?> hours</td>
-                            <td><strong>Rs.<?= $p['price'] ?></strong></td>
+                            <td><strong><?= e($p['name']) ?></strong></td>
+                            <td><span class="badge <?= $p['type'] == 'data' ? 'badge-primary' : 'badge-info' ?>"><?= e(ucfirst($p['type'])) ?></span></td>
+                            <td><?= $p['data_limit_mb'] > 0 ? (int) $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
+                            <td><?= e($p['validity_hours']) ?> hours</td>
+                            <td><strong>Rs.<?= e($p['price']) ?></strong></td>
                             <td><?= round($p['speed_kbps']/1024) ?> Mbps</td>
-                            <td><span class="badge <?= $p['status'] == 'active' ? 'badge-success' : 'badge-secondary' ?>"><?= $p['status'] ?></span></td>
+                            <td><span class="badge <?= $p['status'] == 'active' ? 'badge-success' : 'badge-secondary' ?>"><?= e($p['status']) ?></span></td>
                             <td>
-                                <button class="btn btn-sm btn-danger" onclick="deleteProfile(<?= $p['id'] ?>)"><i class="fa fa-trash"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteProfile(<?= e($p['id']) ?>)"><i class="fa fa-trash"></i></button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -419,8 +419,8 @@ $stats = $voucherSys->getStats();
                     <tbody>
                         <?php while ($v = $vouchers->fetch_assoc()): ?>
                         <tr>
-                            <td><code><?= $v['pin_code'] ?></code></td>
-                            <td><?= $v['plan_name'] ?></td>
+                            <td><code><?= e($v['pin_code']) ?></code></td>
+                            <td><?= e($v['plan_name']) ?></td>
                             <td>
                                 <?php if($v['status'] == 'available'): ?>
                                     <span class="badge badge-success">Available</span>
@@ -430,7 +430,7 @@ $stats = $voucherSys->getStats();
                                     <span class="badge badge-secondary">Expired</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?= $v['used_by'] ?: '-' ?></td>
+                            <td><?= e($v['used_by'] ?: '-') ?></td>
                             <td><?= date('M d, H:i', strtotime($v['generated_at'])) ?></td>
                             <td><?= date('M d, H:i', strtotime($v['expires_at'])) ?></td>
                         </tr>

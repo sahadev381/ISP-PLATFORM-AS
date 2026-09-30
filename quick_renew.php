@@ -98,13 +98,13 @@ include 'includes/sidebar.php';
 
     <?php if ($msg) { ?>
         <div style="background:#2ecc71;color:#fff;padding:12px;border-radius:10px;margin-bottom:15px;">
-            <?= $msg ?>
+            <?= e($msg) ?>
         </div>
     <?php } ?>
 
     <?php if ($error) { ?>
         <div style="background:#e74c3c;color:#fff;padding:12px;border-radius:10px;margin-bottom:15px;">
-            <?= $error ?>
+            <?= e($error) ?>
         </div>
     <?php } ?>
 
@@ -119,8 +119,8 @@ include 'includes/sidebar.php';
                         <select name="username" required>
                             <option value="">Select User</option>
                             <?php while ($u = $users->fetch_assoc()) { ?>
-                                <option value="<?= $u['username'] ?>">
-                                    <?= $u['username'] ?>
+                                <option value="<?= e($u['username']) ?>">
+                                    <?= e($u['username']) ?>
                                 </option>
                             <?php } ?>
                         </select>
@@ -170,10 +170,10 @@ include 'includes/sidebar.php';
             while ($i = $h->fetch_assoc()) {
             ?>
                 <tr>
-                    <td><?= $i['id'] ?></td>
-                    <td><?= $i['username'] ?></td>
-                    <td><?= $i['amount'] ?></td>
-                    <td><?= $i['created_at'] ?></td>
+                    <td><?= e($i['id']) ?></td>
+                    <td><?= e($i['username']) ?></td>
+                    <td><?= e($i['amount']) ?></td>
+                    <td><?= e($i['created_at']) ?></td>
                 </tr>
             <?php } ?>
         </table>

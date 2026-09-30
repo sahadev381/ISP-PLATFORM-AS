@@ -87,7 +87,7 @@ $data = db_all($conn, "
                 <tbody>
                     <?php foreach(array_reverse($data) as $row): ?>
                     <tr>
-                        <td class="month-col"><?= $row['month'] ?></td>
+                        <td class="month-col"><?= e($row['month']) ?></td>
                         <td><?= formatBytes($row['download']) ?></td>
                         <td><?= formatBytes($row['upload']) ?></td>
                         <td class="total-col"><?= formatBytes($row['download'] + $row['upload']) ?></td>

@@ -44,19 +44,19 @@ include 'includes/topbar.php';
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
         <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 25px; border-radius: 16px; color: #fff;">
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">CRITICAL</div>
-            <div style="font-size: 36px; font-weight: 800;"><?= $stats['critical'] ?? 0 ?></div>
+            <div style="font-size: 36px; font-weight: 800;"><?= e($stats['critical'] ?? 0) ?></div>
         </div>
         <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 25px; border-radius: 16px; color: #fff;">
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">WARNING</div>
-            <div style="font-size: 36px; font-weight: 800;"><?= $stats['warning'] ?? 0 ?></div>
+            <div style="font-size: 36px; font-weight: 800;"><?= e($stats['warning'] ?? 0) ?></div>
         </div>
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 25px; border-radius: 16px; color: #fff;">
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">ACTIVE ALERTS</div>
-            <div style="font-size: 36px; font-weight: 800;"><?= $stats['active'] ?? 0 ?></div>
+            <div style="font-size: 36px; font-weight: 800;"><?= e($stats['active'] ?? 0) ?></div>
         </div>
         <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 25px; border-radius: 16px; color: #fff;">
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">TOTAL</div>
-            <div style="font-size: 36px; font-weight: 800;"><?= $stats['total'] ?? 0 ?></div>
+            <div style="font-size: 36px; font-weight: 800;"><?= e($stats['total'] ?? 0) ?></div>
         </div>
     </div>
 
@@ -67,7 +67,7 @@ include 'includes/topbar.php';
             <a href="?filter=active" style="padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; <?= $filter=='active'?'background:#3b82f6; color:#fff;':'background:#f1f5f9; color:#64748b;' ?>">Active</a>
             <a href="?filter=resolved" style="padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; <?= $filter=='resolved'?'background:#3b82f6; color:#fff;':'background:#f1f5f9; color:#64748b;' ?>">Resolved</a>
             
-            <select onchange="window.location.href='?filter=<?= $filter ?>&severity='+this.value" style="padding:10px 15px; border:1px solid #e2e8f0; border-radius:8px; margin-left:auto;">
+            <select onchange="window.location.href='?filter=<?= e($filter) ?>&severity='+this.value" style="padding:10px 15px; border:1px solid #e2e8f0; border-radius:8px; margin-left:auto;">
                 <option value="">All Severities</option>
                 <option value="critical" <?= $severity=='critical'?'selected':'' ?>>Critical</option>
                 <option value="warning" <?= $severity=='warning'?'selected':'' ?>>Warning</option>
@@ -107,7 +107,7 @@ include 'includes/topbar.php';
                         </td>
                         <td style="padding: 15px;">
                             <div style="font-weight: 600;"><?= htmlspecialchars($alert['device_name']) ?></div>
-                            <small style="color:#94a3b8;"><?= $alert['device_ip'] ?? '' ?></small>
+                            <small style="color:#94a3b8;"><?= e($alert['device_ip'] ?? '') ?></small>
                         </td>
                         <td style="padding: 15px;">
                             <span style="padding: 5px 10px; border-radius: 6px; background: #f1f5f9; font-size: 12px; font-weight: 600;">
@@ -115,8 +115,8 @@ include 'includes/topbar.php';
                             </span>
                         </td>
                         <td style="padding: 15px;">
-                            <span style="padding: 5px 12px; border-radius: 20px; background: <?= $color ?>20; color: <?= $color ?>; font-weight: 700; font-size: 12px; text-transform: uppercase;">
-                                <?= $alert['severity'] ?>
+                            <span style="padding: 5px 12px; border-radius: 20px; background: <?= e($color) ?>20; color: <?= e($color) ?>; font-weight: 700; font-size: 12px; text-transform: uppercase;">
+                                <?= e($alert['severity']) ?>
                             </span>
                         </td>
                         <td style="padding: 15px; font-size: 12px; color: #64748b;">
@@ -124,12 +124,12 @@ include 'includes/topbar.php';
                         </td>
                         <td style="padding: 15px;">
                             <span class="badge <?= $alert['status'] == 'active' ? 'active' : 'inactive' ?>">
-                                <?= $alert['status'] ?>
+                                <?= e($alert['status']) ?>
                             </span>
                         </td>
                         <td style="padding: 15px;">
                             <?php if($alert['status'] == 'active'): ?>
-                            <button onclick="resolveAlert(<?= $alert['id'] ?>)" class="btn btn-sm" style="background:#dcfce7; color:#16a34a; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;">
+                            <button onclick="resolveAlert(<?= e($alert['id']) ?>)" class="btn btn-sm" style="background:#dcfce7; color:#16a34a; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;">
                                 <i class="fa fa-check"></i> Resolve
                             </button>
                             <?php else: ?>

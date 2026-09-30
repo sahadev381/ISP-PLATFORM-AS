@@ -16,11 +16,11 @@ $tickets = $conn->query("SELECT * FROM tickets WHERE customer_id='".$_SESSION['c
 <tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th></th></tr>
 <?php while($t=$tickets->fetch_assoc()){ ?>
 <tr>
-<td>#<?= $t['id'] ?></td>
-<td><?= $t['subject'] ?></td>
-<td><?= $t['status'] ?></td>
-<td><?= $t['priority'] ?></td>
-<td><a href="ticket_view.php?id=<?= $t['id'] ?>">View</a></td>
+<td>#<?= e($t['id']) ?></td>
+<td><?= e($t['subject']) ?></td>
+<td><?= e($t['status']) ?></td>
+<td><?= e($t['priority']) ?></td>
+<td><a href="ticket_view.php?id=<?= e($t['id']) ?>">View</a></td>
 </tr>
 <?php } ?>
 </table>

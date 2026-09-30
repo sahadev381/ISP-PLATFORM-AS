@@ -61,7 +61,7 @@ include 'includes/sidebar.php';
             <tbody>
                 <?php while($article = $articles->fetch_assoc()): ?>
                 <tr>
-                    <td><?= $article['id'] ?></td>
+                    <td><?= e($article['id']) ?></td>
                     <td><?= htmlspecialchars($article['title']) ?></td>
                     <td><?= htmlspecialchars($article['category']) ?></td>
                     <td><?= number_format($article['views']) ?></td>
@@ -72,10 +72,10 @@ include 'includes/sidebar.php';
                     </td>
                     <td><?= date('M d, Y', strtotime($article['created_at'])) ?></td>
                     <td>
-                        <a href="kb_view.php?id=<?= $article['id'] ?>" class="btn btn-sm view" target="_blank">
+                        <a href="kb_view.php?id=<?= e($article['id']) ?>" class="btn btn-sm view" target="_blank">
                             <i class="fa fa-eye"></i>
                         </a>
-                        <a href="?del=<?= $article['id'] ?>" class="btn btn-sm danger" onclick="return confirm('Delete this article?')">
+                        <a href="?del=<?= e($article['id']) ?>" class="btn btn-sm danger" onclick="return confirm('Delete this article?')">
                             <i class="fa fa-trash"></i>
                         </a>
                     </td>
@@ -99,7 +99,7 @@ include 'includes/sidebar.php';
                 <label class="form-label">Category</label>
                 <select name="category" class="form-control" required>
                     <?php while($cat = $categories->fetch_assoc()): ?>
-                        <option value="<?= $cat['name'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                        <option value="<?= e($cat['name']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
                     <?php endwhile; ?>
                 </select>
             </div>

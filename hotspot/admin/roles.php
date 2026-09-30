@@ -104,7 +104,7 @@ while ($p = $perms->fetch_assoc()) {
     <h2><i class="fas fa-user-shield"></i> Roles & Permissions</h2>
 
     <?php if ($message): ?>
-        <div class="alert alert-info"><?= $message ?></div>
+        <div class="alert alert-info"><?= e($message) ?></div>
     <?php endif; ?>
 
     <div class="row">
@@ -130,7 +130,7 @@ while ($p = $perms->fetch_assoc()) {
                     <!-- Roles List -->
                     <div class="list-group">
                         <?php while ($role = $roles->fetch_assoc()): ?>
-                            <a href="?role_id=<?= $role['id'] ?>" class="list-group-item list-group-item-action <?= ($_GET['role_id'] ?? '') == $role['id'] ? 'active' : '' ?>">
+                            <a href="?role_id=<?= e($role['id']) ?>" class="list-group-item list-group-item-action <?= ($_GET['role_id'] ?? '') == $role['id'] ? 'active' : '' ?>">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span>
                                         <strong><?= htmlspecialchars($role['name']) ?></strong>
@@ -141,7 +141,7 @@ while ($p = $perms->fetch_assoc()) {
                                     <form method="POST" style="display:inline">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_role">
-                                        <input type="hidden" name="role_id" value="<?= $role['id'] ?>">
+                                        <input type="hidden" name="role_id" value="<?= e($role['id']) ?>">
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this role?')">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -168,18 +168,18 @@ while ($p = $perms->fetch_assoc()) {
                         <form method="POST">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="save_permissions">
-                            <input type="hidden" name="role_id" value="<?= $roleId ?>">
+                            <input type="hidden" name="role_id" value="<?= e($roleId) ?>">
                             
                             <div class="row">
                                 <?php foreach ($permissions as $key => $label): ?>
                                     <div class="col-md-4 mb-2">
                                         <div class="form-check">
-                                            <input type="checkbox" name="permissions[]" value="<?= $key ?>" 
-                                                id="perm_<?= $key ?>"
+                                            <input type="checkbox" name="permissions[]" value="<?= e($key) ?>" 
+                                                id="perm_<?= e($key) ?>"
                                                 class="form-check-input"
                                                 <?= in_array($key, $rolePermissions[$roleId] ?? []) ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="perm_<?= $key ?>">
-                                                <?= $label ?>
+                                            <label class="form-check-label" for="perm_<?= e($key) ?>">
+                                                <?= e($label) ?>
                                             </label>
                                         </div>
                                     </div>

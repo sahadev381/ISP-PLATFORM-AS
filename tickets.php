@@ -89,28 +89,28 @@ include $base_path . 'includes/topbar.php';
     <div class="ticket-grid">
         <div class="ticket-card total">
             <h4><i class="fa fa-ticket-alt"></i> Total Tickets</h4>
-            <div class="num"><?= $total_tickets ?></div>
+            <div class="num"><?= e($total_tickets) ?></div>
         </div>
         <div class="ticket-card open">
             <h4><i class="fa fa-envelope-open"></i> Open</h4>
-            <div class="num"><?= $open_tickets ?></div>
+            <div class="num"><?= e($open_tickets) ?></div>
         </div>
         <div class="ticket-card progress">
             <h4><i class="fa fa-spinner"></i> In Progress</h4>
-            <div class="num"><?= $inprogress_tickets ?></div>
+            <div class="num"><?= e($inprogress_tickets) ?></div>
         </div>
         <div class="ticket-card closed">
             <h4><i class="fa fa-check-circle"></i> Closed</h4>
-            <div class="num"><?= $closed_tickets ?></div>
+            <div class="num"><?= e($closed_tickets) ?></div>
         </div>
     </div>
     
     <!-- Filter Links -->
     <div class="filter-links">
-        <a href="tickets.php" class="active">All (<?= $total_tickets ?>)</a>
-        <a href="tickets.php?status=Open">Open (<?= $open_tickets ?>)</a>
-        <a href="tickets.php?status=In+Progress">In Progress (<?= $inprogress_tickets ?>)</a>
-        <a href="tickets.php?status=Closed">Closed (<?= $closed_tickets ?>)</a>
+        <a href="tickets.php" class="active">All (<?= e($total_tickets) ?>)</a>
+        <a href="tickets.php?status=Open">Open (<?= e($open_tickets) ?>)</a>
+        <a href="tickets.php?status=In+Progress">In Progress (<?= e($inprogress_tickets) ?>)</a>
+        <a href="tickets.php?status=Closed">Closed (<?= e($closed_tickets) ?>)</a>
         <a href="ticket_new.php" class="btn-new" style="float: right;"><i class="fa fa-plus"></i> New Ticket</a>
     </div>
 
@@ -134,25 +134,25 @@ include $base_path . 'includes/topbar.php';
             <tbody>
                 <?php while ($ticket = $tickets->fetch_assoc()): ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 12px;">#<?= $ticket['id'] ?></td>
+                    <td style="padding: 12px;">#<?= e($ticket['id']) ?></td>
                     <td style="padding: 12px;">
                         <strong><?= htmlspecialchars($ticket['full_name'] ?: $ticket['username'] ?: 'N/A') ?></strong>
                         <?php if($ticket['username']): ?>
-                        <br><small style="color: #64748b;">@<?= $ticket['username'] ?></small>
+                        <br><small style="color: #64748b;">@<?= e($ticket['username']) ?></small>
                         <?php endif; ?>
                     </td>
                     <td style="padding: 12px;"><?= htmlspecialchars($ticket['subject']) ?></td>
                     <td style="padding: 12px;">
-                        <span class="badge priority-<?= strtolower($ticket['priority']) ?>"><?= $ticket['priority'] ?></span>
+                        <span class="badge priority-<?= e(strtolower($ticket['priority'])) ?>"><?= e($ticket['priority']) ?></span>
                     </td>
                     <td style="padding: 12px;">
-                        <span class="badge badge-<?= strtolower(str_replace(' ', '', $ticket['status'])) ?>"><?= $ticket['status'] ?></span>
+                        <span class="badge badge-<?= e(strtolower(str_replace(' ', '', $ticket['status']))) ?>"><?= e($ticket['status']) ?></span>
                     </td>
                     <td style="padding: 12px; color: #64748b; font-size: 13px;"><?= date('M d, Y H:i', strtotime($ticket['created_at'])) ?></td>
                     <td style="padding: 12px;">
                         <div style="display: flex; gap: 5px;">
-                            <a href="ticket_view.php?id=<?= $ticket['id'] ?>" class="action-btn btn-view" title="View"><i class="fa fa-eye"></i></a>
-                            <a href="?delete=<?= $ticket['id'] ?>" class="action-btn btn-delete" title="Delete" onclick="return confirm('Delete this ticket?')"><i class="fa fa-trash"></i></a>
+                            <a href="ticket_view.php?id=<?= e($ticket['id']) ?>" class="action-btn btn-view" title="View"><i class="fa fa-eye"></i></a>
+                            <a href="?delete=<?= e($ticket['id']) ?>" class="action-btn btn-delete" title="Delete" onclick="return confirm('Delete this ticket?')"><i class="fa fa-trash"></i></a>
                         </div>
                     </td>
                 </tr>

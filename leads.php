@@ -184,7 +184,7 @@ include 'includes/topbar.php';
     
     <?php if ($message): ?>
     <div style="background: #dcfce7; color: #16a34a; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
-        <i class="fa fa-check-circle"></i> <?= $message ?>
+        <i class="fa fa-check-circle"></i> <?= e($message) ?>
     </div>
     <?php endif; ?>
     
@@ -197,26 +197,26 @@ include 'includes/topbar.php';
     <div class="lead-grid">
         <div class="lead-card total">
             <h4><i class="fa fa-users"></i> Total Leads</h4>
-            <div class="num"><?= $stats['total'] ?></div>
+            <div class="num"><?= e($stats['total']) ?></div>
         </div>
         <div class="lead-card new">
             <h4><i class="fa fa-star"></i> New Leads</h4>
-            <div class="num"><?= $stats['new'] ?></div>
+            <div class="num"><?= e($stats['new']) ?></div>
         </div>
         <div class="lead-card qualified">
             <h4><i class="fa fa-check-circle"></i> Qualified</h4>
-            <div class="num"><?= $stats['qualified'] ?></div>
+            <div class="num"><?= e($stats['qualified']) ?></div>
         </div>
         <div class="lead-card converted">
             <h4><i class="fa fa-trophy"></i> Converted</h4>
-            <div class="num"><?= $stats['converted'] ?></div>
+            <div class="num"><?= e($stats['converted']) ?></div>
         </div>
     </div>
     
     <!-- Filter Links -->
     <div class="filter-links">
-        <a href="leads.php" class="<?= !$filter_status ? 'active' : '' ?>">All (<?= $stats['total'] ?>)</a>
-        <a href="leads.php?status=new" class="<?= $filter_status == 'new' ? 'active' : '' ?>">New (<?= $stats['new'] ?>)</a>
+        <a href="leads.php" class="<?= !$filter_status ? 'active' : '' ?>">All (<?= e($stats['total']) ?>)</a>
+        <a href="leads.php?status=new" class="<?= $filter_status == 'new' ? 'active' : '' ?>">New (<?= e($stats['new']) ?>)</a>
         <a href="leads.php?status=contacted" class="<?= $filter_status == 'contacted' ? 'active' : '' ?>">Contacted</a>
         <a href="leads.php?status=qualified" class="<?= $filter_status == 'qualified' ? 'active' : '' ?>">Qualified</a>
         <a href="leads.php?status=proposal" class="<?= $filter_status == 'proposal' ? 'active' : '' ?>">Proposal</a>
@@ -249,25 +249,25 @@ include 'includes/topbar.php';
             <tbody>
                 <?php foreach ($leads as $lead): ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 12px;">#<?= $lead['id'] ?></td>
+                    <td style="padding: 12px;">#<?= e($lead['id']) ?></td>
                     <td style="padding: 12px;"><strong><?= htmlspecialchars($lead['name']) ?></strong></td>
-                    <td style="padding: 12px; font-family: monospace;"><?= $lead['phone'] ?: '-' ?></td>
-                    <td style="padding: 12px;"><?= $lead['email'] ?: '-' ?></td>
-                    <td style="padding: 12px;"><?= $lead['company'] ?: '-' ?></td>
-                    <td style="padding: 12px;"><span style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 12px;"><?= $lead['plan_interested'] ?: '-' ?></span></td>
-                    <td style="padding: 12px;"><?= ucfirst($lead['source'] ?: '-') ?></td>
+                    <td style="padding: 12px; font-family: monospace;"><?= e($lead['phone'] ?: '-') ?></td>
+                    <td style="padding: 12px;"><?= e($lead['email'] ?: '-') ?></td>
+                    <td style="padding: 12px;"><?= e($lead['company'] ?: '-') ?></td>
+                    <td style="padding: 12px;"><span style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 12px;"><?= e($lead['plan_interested'] ?: '-') ?></span></td>
+                    <td style="padding: 12px;"><?= e(ucfirst($lead['source'] ?: '-')) ?></td>
                     <td style="padding: 12px;">
-                        <span class="badge badge-<?= $lead['status'] ?>"><?= ucfirst($lead['status']) ?></span>
+                        <span class="badge badge-<?= e($lead['status']) ?>"><?= e(ucfirst($lead['status'])) ?></span>
                     </td>
                     <td style="padding: 12px; color: #64748b; font-size: 13px;"><?= date('M d, Y', strtotime($lead['created_at'])) ?></td>
                     <td style="padding: 12px;">
                         <div style="display: flex; gap: 5px;">
-                            <button class="action-btn btn-view" onclick="viewLead(<?= $lead['id'] ?>)" title="View"><i class="fa fa-eye"></i></button>
-                            <button class="action-btn btn-edit" onclick="editLead(<?= $lead['id'] ?>)" title="Edit"><i class="fa fa-edit"></i></button>
+                            <button class="action-btn btn-view" onclick="viewLead(<?= e($lead['id']) ?>)" title="View"><i class="fa fa-eye"></i></button>
+                            <button class="action-btn btn-edit" onclick="editLead(<?= e($lead['id']) ?>)" title="Edit"><i class="fa fa-edit"></i></button>
                             <?php if ($lead['status'] != 'converted'): ?>
-                                <button class="action-btn btn-convert" onclick="convertLead(<?= $lead['id'] ?>)" title="Convert"><i class="fa fa-user-plus"></i></button>
+                                <button class="action-btn btn-convert" onclick="convertLead(<?= e($lead['id']) ?>)" title="Convert"><i class="fa fa-user-plus"></i></button>
                             <?php endif; ?>
-                            <button class="action-btn btn-delete" onclick="deleteLead(<?= $lead['id'] ?>)" title="Delete"><i class="fa fa-trash"></i></button>
+                            <button class="action-btn btn-delete" onclick="deleteLead(<?= e($lead['id']) ?>)" title="Delete"><i class="fa fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -314,7 +314,7 @@ include 'includes/topbar.php';
                         <select name="plan_interested" class="form-select">
                             <option value="">Select Plan</option>
                             <?php foreach ($plans as $p): ?>
-                                <option value="<?= $p['name'] ?>"><?= $p['name'] ?> - Rs.<?= $p['price'] ?></option>
+                                <option value="<?= e($p['name']) ?>"><?= e($p['name']) ?> - Rs.<?= e($p['price']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

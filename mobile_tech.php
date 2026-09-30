@@ -178,10 +178,10 @@ include 'includes/header.php';
 <div id="view-profile" class="view-section">
     <div style="text-align:center; padding:30px 0;">
         <div style="width:80px; height:80px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 15px;">
-            <?= $username[0] ?>
+            <?= e($username[0]) ?>
         </div>
-        <h2 style="margin:0;"><?= $username ?></h2>
-        <p style="color:var(--secondary);">Field Tech &bull; #778<?= $admin_id ?></p>
+        <h2 style="margin:0;"><?= e($username) ?></h2>
+        <p style="color:var(--secondary);">Field Tech &bull; #778<?= e($admin_id) ?></p>
     </div>
 
     <div class="stats-row">
@@ -247,6 +247,19 @@ include 'includes/header.php';
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// Job data (customer names, addresses, ticket subjects) is rendered with
+// innerHTML below. Escape every interpolated value or a customer-supplied
+// name becomes script execution in the technician's app.
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
+// For values placed inside a JS string in an inline handler.
+function escJs(value) {
+    return JSON.stringify(String(value ?? '')).slice(1, -1).replace(/'/g, "\\'");
+}
+function num(value) { return Number(value) || 0; }
     let currentJobs = [];
     let mainMap = null;
 
@@ -289,26 +302,26 @@ include 'includes/header.php';
         list.innerHTML = jobs.map(j => `
             <div class="job-card priority-normal">
                 <div class="job-header">
-                    <span class="badge badge-primary">${j.category || 'Support'}</span>
+                    <span class="badge badge-primary">${esc(j.category || 'Support')}</span>
                     <span style="font-size:11px; font-weight:700; color:#94a3b8;">${formatTime(j.created_at)}</span>
                 </div>
-                <div class="job-body" onclick="openJobDetails(${j.id})">
-                    <h3>${j.full_name}</h3>
-                    <p><i class="fa fa-location-dot"></i> ${j.address}</p>
+                <div class="job-body" onclick="openJobDetails(${num(j.id)})">
+                    <h3>${esc(j.full_name)}</h3>
+                    <p><i class="fa fa-location-dot"></i> ${esc(j.address)}</p>
                     <p style="background:#f8fafc; padding:10px; border-radius:10px; margin-top:10px;">
-                        <i class="fa fa-comment-dots text-primary"></i> ${j.subject}
+                        <i class="fa fa-comment-dots text-primary"></i> ${esc(j.subject)}
                     </p>
                 </div>
                 <div class="job-footer">
-                    <a href="tel:${j.phone}" class="action-circle">
+                    <a href="tel:${encodeURIComponent(j.phone || '')}" class="action-circle">
                         <div class="icon-bg" style="color:var(--success); background:#f0fdf4;"><i class="fa fa-phone"></i></div>
                         <span>Call</span>
                     </a>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${j.lat},${j.lng}" target="_blank" class="action-circle">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${num(j.lat)},${num(j.lng)}" target="_blank" class="action-circle">
                         <div class="icon-bg" style="color:var(--primary); background:#eff6ff;"><i class="fa fa-route"></i></div>
                         <span>Route</span>
                     </a>
-                    <div class="action-circle" onclick="runDiagnosis('${j.username}')">
+                    <div class="action-circle" onclick="runDiagnosis('${escJs(j.username)}')">
                         <div class="icon-bg" style="color:var(--warning); background:#fff7ed;"><i class="fa fa-signal"></i></div>
                         <span>Diag</span>
                     </div>
@@ -337,23 +350,23 @@ include 'includes/header.php';
                     <button id="startJobBtn" class="btn btn-sm btn-primary" onclick="startJob(${job.id})" style="padding:10px; border-radius:10px;"><i class="fa fa-play"></i> Start Job</button>
                     <button class="btn btn-sm btn-outline-primary" onclick="openSpeedTest(${job.id})" style="padding:10px; border-radius:10px; border:1px solid var(--primary);"><i class="fa fa-gauge-high"></i> Speedtest</button>
                 </div>
-                <button class="btn btn-warning" onclick="collectPayment('${job.username}')" style="width:100%; margin-top:10px; padding:12px; border-radius:10px; color:var(--dark); font-weight:700;"><i class="fa fa-credit-card"></i> On-site Recharge</button>
+                <button class="btn btn-warning" onclick="collectPayment('${escJs(job.username)}')" style="width:100%; margin-top:10px; padding:12px; border-radius:10px; color:var(--dark); font-weight:700;"><i class="fa fa-credit-card"></i> On-site Recharge</button>
                 <button class="btn btn-success" onclick="completeJob(${job.id})" style="width:100%; margin-top:10px; padding:12px; border-radius:10px; color:white;"><i class="fa fa-check-circle"></i> Complete Work</button>
             </div>
 
             <div style="background:#f8fafc; padding:20px; border-radius:20px;">
                 <h4 style="margin:0 0 10px; font-size:13px;">Asset Info</h4>
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span>OLT Port</span> <b>${job.olt_port || 'N/A'}</b>
+                    <span>OLT Port</span> <b>${esc(job.olt_port || 'N/A')}</b>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                     <span>ONU SN</span> 
                     <b>
-                        ${job.onu_mac ? job.onu_mac : `<button onclick="startScanner((sn) => { alert('Scanned: ' + sn); })" class="badge badge-primary" style="border:none;">SCAN</button>`}
+                        ${job.onu_mac ? esc(job.onu_mac) : `<button onclick="startScanner((sn) => { alert('Scanned: ' + sn); })" class="badge badge-primary" style="border:none;">SCAN</button>`}
                     </b>
                 </div>
                 <div style="display:flex; justify-content:space-between;">
-                    <span>Splitter</span> <b>${job.master_box || 'N/A'}</b>
+                    <span>Splitter</span> <b>${esc(job.master_box || 'N/A')}</b>
                 </div>
             </div>
         `;
@@ -379,7 +392,7 @@ include 'includes/header.php';
             <div style="text-align:center; padding:30px;">
                 <i class="fa fa-satellite-dish fa-spin fa-3x" style="color:var(--primary); margin-bottom:20px;"></i>
                 <h3>Running Remote Diagnosis</h3>
-                <p style="color:var(--secondary);">Pinging OLT and reading ONU Signal for @${user}...</p>
+                <p style="color:var(--secondary);">Pinging OLT and reading ONU Signal for @${esc(user)}...</p>
                 
                 <div class="diag-box">
                     <div class="diag-val" id="liveRxVal">--</div>
@@ -426,20 +439,20 @@ include 'includes/header.php';
             data.routes.forEach(r => {
                 let color = fiberColors[r.route_type] || '#3b82f6';
                 L.polyline(JSON.parse(r.path_data), { color: color, weight: 3, opacity: 0.7 }).addTo(mainMap)
-                .bindPopup(`<b>Fiber: ${r.name}</b><br>Type: ${r.route_type}<br>Cores: ${r.used_cores}/${r.total_cores}`);
+                .bindPopup(`<b>Fiber: ${esc(r.name)}</b><br>Type: ${esc(r.route_type)}<br>Cores: ${num(r.used_cores)}/${num(r.total_cores)}`);
             });
 
             // Render Nodes (Splitters/OLTs)
             data.nodes.forEach(n => {
                 let color = n.type === 'OLT' ? '#ef4444' : '#3b82f6';
                 L.circleMarker([n.lat, n.lng], {radius: 6, color: '#fff', fillColor: color, fillOpacity: 1, weight: 2}).addTo(mainMap)
-                .bindPopup(`<b>${n.type}: ${n.name}</b>`);
+                .bindPopup(`<b>${esc(n.type)}: ${esc(n.name)}</b>`);
             });
 
             // Render Customers
             data.customers.forEach(c => {
                 L.circleMarker([c.lat, c.lng], {radius: 4, color: '#fff', fillColor: '#10b981', fillOpacity: 1, weight: 1}).addTo(mainMap)
-                .bindPopup(`<b>Cust: ${c.full_name}</b><br>@${c.username}`);
+                .bindPopup(`<b>Cust: ${esc(c.full_name)}</b><br>@${esc(c.username)}`);
             });
         });
     }
@@ -544,7 +557,6 @@ include 'includes/header.php';
                         <button class="btn btn-success" onclick="verifyOTP(${id})" style="width:100%; padding:15px; border-radius:15px; color:white; font-weight:700;">
                             VERIFY & CLOSE TICKET
                         </button>
-                        <p style="margin-top:15px; font-size:12px; color:var(--danger);">Debug OTP: ${res.debug_otp}</p>
                     </div>
                 `;
             } else {
@@ -755,7 +767,7 @@ include 'includes/header.php';
             <div style="text-align:center; padding:20px;">
                 <i class="fa fa-qrcode fa-3x" style="color:var(--warning); margin-bottom:20px;"></i>
                 <h3>On-site Recharge</h3>
-                <p id="payStatus" style="color:var(--secondary);">Generating dynamic QR for @${user}...</p>
+                <p id="payStatus" style="color:var(--secondary);">Generating dynamic QR for @${esc(user)}...</p>
                 
                 <div id="qrBox" style="margin:20px auto; width:200px; height:200px; background:#eee; border-radius:15px; display:flex; align-items:center; justify-content:center;">
                     <i class="fa fa-spinner fa-spin"></i>
@@ -779,7 +791,7 @@ include 'includes/header.php';
         .then(data => {
             if(data.status === 'success') {
                 document.getElementById('payStatus').innerText = "Ask customer to scan and pay";
-                document.getElementById('qrBox').innerHTML = `<img src="${data.qr_url}" style="width:100%; border-radius:10px;">`;
+                document.getElementById('qrBox').innerHTML = `<img src="${esc(data.qr_url)}" style="width:100%; border-radius:10px;">`;
                 document.getElementById('payDetails').style.display = 'block';
                 document.getElementById('payPlan').innerText = data.plan;
                 document.getElementById('payAmt').innerText = "Rs. " + data.amount;
@@ -866,7 +878,7 @@ include 'includes/header.php';
             .then(r => r.json())
             .then(data => {
                 if(data.new_jobs > 0) {
-                    showPushNotification("New Task Assigned", `You have ${data.new_jobs} new pending jobs.`);
+                    showPushNotification("New Task Assigned", `You have ${num(data.new_jobs)} new pending jobs.`);
                 }
                 if(data.new_faults > 0) {
                     showPushNotification("Network Alarm!", `${data.new_faults} new fiber breaks detected nearby.`, "urgent");

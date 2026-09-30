@@ -75,8 +75,8 @@ include 'includes/topbar.php';
                 $color = ($s['status'] == 'in_stock') ? '#10b981' : (($s['status'] == 'issued') ? '#3b82f6' : '#ef4444');
             ?>
                 <div style="display:flex; justify-content:space-between; margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-                    <span><?= ucfirst(str_replace('_', ' ', $s['status'])) ?></span>
-                    <b style="color:<?= $color ?>;"><?= $s['count'] ?></b>
+                    <span><?= e(ucfirst(str_replace('_', ' ', $s['status']))) ?></span>
+                    <b style="color:<?= e($color) ?>;"><?= e($s['count']) ?></b>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -85,7 +85,7 @@ include 'includes/topbar.php';
             <h4 style="margin-top:0; font-size:14px; color:#64748b; text-transform:uppercase;">Recent Activity</h4>
             <?php while($r = $recent->fetch_assoc()): ?>
                 <div style="margin-top:10px; font-size:12px; border-left:3px solid #3b82f6; padding-left:10px;">
-                    <b><?= $r['item_name'] ?></b><br><small>Issued to: <?= $r['issued_to_user'] ?></small>
+                    <b><?= e($r['item_name']) ?></b><br><small>Issued to: <?= e($r['issued_to_user']) ?></small>
                 </div>
             <?php endwhile; ?>
         </div>
@@ -106,18 +106,18 @@ include 'includes/topbar.php';
             <tbody>
                 <?php while($i = $items->fetch_assoc()): ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 15px;"><b><?= $i['item_name'] ?></b><br><small><?= $i['brand'] ?></small></td>
-                    <td style="padding: 15px; font-size:11px;">SN: <?= $i['serial_number'] ?><br>MAC: <?= $i['mac_address'] ?></td>
-                    <td style="padding: 15px;"><span class="badge" style="background:<?= ($i['status'] == 'in_stock') ? '#dcfce7; color:#16a34a;' : '#eff6ff; color:#3b82f6;' ?>"><?= strtoupper($i['status']) ?></span></td>
-                    <td style="padding: 15px;"><?= $i['issued_to_user'] ?: 'Warehouse' ?></td>
+                    <td style="padding: 15px;"><b><?= e($i['item_name']) ?></b><br><small><?= e($i['brand']) ?></small></td>
+                    <td style="padding: 15px; font-size:11px;">SN: <?= e($i['serial_number']) ?><br>MAC: <?= e($i['mac_address']) ?></td>
+                    <td style="padding: 15px;"><span class="badge" style="background:<?= ($i['status'] == 'in_stock') ? '#dcfce7; color:#16a34a;' : '#eff6ff; color:#3b82f6;' ?>"><?= e(strtoupper($i['status'])) ?></span></td>
+                    <td style="padding: 15px;"><?= e($i['issued_to_user'] ?: 'Warehouse') ?></td>
                     <td style="padding: 15px;">
                         <div style="display:flex; gap:5px;">
                             <?php if($i['status'] == 'in_stock'): ?>
-                                <button onclick="openIssueModal(<?= $i['id'] ?>, '<?= $i['item_name'] ?>')" class="btn-action-sm" style="background:#3b82f6; color:#fff; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Issue</button>
+                                <button onclick="openIssueModal(<?= e($i['id']) ?>, '<?= e($i['item_name']) ?>')" class="btn-action-sm" style="background:#3b82f6; color:#fff; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Issue</button>
                             <?php else: ?>
-                                <a href="?return=<?= $i['id'] ?>" class="btn-action-sm" style="background:#64748b; color:#fff; padding:5px 8px; border-radius:4px; text-decoration:none; font-size:11px;">Return</a>
+                                <a href="?return=<?= e($i['id']) ?>" class="btn-action-sm" style="background:#64748b; color:#fff; padding:5px 8px; border-radius:4px; text-decoration:none; font-size:11px;">Return</a>
                             <?php endif; ?>
-                            <a href="?faulty=<?= $i['id'] ?>" style="color:#ef4444; padding:5px;"><i class="fa fa-triangle-exclamation"></i></a>
+                            <a href="?faulty=<?= e($i['id']) ?>" style="color:#ef4444; padding:5px;"><i class="fa fa-triangle-exclamation"></i></a>
                         </div>
                     </td>
                 </tr>

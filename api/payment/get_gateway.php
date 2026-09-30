@@ -23,7 +23,7 @@ if (!$gateway) {
     </div>
     <div class="modal-body">
         <input type="hidden" name="action" value="update_gateway">
-        <input type="hidden" name="gateway_id" value="<?= $gateway['id'] ?>">
+        <input type="hidden" name="gateway_id" value="<?= e($gateway['id']) ?>">
         
         <div class="mb-3">
             <label>Gateway Name</label>

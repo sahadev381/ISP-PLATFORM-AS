@@ -139,7 +139,7 @@ if (!empty($session['profile_id'])) {
             
             <div class="info-row">
                 <span class="info-label">Login Time</span>
-                <span class="info-value"><?= $loginTime ?></span>
+                <span class="info-value"><?= e($loginTime) ?></span>
             </div>
             
             <?php if ($profile): ?>
@@ -156,14 +156,14 @@ if (!empty($session['profile_id'])) {
             <?php if ($profile['data_limit_mb'] > 0): ?>
             <div class="info-row">
                 <span class="info-label">Data Limit</span>
-                <span class="info-value"><?= $profile['data_limit_mb'] ?> MB</span>
+                <span class="info-value"><?= e($profile['data_limit_mb']) ?> MB</span>
             </div>
             <?php endif; ?>
             <?php endif; ?>
             
             <div class="info-row">
                 <span class="info-label">Session ID</span>
-                <span class="info-value" style="font-size: 0.8rem"><?= substr($session['session_id'] ?? 'N/A', 0, 16) ?>...</span>
+                <span class="info-value" style="font-size: 0.8rem"><?= e(substr($session['session_id'] ?? 'N/A', 0, 16)) ?>...</span>
             </div>
             
             <p class="countdown">

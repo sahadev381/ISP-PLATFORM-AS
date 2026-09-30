@@ -68,7 +68,7 @@ include $base_path . 'includes/topbar.php';
                     <select name="customer_id" class="form-control" required>
                         <option value="">-- Search Customer --</option>
                         <?php while($c = $customers->fetch_assoc()): ?>
-                            <option value="<?= $c['id'] ?>">
+                            <option value="<?= e($c['id']) ?>">
                                 <?= htmlspecialchars($c['full_name']) ?> (<?= htmlspecialchars($c['username']) ?>)
                             </option>
                         <?php endwhile; ?>

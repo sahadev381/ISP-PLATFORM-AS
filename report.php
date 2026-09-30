@@ -53,11 +53,11 @@ include 'includes/topbar.php';
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<h1><?= $page_title ?></h1>
+<h1><?= e($page_title) ?></h1>
 
 <h2>New Users (<?= count($new_users) ?>)</h2>
 <div>
@@ -65,10 +65,10 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Status</th></tr>
     <?php foreach($new_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
-        <td><?= $u['status'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
+        <td><?= e($u['status']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
@@ -80,10 +80,10 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Expiry Date</th></tr>
     <?php foreach($expiring_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
-        <td><?= $u['expiry'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
+        <td><?= e($u['expiry']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
@@ -95,10 +95,10 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Expiry Date</th></tr>
     <?php foreach($expired_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
-        <td><?= $u['expiry'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
+        <td><?= e($u['expiry']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
@@ -109,9 +109,9 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Status</th></tr>
     <?php foreach($active_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
         <td><?= ($u['online']>0)?"Online":"Offline" ?></td>
     </tr>
     <?php endforeach; ?>

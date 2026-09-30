@@ -118,7 +118,7 @@ include "includes/topbar.php";
 <div class="acs-container">
     
     <?php if ($msg): ?>
-        <div class="alert alert-<?= $msg_type ?>">
+        <div class="alert alert-<?= e($msg_type) ?>">
             <i class="fa fa-<?= $msg_type == 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
         </div>
@@ -193,16 +193,16 @@ include "includes/topbar.php";
                                     <small><?= htmlspecialchars($model) ?></small>
                                 </div>
                             </td>
-                            <td style="color: #64748b; font-size: 13px;"><?= $lastInform ?></td>
+                            <td style="color: #64748b; font-size: 13px;"><?= e($lastInform) ?></td>
                             <td>
                                 <div style="display: flex; gap: 10px;">
                                     <form method="POST" onsubmit="return confirm('Send Reboot command to this device?');" style="display: inline;">
-                                        <input type="hidden" name="deviceId" value="<?= $deviceId ?>">
+                                        <input type="hidden" name="deviceId" value="<?= e($deviceId) ?>">
                                         <button type="submit" name="reboot" class="btn-action btn-reboot" title="Reboot Device">
                                             <i class="fa fa-power-off"></i>
                                         </button>
                                     </form>
-                                    <button onclick="openWifiModal('<?= $deviceId ?>', '<?= htmlspecialchars($serial) ?>')" class="btn-action btn-wifi" title="Configure WiFi">
+                                    <button onclick="openWifiModal('<?= e($deviceId) ?>', '<?= htmlspecialchars($serial) ?>')" class="btn-action btn-wifi" title="Configure WiFi">
                                         <i class="fa fa-wifi"></i>
                                     </button>
                                 </div>

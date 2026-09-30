@@ -243,17 +243,17 @@ function showTab(tabId, btn) {
 <div class="profile-container">
     
     <?php if($success_msg): ?>
-        <div style="background: #dcfce7; color: #16a34a; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bbf7d0;"><i class="fa fa-check-circle"></i> <?= $success_msg ?></div>
+        <div style="background: #dcfce7; color: #16a34a; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bbf7d0;"><i class="fa fa-check-circle"></i> <?= e($success_msg) ?></div>
     <?php endif; ?>
 
     <!-- Header -->
     <div class="profile-header">
         <div class="profile-id">
-            <div class="profile-avatar"><?= strtoupper(substr($user['username'], 0, 1)) ?></div>
+            <div class="profile-avatar"><?= e(strtoupper(substr($user['username'], 0, 1))) ?></div>
             <div class="profile-name">
                 <h1 style="display:flex; align-items:center; gap:10px;">
                     <?= htmlspecialchars($user['full_name']) ?>
-                    <a href="map.php?user=<?= $username ?>" title="View on Map" style="font-size:18px; color:#3b82f6;"><i class="fa fa-map-location-dot"></i></a>
+                    <a href="map.php?user=<?= e($username) ?>" title="View on Map" style="font-size:18px; color:#3b82f6;"><i class="fa fa-map-location-dot"></i></a>
                 </h1>
                 <p>@<?= htmlspecialchars($user['username']) ?> &bull; <?= htmlspecialchars($user['phone']) ?></p>
             </div>
@@ -272,7 +272,7 @@ function showTab(tabId, btn) {
     <div class="nav-tabs">
         <button class="nav-tab active" onclick="showTab('overview', this)"><i class="fa fa-th-large"></i> Overview</button>
         <button class="nav-tab" onclick="showTab('usage_history', this)"><i class="fa fa-chart-area"></i> Usage History</button>
-        <button class="nav-tab" onclick="window.open('map.php?user=<?= $username ?>', '_blank')"><i class="fa fa-map-location-dot"></i> Map View</button>
+        <button class="nav-tab" onclick="window.open('map.php?user=<?= e($username) ?>', '_blank')"><i class="fa fa-map-location-dot"></i> Map View</button>
         <button class="nav-tab" onclick="showTab('livegraph', this)"><i class="fa fa-chart-line"></i> Live Graph</button>
         <button class="nav-tab" onclick="showTab('tickets', this)"><i class="fa fa-headset"></i> Tickets</button>
         <button class="nav-tab" onclick="showTab('invoices', this)"><i class="fa fa-file-invoice"></i> Invoices</button>
@@ -287,11 +287,11 @@ function showTab(tabId, btn) {
         <div class="info-grid">
             <div class="info-card">
                 <h3><i class="fa fa-info-circle"></i> Basic Info</h3>
-                <div class="detail-row"><label>Username</label><span><?= $user['username'] ?></span></div>
-                <div class="detail-row"><label>Status</label><span style="color:<?= $user['status']=='active'?'#10b981':'#ef4444' ?>;"><?= ucfirst($user['status']) ?></span></div>
+                <div class="detail-row"><label>Username</label><span><?= e($user['username']) ?></span></div>
+                <div class="detail-row"><label>Status</label><span style="color:<?= $user['status']=='active'?'#10b981':'#ef4444' ?>;"><?= e(ucfirst($user['status'])) ?></span></div>
                 <div class="detail-row"><label>Plan</label><span><?= htmlspecialchars($user['plan_name']) ?></span></div>
-                <div class="detail-row"><label>Expiry</label><span style="color: #ef4444;"><?= $user['expiry'] ?></span></div>
-                <div class="detail-row"><label>Address</label><span><?= $user['address'] ?: '-' ?></span></div>
+                <div class="detail-row"><label>Expiry</label><span style="color: #ef4444;"><?= e($user['expiry']) ?></span></div>
+                <div class="detail-row"><label>Address</label><span><?= e($user['address'] ?: '-') ?></span></div>
             </div>
             
             <div class="session-card">
@@ -301,11 +301,11 @@ function showTab(tabId, btn) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                         <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
                             <small style="opacity: 0.6;">User IP</small><br>
-                            <b style="font-size: 16px;"><?= $session['framedipaddress'] ?? '-' ?></b>
+                            <b style="font-size: 16px;"><?= e($session['framedipaddress'] ?? '-') ?></b>
                         </div>
                         <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
                             <small style="opacity: 0.6;">User MAC</small><br>
-                            <b style="font-size: 16px;"><?= $session['callingstationid'] ?? '-' ?></b>
+                            <b style="font-size: 16px;"><?= e($session['callingstationid'] ?? '-') ?></b>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
@@ -358,10 +358,10 @@ function showTab(tabId, btn) {
                 </div>
                 <?php if($limit > 0): ?>
                 <div class="usage-bar-bg">
-                    <div class="usage-bar-fill" style="width: <?= $percent ?>%; background: <?= $color ?>;"></div>
+                    <div class="usage-bar-fill" style="width: <?= e($percent) ?>%; background: <?= e($color) ?>;"></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                    <span style="font-size: 12px; color: #64748b; font-weight: 600;"><?= $percent ?>% used</span>
+                    <span style="font-size: 12px; color: #64748b; font-weight: 600;"><?= e($percent) ?>% used</span>
                     <form method="POST" onsubmit="return confirm('Reset FUP usage for this user?');">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="reset_fup">
@@ -378,10 +378,10 @@ function showTab(tabId, btn) {
             <div class="info-card">
                 <h3><i class="fa fa-network-wired"></i> FTTH & Inventory</h3>
                 <div class="detail-row"><label>OLT Name/ID</label><span><?= htmlspecialchars($user['olt'] ?: '-') ?></span></div>
-                <div class="detail-row"><label>OLT Port</label><span><?= $user['olt_port'] ?: '-' ?></span></div>
+                <div class="detail-row"><label>OLT Port</label><span><?= e($user['olt_port'] ?: '-') ?></span></div>
                 <div class="detail-row"><label>Master Box</label><span><?= htmlspecialchars($user['master_box'] ?: '-') ?></span></div>
                 <div class="detail-row"><label>DB Name/ID</label><span><?= htmlspecialchars($user['db_box'] ?: '-') ?></span></div>
-                <div class="detail-row"><label>DB Port</label><span><?= $user['db_port'] ?: '-' ?></span></div>
+                <div class="detail-row"><label>DB Port</label><span><?= e($user['db_port'] ?: '-') ?></span></div>
             </div>
 
             <!-- Map Card -->
@@ -393,7 +393,7 @@ function showTab(tabId, btn) {
                     <div style="height: 200px; background: #f8fafc; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #94a3b8; flex-direction: column; gap: 10px; margin-top: 15px;">
                         <i class="fa fa-map-marked-alt" style="font-size: 30px;"></i>
                         <span>No coordinates set</span>
-                        <a href="user_edit.php?user=<?= $username ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 11px;">Add Location</a>
+                        <a href="user_edit.php?user=<?= e($username) ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 11px;">Add Location</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -429,7 +429,7 @@ function showTab(tabId, btn) {
                     if($usage_history):
                         foreach($usage_history as $uh): ?>
                             <tr>
-                                <td><b><?= $uh['month'] ?></b></td>
+                                <td><b><?= e($uh['month']) ?></b></td>
                                 <td><?= formatBytes($uh['download']) ?></td>
                                 <td><?= formatBytes($uh['upload']) ?></td>
                                 <td><span class="badge" style="background:#eff6ff; color:#3b82f6;"><?= formatBytes($uh['download'] + $uh['upload']) ?></span></td>
@@ -456,7 +456,7 @@ function showTab(tabId, btn) {
         <div class="info-card">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
                 <h3><i class="fa fa-headset"></i> Support Tickets</h3>
-                <a href="ticket_new.php?user=<?= $username ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 12px;"><i class="fa fa-plus"></i> New Ticket</a>
+                <a href="ticket_new.php?user=<?= e($username) ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 12px;"><i class="fa fa-plus"></i> New Ticket</a>
             </div>
             <table>
                 <thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
@@ -465,10 +465,10 @@ function showTab(tabId, btn) {
                     $tks = db_all($conn, "SELECT * FROM tickets WHERE customer_id = (SELECT id FROM customers WHERE username = ?) ORDER BY id DESC", [$username]);
                     foreach($tks as $tk): ?>
                         <tr>
-                            <td>#<?= $tk['id'] ?></td>
-                            <td><a href="ticket_view.php?id=<?= $tk['id'] ?>"><?= htmlspecialchars($tk['subject']) ?></a></td>
-                            <td><?= $tk['priority'] ?></td>
-                            <td><?= $tk['status'] ?></td>
+                            <td>#<?= e($tk['id']) ?></td>
+                            <td><a href="ticket_view.php?id=<?= e($tk['id']) ?>"><?= htmlspecialchars($tk['subject']) ?></a></td>
+                            <td><?= e($tk['priority']) ?></td>
+                            <td><?= e($tk['status']) ?></td>
                             <td><?= date('M d, Y', strtotime($tk['created_at'])) ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -488,10 +488,10 @@ function showTab(tabId, btn) {
                     $invs = db_all($conn, "SELECT * FROM invoices WHERE username = ? ORDER BY id DESC", [$username]);
                     foreach($invs as $inv): ?>
                         <tr>
-                            <td>#<?= $inv['id'] ?></td>
+                            <td>#<?= e($inv['id']) ?></td>
                             <td>NPR <?= number_format($inv['amount'], 2) ?></td>
-                            <td><?= $inv['months'] ?></td>
-                            <td><?= $inv['expiry_date'] ?></td>
+                            <td><?= e($inv['months']) ?></td>
+                            <td><?= e($inv['expiry_date']) ?></td>
                             <td><?= date('M d, Y', strtotime($inv['created_at'])) ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -554,13 +554,13 @@ function showTab(tabId, btn) {
             <?php if($genieacsDevice): ?>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
                     <div>
-                        <div class="detail-row"><label>Manufacturer</label><span><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['Manufacturer']['_value'] ?? 'N/A' ?></span></div>
-                        <div class="detail-row"><label>Model</label><span><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['ProductClass']['_value'] ?? 'N/A' ?></span></div>
+                        <div class="detail-row"><label>Manufacturer</label><span><?= e($genieacsDevice['InternetGatewayDevice']['DeviceInfo']['Manufacturer']['_value'] ?? 'N/A') ?></span></div>
+                        <div class="detail-row"><label>Model</label><span><?= e($genieacsDevice['InternetGatewayDevice']['DeviceInfo']['ProductClass']['_value'] ?? 'N/A') ?></span></div>
                         <button type="submit" name="reboot" class="btn-action btn-danger" style="margin-top:20px;"><i class="fa fa-power-off"></i> Reboot ONU</button>
                     </div>
                     <form method="POST">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="deviceId" value="<?= $deviceId ?>">
+                        <input type="hidden" name="deviceId" value="<?= e($deviceId) ?>">
                         <div style="margin-bottom:10px;"><label style="font-size:12px; font-weight:600;">WiFi Name (SSID)</label><input type="text" name="ssid" value="<?= htmlspecialchars($user['wifi_ssid']) ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
                         <div style="margin-bottom:15px;"><label style="font-size:12px; font-weight:600;">WiFi Password</label><input type="text" name="wifi_pass" value="<?= htmlspecialchars($user['wifi_password']) ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
                         <button type="submit" name="setwifi" class="btn-action btn-primary" style="width:100%; justify-content:center;">Push to ONU</button>

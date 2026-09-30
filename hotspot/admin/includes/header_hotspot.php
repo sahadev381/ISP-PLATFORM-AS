@@ -7,10 +7,10 @@ $base_path = $base_path ?? '.';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?? 'Hotspot Portal' ?></title>
+    <title><?= e($page_title ?? 'Hotspot Portal') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="<?= $base_path ?>/assets/css/theme.css">
+    <link rel="stylesheet" href="<?= e($base_path) ?>/assets/css/theme.css">
     <style>
         :root {
             --primary: #3b82f6;
@@ -198,16 +198,16 @@ $base_path = $base_path ?? '.';
         </div>
         
         <div class="top-nav-right">
-            <a href="<?= $base_path ?>/index.php" class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: white;">
+            <a href="<?= e($base_path) ?>/index.php" class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: white;">
                 <i class="fa fa-arrow-left"></i> Back to Main
             </a>
             <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1)) ?>
+                <?= e(strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
             </div>
         </div>
     </nav>
     
     <div class="main-content">
         <?php if (!empty($message)): ?>
-            <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= $message ?></div>
+            <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= e($message) ?></div>
         <?php endif; ?>

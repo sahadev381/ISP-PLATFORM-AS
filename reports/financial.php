@@ -94,11 +94,11 @@ include $base_path . 'includes/topbar.php';
         <form method="GET" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 200px;">
                 <label style="display: block; font-size: 13px; margin-bottom: 5px; color: #64748b;">Start Date</label>
-                <input type="date" name="start" value="<?= $start_date ?>" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                <input type="date" name="start" value="<?= e($start_date) ?>" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
             </div>
             <div style="flex: 1; min-width: 200px;">
                 <label style="display: block; font-size: 13px; margin-bottom: 5px; color: #64748b;">End Date</label>
-                <input type="date" name="end" value="<?= $end_date ?>" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                <input type="date" name="end" value="<?= e($end_date) ?>" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
             </div>
             <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
                 <i class="fa fa-filter"></i> Apply Filter
@@ -141,7 +141,7 @@ include $base_path . 'includes/topbar.php';
                         <?php while($g = $gateway_res->fetch_assoc()): ?>
                             <tr>
                                 <td><span style="text-transform: capitalize;"><?= htmlspecialchars($g['gateway']) ?></span></td>
-                                <td><?= $g['count'] ?></td>
+                                <td><?= e($g['count']) ?></td>
                                 <td style="font-weight: 600;">NPR <?= number_format($g['total'], 2) ?></td>
                             </tr>
                         <?php endwhile; ?>
@@ -162,8 +162,8 @@ include $base_path . 'includes/topbar.php';
                     <?php if ($top_cust_res && $top_cust_res->num_rows > 0): ?>
                         <?php while($tc = $top_cust_res->fetch_assoc()): ?>
                             <tr>
-                                <td><a href="<?= $base_path ?>user_view.php?username=<?= urlencode($tc['username']) ?>" style="text-decoration: none; color: #3b82f6; font-weight: 600;"><?= htmlspecialchars($tc['username']) ?></a></td>
-                                <td><?= $tc['count'] ?></td>
+                                <td><a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($tc['username']) ?>" style="text-decoration: none; color: #3b82f6; font-weight: 600;"><?= htmlspecialchars($tc['username']) ?></a></td>
+                                <td><?= e($tc['count']) ?></td>
                                 <td style="font-weight: 600; color: #10b981;">NPR <?= number_format($tc['total'], 2) ?></td>
                             </tr>
                         <?php endwhile; ?>

@@ -71,7 +71,7 @@ $public_key = KHALTI_PUBLIC_KEY;
                         <tr>
                             <td><?= date('Y-m-d H:i', strtotime($t['created_at'])) ?></td>
                             <td><?= number_format($t['amount'], 2) ?></td>
-                            <td><?= ucfirst($t['gateway']) ?></td>
+                            <td><?= e(ucfirst($t['gateway'])) ?></td>
                             <td>
                                 <?php if($t['status'] == 'success'): ?>
                                     <span class="badge active">Success</span>
@@ -99,8 +99,8 @@ $public_key = KHALTI_PUBLIC_KEY;
 <script src="https://khalti.com/static/khalti-checkout.js"></script>
 <script>
 var config = {
-    "publicKey": "<?= $public_key ?>",
-    "productIdentity": "wallet-<?= $username ?>",
+    "publicKey": <?= e_js($public_key) ?>,
+    "productIdentity": "wallet-" + <?= e_js($username) ?>,
     "productName": "ISP Wallet Recharge",
     "productUrl": window.location.href,
     "eventHandler": {
@@ -112,7 +112,7 @@ var config = {
             var fields = {
                 'token': payload.token,
                 'amount': document.getElementById('amount').value,
-                'username': '<?= $username ?>'
+                'username': <?= e_js($username) ?>
             };
             
             for(var key in fields) {

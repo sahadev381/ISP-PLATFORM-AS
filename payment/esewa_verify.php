@@ -73,7 +73,7 @@ include '../includes/header.php';
             <div style="color:#10b981; font-size:60px; margin-bottom:20px;"><i class="fa fa-check-circle"></i></div>
             <h2 style="color:#1e293b;">Payment Successful!</h2>
             <p style="color:#64748b; margin-bottom:30px;">NPR <?= number_format($amt, 2) ?> has been added to your wallet.</p>
-            <a href="../user_view.php?user=<?= $username ?>" class="btn btn-primary" style="text-decoration:none; display:inline-block; padding:12px 30px; border-radius:8px;">Back to Profile</a>
+            <a href="../user_view.php?user=<?= e($username) ?>" class="btn btn-primary" style="text-decoration:none; display:inline-block; padding:12px 30px; border-radius:8px;">Back to Profile</a>
         <?php else: ?>
             <div style="color:#ef4444; font-size:60px; margin-bottom:20px;"><i class="fa fa-times-circle"></i></div>
             <h2 style="color:#1e293b;">Verification Failed</h2>

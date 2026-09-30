@@ -68,11 +68,11 @@ include 'includes/topbar.php';
                             $pct = min(100, ($gb / 2000) * 100); // Progress bar relative to 2TB
                         ?>
                         <tr>
-                            <td style="padding:12px;"><b><?= $t['username'] ?></b></td>
-                            <td style="padding:12px; font-weight:600; color:#1e293b;"><?= $gb ?> GB</td>
+                            <td style="padding:12px;"><b><?= e($t['username']) ?></b></td>
+                            <td style="padding:12px; font-weight:600; color:#1e293b;"><?= e($gb) ?> GB</td>
                             <td style="padding:12px;">
                                 <div style="background:#f1f5f9; height:8px; border-radius:10px; overflow:hidden;">
-                                    <div style="background:#3b82f6; width:<?= $pct ?>%; height:100%;"></div>
+                                    <div style="background:#3b82f6; width:<?= e($pct) ?>%; height:100%;"></div>
                                 </div>
                             </td>
                         </tr>
@@ -90,8 +90,8 @@ include 'includes/topbar.php';
                         $color = ($val >= 99.9) ? '#10b981' : (($val > 98) ? '#f59e0b' : '#ef4444');
                     ?>
                         <div style="text-align:center; padding:20px; border:1px solid #f1f5f9; border-radius:12px;">
-                            <div style="font-size:11px; color:#64748b; margin-bottom:5px;"><?= $u['nasname'] ?></div>
-                            <div style="font-size:24px; font-weight:800; color:<?= $color ?>;"><?= $val ?>%</div>
+                            <div style="font-size:11px; color:#64748b; margin-bottom:5px;"><?= e($u['nasname']) ?></div>
+                            <div style="font-size:24px; font-weight:800; color:<?= e($color) ?>;"><?= e($val) ?>%</div>
                             <small style="color:#94a3b8;">30-Day Avg</small>
                         </div>
                     <?php endwhile; ?>
@@ -108,14 +108,14 @@ include 'includes/topbar.php';
                     <?php while($c = $churn_risks->fetch_assoc()): ?>
                         <div style="margin-top:20px; background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; border-left:4px solid #ef4444;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <b><?= $c['full_name'] ?></b>
+                                <b><?= e($c['full_name']) ?></b>
                                 <span class="badge" style="background:#ef4444; font-size:10px;">HIGH RISK</span>
                             </div>
                             <div style="font-size:12px; margin-top:5px; opacity:0.7;">
-                                <i class="fa fa-ticket"></i> <?= $c['ticket_count'] ?> Complaints this month<br>
-                                <i class="fa fa-phone"></i> <?= $c['phone'] ?>
+                                <i class="fa fa-ticket"></i> <?= e($c['ticket_count']) ?> Complaints this month<br>
+                                <i class="fa fa-phone"></i> <?= e($c['phone']) ?>
                             </div>
-                            <a href="user_view.php?user=<?= $c['username'] ?>" style="display:block; margin-top:10px; font-size:11px; color:#3b82f6; text-decoration:none; font-weight:700;">PROACTIVE OUTREACH &rarr;</a>
+                            <a href="user_view.php?user=<?= e($c['username']) ?>" style="display:block; margin-top:10px; font-size:11px; color:#3b82f6; text-decoration:none; font-weight:700;">PROACTIVE OUTREACH &rarr;</a>
                         </div>
                     <?php endwhile; ?>
                 <?php else: ?>

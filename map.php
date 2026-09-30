@@ -165,6 +165,18 @@ include 'includes/topbar.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
 <script>
+
+// Values below are rendered with innerHTML / bindPopup, so anything that
+// originates from the database must be escaped before interpolation.
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
+function escJs(value) {
+    return JSON.stringify(String(value ?? '')).slice(1, -1).replace(/'/g, "\\'");
+}
+function num(value) { return Number(value) || 0; }
     function openLeaseManager() {
         document.getElementById('leaseModal').style.display = 'block';
         loadLeases();
@@ -196,16 +208,16 @@ include 'includes/topbar.php';
             list.innerHTML = data.map(l => `
                 <div style="background:#fff; border:1px solid #e2e8f0; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <b style="color:#1e293b;">${l.client_name}</b>
-                        <span class="badge ${l.status==='Active'?'bg-success':'bg-danger'}">${l.status}</span>
+                        <b style="color:#1e293b;">${esc(l.client_name)}</b>
+                        <span class="badge ${l.status==='Active'?'bg-success':'bg-danger'}">${esc(l.status)}</span>
                     </div>
                     <div style="font-size:12px; color:#64748b;">
-                        <div>Route: <b>${l.route_name}</b> (Core #${l.core_number})</div>
-                        <div>Started: ${l.lease_start}</div>
-                        <div>Price: Rs. ${l.monthly_price}/mo</div>
+                        <div>Route: <b>${esc(l.route_name)}</b> (Core #${num(l.core_number)})</div>
+                        <div>Started: ${esc(l.lease_start)}</div>
+                        <div>Price: Rs. ${num(l.monthly_price)}/mo</div>
                     </div>
                     ${l.status === 'Active' ? `
-                    <button onclick="terminateLease(${l.id})" class="btn-action-sm btn-del" style="margin-top:10px;">
+                    <button onclick="terminateLease(${num(l.id)})" class="btn-action-sm btn-del" style="margin-top:10px;">
                         <i class="fa fa-ban"></i> Terminate Lease
                     </button>` : ''}
                 </div>
@@ -325,7 +337,7 @@ include 'includes/topbar.php';
                 h += `<td><input type="text" class="p-user" data-port="${i}" value="${pData?.customer_username || ''}" placeholder="Username"></td>`;
             } else if(type === 'OLT' || type === 'MASTER_BOX') {
                 let targetType = (type === 'OLT') ? 'MASTER_BOX' : 'DB_BOX';
-                let options = allNodes.filter(n => n.type === targetType).map(n => `<option value="${n.id}" ${pData?.linked_node_id == n.id ? 'selected' : ''}>${n.name}</option>`).join('');
+                let options = allNodes.filter(n => n.type === targetType).map(n => `<option value="${num(n.id)}" ${pData?.linked_node_id == n.id ? 'selected' : ''}>${esc(n.name)}</option>`).join('');
                 h += `<td><select class="p-link" data-port="${i}"><option value="">-- Link --</option>${options}</select></td>`;
             } else {
                 h += `<td>Spliced</td>`;
@@ -402,7 +414,7 @@ include 'includes/topbar.php';
                     let fd = new FormData(); fd.append('id', n.id); fd.append('lat', e.target.getLatLng().lat); fd.append('lng', e.target.getLatLng().lng);
                     fetch('map_api.php?action=update_node_pos', { method: 'POST', body: fd });
                 });
-                m.bindPopup(`<b>${n.type}: ${n.name}</b><div class="popup-actions"><button class="btn-action-sm btn-view" onclick="openManager(${n.id}, '${n.type}', null)"><i class="fa fa-edit"></i> View / Edit</button><button class="btn-action-sm btn-del" onclick="deleteNode(${n.id})"><i class="fa fa-trash"></i> Delete</button></div>`);
+                m.bindPopup(`<b>${esc(n.type)}: ${esc(n.name)}</b><div class="popup-actions"><button class="btn-action-sm btn-view" onclick="openManager(${num(n.id)}, '${escJs(n.type)}', null)"><i class="fa fa-edit"></i> View / Edit</button><button class="btn-action-sm btn-del" onclick="deleteNode(${num(n.id)})"><i class="fa fa-trash"></i> Delete</button></div>`);
             });
             data.routes.forEach(r => {
                 let color = '#3b82f6';
@@ -418,18 +430,18 @@ include 'includes/topbar.php';
                     opacity: 0.8 
                 }).addTo(routesLayer).bindPopup(`
                     <div style="min-width:180px;">
-                        <b style="font-size:14px;">Fiber: ${r.name}</b><br>
+                        <b style="font-size:14px;">Fiber: ${esc(r.name)}</b><br>
                         <hr style="margin:8px 0; border:0; border-top:1px solid #eee;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span>Length:</span> <b>${Math.round(r.calculated_length_m)}m</b>
+                            <span>Length:</span> <b>${num(Math.round(r.calculated_length_m))}m</b>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span>Cores:</span> <b>${r.used_cores} / ${r.total_cores} Used</b>
+                            <span>Cores:</span> <b>${num(r.used_cores)} / ${num(r.total_cores)} Used</b>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                            <span>Loss (Est):</span> <b>${r.predicted_loss_db} dB</b>
+                            <span>Loss (Est):</span> <b>${num(r.predicted_loss_db)} dB</b>
                         </div>
-                        <button class="btn-action-sm btn-del" onclick="deleteRoute(${r.id})">
+                        <button class="btn-action-sm btn-del" onclick="deleteRoute(${num(r.id)})">
                             <i class="fa fa-trash"></i> Delete Route
                         </button>
                     </div>
@@ -460,17 +472,17 @@ include 'includes/topbar.php';
                 }).addTo(map).bindPopup(`
                     <div style="text-align:center; min-width:150px;">
                         <div style="margin-bottom:8px;">
-                            <b style="font-size:14px;">${c.full_name}</b><br>
-                            <small style="color:#64748b;">@${c.username}</small>
+                            <b style="font-size:14px;">${esc(c.full_name)}</b><br>
+                            <small style="color:#64748b;">@${esc(c.username)}</small>
                         </div>
                         <div style="display:inline-block; padding:2px 8px; border-radius:12px; background:${color}22; color:${color}; font-size:11px; font-weight:700; margin-bottom:10px;">
-                            ${status_label}
+                            ${esc(status_label)}
                         </div>
                         <div class="popup-actions">
-                            <a href="user_view.php?user=${c.username}" class="btn-action-sm btn-view" target="_blank">
+                            <a href="user_view.php?user=${encodeURIComponent(c.username || '')}" class="btn-action-sm btn-view" target="_blank">
                                 <i class="fa fa-user"></i> View Profile
                             </a>
-                            <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${c.lat},${c.lng}" class="btn-action-sm" style="background:#f8fafc; color:#1e293b;" target="_blank">
+                            <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${num(c.lat)},${num(c.lng)}" class="btn-action-sm" style="background:#f8fafc; color:#1e293b;" target="_blank">
                                 <i class="fa fa-street-view"></i> Street View
                             </a>
                         </div>

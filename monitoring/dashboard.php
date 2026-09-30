@@ -31,14 +31,14 @@ if ($devices === false) {
 <tr>
 <td><?= htmlspecialchars($d['name']) ?></td>
 <td><?= htmlspecialchars($d['ip_address']) ?></td>
-<td><?= strtoupper($d['type']) ?></td>
+<td><?= e(strtoupper($d['type'])) ?></td>
 <td class="<?= $d['status'] === 'UP' ? 'up' : 'down' ?>">
 <?= htmlspecialchars($d['status']) ?></td>
 <td><?= htmlspecialchars($d['last_checked']) ?></td>
 <td><?= htmlspecialchars($d['fail_count']) ?></td>
 <td>
-<a href="edit_device.php?id=<?= $d['id'] ?>">Edit</a>
-<a href="delete_device.php?id=<?= $d['id'] ?>">Delete</a>
+<a href="edit_device.php?id=<?= e($d['id']) ?>">Edit</a>
+<a href="delete_device.php?id=<?= e($d['id']) ?>">Delete</a>
 
 </td>
 </tr>

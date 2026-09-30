@@ -83,13 +83,13 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= htmlspecialchars($row['phone'] ?? 'N/A') ?></td>
                                 <td>
                                     <div style="color: #ef4444; font-weight: 500;"><?= date('M d, Y', strtotime($row['expiry'])) ?></div>
-                                    <div style="font-size: 12px; color: #94a3b8;"><?= floor((time() - strtotime($row['expiry'])) / 86400) ?> days ago</div>
+                                    <div style="font-size: 12px; color: #94a3b8;"><?= (int) floor((time() - strtotime($row['expiry'])) / 86400) ?> days ago</div>
                                 </td>
                                 <td><span class="badge badge-expired">Expired</span></td>
                                 <td>
                                     <div style="display: flex; gap: 8px;">
-                                        <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view" title="View Details"><i class="fa fa-eye"></i></a>
-                                        <a href="<?= $base_path ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew" title="Recharge Now"><i class="fa fa-bolt"></i> Renew</a>
+                                        <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view" title="View Details"><i class="fa fa-eye"></i></a>
+                                        <a href="<?= e($base_path) ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew" title="Recharge Now"><i class="fa fa-bolt"></i> Renew</a>
                                     </div>
                                 </td>
                             </tr>

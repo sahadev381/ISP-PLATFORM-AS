@@ -38,8 +38,8 @@ if(isset($_POST['submit'])){
 ?>
 <div class="container">
     <h2>Create New Ticket</h2>
-    <?php if($error){ ?><p style="color:red"><?= $error ?></p><?php } ?>
-    <?php if($success){ ?><p style="color:lightgreen"><?= $success ?></p><?php } ?>
+    <?php if($error){ ?><p style="color:red"><?= e($error) ?></p><?php } ?>
+    <?php if($success){ ?><p style="color:lightgreen"><?= e($success) ?></p><?php } ?>
 
     <form method="post">
         <label>Subject</label><br>

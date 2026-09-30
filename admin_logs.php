@@ -44,11 +44,11 @@ include 'includes/topbar.php';
                     <td style="padding: 15px;"><b><?= htmlspecialchars($l['username']) ?></b></td>
                     <td style="padding: 15px;">
                         <span class="badge" style="background:#f1f5f9; color:#475569; font-size:10px;">
-                            <?= strtoupper($l['action']) ?>
+                            <?= e(strtoupper($l['action'])) ?>
                         </span>
                     </td>
                     <td style="padding: 15px; color:#475569;"><?= htmlspecialchars($l['description']) ?></td>
-                    <td style="padding: 15px; font-family:monospace; color:#94a3b8;"><?= $l['ip_address'] ?></td>
+                    <td style="padding: 15px; font-family:monospace; color:#94a3b8;"><?= e($l['ip_address']) ?></td>
                     <td style="padding: 15px; color:#64748b;"><?= date('M d, h:i A', strtotime($l['created_at'])) ?></td>
                 </tr>
                 <?php endwhile; ?>

@@ -67,7 +67,7 @@ include 'includes/topbar.php';
                 $mikrotiks = $conn->query("SELECT * FROM nas WHERE device_type = 'mikrotik'");
                 while($m = $mikrotiks->fetch_assoc()): 
                 ?>
-                    <option value="<?= $m['id'] ?>" <?= $nas_id == $m['id'] ? 'selected' : '' ?>><?= $m['nasname'] ?> (<?= $m['ip_address'] ?>)</option>
+                    <option value="<?= e($m['id']) ?>" <?= $nas_id == $m['id'] ? 'selected' : '' ?>><?= e($m['nasname']) ?> (<?= e($m['ip_address']) ?>)</option>
                 <?php endwhile; ?>
             </select>
         </form>
@@ -75,7 +75,7 @@ include 'includes/topbar.php';
 
     <?php if ($api_error): ?>
         <div style="background:#fee2e2; color:#ef4444; padding:15px; border-radius:12px; margin-bottom:20px; border:1px solid #fecaca;">
-            <i class="fa fa-circle-exclamation"></i> <?= $api_error ?>
+            <i class="fa fa-circle-exclamation"></i> <?= e($api_error) ?>
         </div>
     <?php endif; ?>
 
@@ -85,8 +85,8 @@ include 'includes/topbar.php';
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 30px;">
             <div style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                 <div style="font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">CPU Load</div>
-                <div style="font-size: 28px; font-weight: 800; color: #1e293b;"><?= $resources['cpu-load'] ?? '0' ?>%</div>
-                <small style="color:#94a3b8;"><?= $resources['cpu'] ?? '' ?> (<?= $resources['cpu-count'] ?? '1' ?> Core)</small>
+                <div style="font-size: 28px; font-weight: 800; color: #1e293b;"><?= e($resources['cpu-load'] ?? '0') ?>%</div>
+                <small style="color:#94a3b8;"><?= e($resources['cpu'] ?? '') ?> (<?= e($resources['cpu-count'] ?? '1') ?> Core)</small>
             </div>
             <div style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                 <div style="font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">Free Memory</div>
@@ -95,12 +95,12 @@ include 'includes/topbar.php';
             </div>
             <div style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #8b5cf6; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                 <div style="font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">PPPoE Sessions</div>
-                <div style="font-size: 28px; font-weight: 800; color: #1e293b;"><?= $active_ppp ?? '0' ?></div>
+                <div style="font-size: 28px; font-weight: 800; color: #1e293b;"><?= e($active_ppp ?? '0') ?></div>
                 <small style="color:#94a3b8;">Active Connections</small>
             </div>
             <div style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #f59e0b; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                 <div style="font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">Hotspot Users</div>
-                <div style="font-size: 28px; font-weight: 800; color: #1e293b;"><?= $hotspot_active ?? '0' ?></div>
+                <div style="font-size: 28px; font-weight: 800; color: #1e293b;"><?= e($hotspot_active ?? '0') ?></div>
                 <small style="color:#94a3b8;">Currently Online</small>
             </div>
         </div>
@@ -114,7 +114,7 @@ include 'includes/topbar.php';
                 <?php $is_up = ($gpon['status'] ?? '') == 'true'; ?>
                 <div style="padding:15px; border-radius:12px; border:2px solid <?= $is_up ? '#10b981' : '#e2e8f0' ?>; background:<?= $is_up ? '#10b98110' : '#f8fafc' ?>;">
                     <div style="font-weight:700; color:<?= $is_up ? '#10b981' : '#94a3b8' ?>;">
-                        <i class="fa fa-<?= $is_up ? 'link' : 'unlink' ?>"></i> <?= $gpon['name'] ?>
+                        <i class="fa fa-<?= $is_up ? 'link' : 'unlink' ?>"></i> <?= e($gpon['name']) ?>
                     </div>
                     <div style="font-size:11px; color:#64748b; margin-top:8px;">
                         <span class="badge <?= $is_up ? 'active' : 'inactive' ?>"><?= $is_up ? 'UP' : 'DOWN' ?></span>
@@ -152,11 +152,11 @@ include 'includes/topbar.php';
                     <?php while($olt = $olts->fetch_assoc()): ?>
                     <tr style="border-bottom:1px solid #f1f5f9;">
                         <td style="padding:12px; font-weight:600;"><?= htmlspecialchars($olt['nasname']) ?></td>
-                        <td style="padding:12px; font-family:monospace; color:#3b82f6;"><?= $olt['ip_address'] ?></td>
-                        <td style="padding:12px;"><span style="padding:4px 10px; background:#f1f5f9; border-radius:6px; font-size:12px;"><?= $olt['brand'] ?? 'Generic' ?></span></td>
+                        <td style="padding:12px; font-family:monospace; color:#3b82f6;"><?= e($olt['ip_address']) ?></td>
+                        <td style="padding:12px;"><span style="padding:4px 10px; background:#f1f5f9; border-radius:6px; font-size:12px;"><?= e($olt['brand'] ?? 'Generic') ?></span></td>
                         <td style="padding:12px;"><span class="badge active">Online</span></td>
                         <td style="padding:12px;">
-                            <a href="olt_dashboard.php?id=<?= $olt['id'] ?>" class="btn btn-sm" style="background:#3b82f6; color:#fff; padding:6px 12px; border-radius:6px; text-decoration:none;">
+                            <a href="olt_dashboard.php?id=<?= e($olt['id']) ?>" class="btn btn-sm" style="background:#3b82f6; color:#fff; padding:6px 12px; border-radius:6px; text-decoration:none;">
                                 <i class="fa fa-eye"></i> Manage ONT
                             </a>
                         </td>
@@ -190,8 +190,8 @@ include 'includes/topbar.php';
                     <?php foreach($interfaces as $iface): ?>
                     <?php $is_running = ($iface['running'] ?? '') == 'true'; ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 15px;"><b><?= $iface['name'] ?></b></td>
-                        <td style="padding: 15px; font-size:12px; color:#64748b;"><?= $iface['type'] ?></td>
+                        <td style="padding: 15px;"><b><?= e($iface['name']) ?></b></td>
+                        <td style="padding: 15px; font-size:12px; color:#64748b;"><?= e($iface['type']) ?></td>
                         <td style="padding: 15px; color:#10b981; font-weight:600;"><i class="fa fa-arrow-down"></i> <?= formatBytes($iface['rx-byte'] ?? 0) ?></td>
                         <td style="padding: 15px; color:#3b82f6; font-weight:600;"><i class="fa fa-arrow-up"></i> <?= formatBytes($iface['tx-byte'] ?? 0) ?></td>
                         <td style="padding: 15px;">
@@ -200,7 +200,7 @@ include 'includes/topbar.php';
                             </span>
                         </td>
                         <td style="padding: 15px; text-align:right;">
-                            <button class="btn btn-sm btn-primary" onclick="openMonitor('<?= $iface['name'] ?>')"><i class="fa fa-chart-line"></i> Monitor</button>
+                            <button class="btn btn-sm btn-primary" onclick="openMonitor('<?= e($iface['name']) ?>')"><i class="fa fa-chart-line"></i> Monitor</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -289,7 +289,7 @@ function initTrafficChart() {
 }
 
 function fetchTraffic() {
-    fetch(`mikrotik_traffic_api.php?nas_id=<?= $nas_id ?>&interface=${currentIface}`)
+    fetch(`mikrotik_traffic_api.php?nas_id=<?= (int) $nas_id ?>&interface=${currentIface}`)
     .then(r => r.json())
     .then(data => {
         if(data.error) return;

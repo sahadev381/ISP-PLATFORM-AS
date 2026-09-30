@@ -154,7 +154,7 @@ include 'includes/topbar.php';
             </td>
             <td style="padding: 15px;">
                 <span style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                    <i class="fa <?= $type_icon ?>"></i> <?= strtoupper($n['device_type']) ?>
+                    <i class="fa <?= e($type_icon) ?>"></i> <?= e(strtoupper($n['device_type'])) ?>
                 </span>
             </td>
             <td style="padding: 15px;">
@@ -162,14 +162,14 @@ include 'includes/topbar.php';
                 <div style="font-size: 11px; color: #64748b;"><b>Ver:</b> <?= htmlspecialchars($n['snmp_version']) ?></div>
             </td>
             <td style="padding: 15px;">
-                <span id="status-<?= $n['id'] ?>" class="badge <?= $n['status'] ? 'active' : 'inactive' ?>">
+                <span id="status-<?= e($n['id']) ?>" class="badge <?= $n['status'] ? 'active' : 'inactive' ?>">
                     <?= $n['status'] ? 'Online' : 'Offline' ?>
                 </span>
             </td>
             <td style="padding: 15px;">
                 <div class="action-buttons" style="display: flex; gap: 8px;">
-                    <a href="nas_edit.php?id=<?= $n['id'] ?>" class="btn-icon btn-edit" title="Edit"><i class="fa fa-edit"></i></a>
-                    <a href="?del=<?= $n['id'] ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Delete this device?')"><i class="fa fa-trash"></i></a>
+                    <a href="nas_edit.php?id=<?= e($n['id']) ?>" class="btn-icon btn-edit" title="Edit"><i class="fa fa-edit"></i></a>
+                    <a href="?del=<?= e($n['id']) ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Delete this device?')"><i class="fa fa-trash"></i></a>
                 </div>
             </td>
         </tr>

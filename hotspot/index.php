@@ -74,13 +74,13 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $portalName ?></title>
+    <title><?= e($portalName) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: <?= $primaryColor ?>;
+            --primary: <?= e($primaryColor) ?>;
             --primary-dark: #4f46e5;
             --secondary: #64748b;
             --success: #10b981;
@@ -640,18 +640,18 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
             <source src="assets/video/background.mp4" type="video/mp4">
         </video>
     </div>
-    <div class="video-overlay" style="background: linear-gradient(135deg, <?= $primaryColor ?>cc 0%, <?= $primaryColor ?>e6 100%);"></div>
+    <div class="video-overlay" style="background: linear-gradient(135deg, <?= e($primaryColor) ?>cc 0%, <?= e($primaryColor) ?>e6 100%);"></div>
     -->
     
     <!-- Navbar -->
     <nav class="navbar-custom">
         <a href="#" class="navbar-brand">
             <?php if (!empty($portalLogo) && file_exists('../uploads/' . $portalLogo)): ?>
-                <img src="../uploads/<?= $portalLogo ?>" alt="Logo">
+                <img src="../uploads/<?= e($portalLogo) ?>" alt="Logo">
             <?php else: ?>
                 <i class="fas fa-wifi" style="font-size: 2rem;"></i>
             <?php endif; ?>
-            <span><?= $portalName ?></span>
+            <span><?= e($portalName) ?></span>
         </a>
         <div style="display: flex; align-items: center; gap: 15px;">
             <a href="#" style="color: white; text-decoration: none; font-weight: 500; padding: 8px 15px; border-radius: 8px; transition: all 0.3s;">
@@ -703,24 +703,24 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
         <div class="login-card">
             <div class="login-header">
                 <?php if (!empty($portalLogo) && file_exists('../uploads/' . $portalLogo)): ?>
-                    <img src="../uploads/<?= $portalLogo ?>" alt="Logo">
+                    <img src="../uploads/<?= e($portalLogo) ?>" alt="Logo">
                 <?php else: ?>
                     <i class="fas fa-wifi" style="font-size: 3rem; margin-bottom: 10px;"></i>
                 <?php endif; ?>
-                <h2><?= $welcomeMessage ?></h2>
+                <h2><?= e($welcomeMessage) ?></h2>
                 <p>Connect to the internet securely</p>
             </div>
             
             <div class="login-body">
                 <?php if ($error): ?>
                     <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle"></i> <?= $error ?>
+                        <i class="fas fa-exclamation-circle"></i> <?= e($error) ?>
                     </div>
                 <?php endif; ?>
                 
                 <?php if ($success): ?>
                     <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> <?= $success ?>
+                        <i class="fas fa-check-circle"></i> <?= e($success) ?>
                     </div>
                 <?php endif; ?>
                 
@@ -801,7 +801,7 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
             </div>
             
             <div class="login-footer">
-                <p>&copy; 2026 <?= $portalName ?>. All rights reserved.</p>
+                <p>&copy; 2026 <?= e($portalName) ?>. All rights reserved.</p>
                 <p style="margin-top: 5px;">
                     <a href="#">Terms of Service</a> | <a href="#">Privacy Policy</a>
                 </p>

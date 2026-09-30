@@ -124,7 +124,7 @@ include $base_path . 'includes/topbar.php';
 
 <div class="report-grid">
     <!-- Total Users -->
-    <a href="<?= $base_path ?>users.php" class="stat-card card-total">
+    <a href="<?= e($base_path) ?>users.php" class="stat-card card-total">
         <div class="stat-info">
             <h2><?= number_format($total_users) ?></h2>
             <p>Total Customers</p>
@@ -184,11 +184,11 @@ include $base_path . 'includes/topbar.php';
 </div>
 
 <div class="report-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-    <a href="<?= $base_path ?>reports/financial.php" class="stat-card" style="justify-content: center; gap: 15px; border-bottom: 3px solid #64748b;">
+    <a href="<?= e($base_path) ?>reports/financial.php" class="stat-card" style="justify-content: center; gap: 15px; border-bottom: 3px solid #64748b;">
         <i class="fa fa-file-invoice-dollar" style="color: #64748b; font-size: 20px;"></i>
         <span style="font-weight: 600;">Financial Report</span>
     </a>
-    <a href="<?= $base_path ?>export_report.php" class="stat-card" style="justify-content: center; gap: 15px; border-bottom: 3px solid #64748b;">
+    <a href="<?= e($base_path) ?>export_report.php" class="stat-card" style="justify-content: center; gap: 15px; border-bottom: 3px solid #64748b;">
         <i class="fa fa-download" style="color: #64748b; font-size: 20px;"></i>
         <span style="font-weight: 600;">Export All Data</span>
     </a>

@@ -79,12 +79,12 @@ include $base_path . 'includes/topbar.php';
 <div class="ticket-view-container">
     <div class="ticket-header">
         <div class="ticket-info">
-            <span class="badge badge-<?= strtolower(str_replace(' ', '', $ticket['status'])) ?>"><?= $ticket['status'] ?></span>
+            <span class="badge badge-<?= e(strtolower(str_replace(' ', '', $ticket['status']))) ?>"><?= e($ticket['status']) ?></span>
             <h2 style="margin-top: 10px;"><?= htmlspecialchars($ticket['subject']) ?></h2>
             <div class="ticket-meta">
                 <span><i class="fa fa-user"></i> <?= htmlspecialchars($ticket['full_name'] ?? 'Unknown') ?> (<?= htmlspecialchars($ticket['username'] ?? 'N/A') ?>)</span>
                 <span><i class="fa fa-clock"></i> <?= date('M d, Y h:i A', strtotime($ticket['created_at'])) ?></span>
-                <span><i class="fa fa-bolt"></i> Priority: <?= $ticket['priority'] ?></span>
+                <span><i class="fa fa-bolt"></i> Priority: <?= e($ticket['priority']) ?></span>
             </div>
         </div>
         <div>
@@ -100,7 +100,7 @@ include $base_path . 'includes/topbar.php';
             <div class="reply-item user-reply">
                 <div class="reply-bubble">
                     <strong><?= htmlspecialchars($ticket['username'] ?? 'User') ?>:</strong><br>
-                    <?= nl2br(htmlspecialchars($ticket['message'])) ?>
+                    <?= e(nl2br(htmlspecialchars($ticket['message']))) ?>
                 </div>
                 <div class="reply-meta"><?= date('M d, h:i A', strtotime($ticket['created_at'])) ?></div>
             </div>
@@ -110,7 +110,7 @@ include $base_path . 'includes/topbar.php';
                 <div class="reply-item <?= $r['sender'] == 'Admin' ? 'admin-reply' : 'user-reply' ?>">
                     <div class="reply-bubble">
                         <strong><?= htmlspecialchars($r['sender']) ?>:</strong><br>
-                        <?= nl2br(htmlspecialchars($r['message'])) ?>
+                        <?= e(nl2br(htmlspecialchars($r['message']))) ?>
                     </div>
                     <div class="reply-meta"><?= date('M d, h:i A', strtotime($r['created_at'])) ?></div>
                 </div>

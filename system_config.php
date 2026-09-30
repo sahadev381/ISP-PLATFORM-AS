@@ -99,11 +99,11 @@ require_once __DIR__ . '/includes/sidebar.php';
         </div>
         
         <?php if($success): ?>
-            <div class="alert alert-success"><?= $success ?></div>
+            <div class="alert alert-success"><?= e($success) ?></div>
         <?php endif; ?>
         
         <?php if($error): ?>
-            <div class="alert alert-danger"><?= $error ?></div>
+            <div class="alert alert-danger"><?= e($error) ?></div>
         <?php endif; ?>
         
         <form method="post" enctype="multipart/form-data">

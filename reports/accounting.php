@@ -163,7 +163,7 @@ include '../includes/topbar.php';
                     <?php if($monthly->num_rows > 0): ?>
                         <?php while($m = $monthly->fetch_assoc()): ?>
                         <tr>
-                            <td><span class="badge-period"><?= $m['month'] ?></span></td>
+                            <td><span class="badge-period"><?= e($m['month']) ?></span></td>
                             <td class="amount-neutral">NPR <?= number_format($m['gross'], 2) ?></td>
                             <td style="color:#8b5cf6; font-weight:600;">NPR <?= number_format($m['tsc'], 2) ?></td>
                             <td style="color:#10b981; font-weight:600;">NPR <?= number_format($m['vat'], 2) ?></td>

@@ -116,7 +116,7 @@ include $base_path . 'includes/topbar.php';
         </div>
         
         <div class="card-body">
-            <?= $msg ?>
+            <?= e($msg) ?>
             
             <div class="user-info-mini">
                 <div class="info-item">

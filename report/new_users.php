@@ -81,7 +81,7 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= date('M d, Y', strtotime($row['expiry'])) ?></td>
                                 <td><span class="badge badge-new">New</span></td>
                                 <td>
-                                    <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i> View</a>
+                                    <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i> View</a>
                                 </td>
                             </tr>
                         <?php endwhile; ?>

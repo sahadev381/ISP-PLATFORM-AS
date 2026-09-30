@@ -231,7 +231,7 @@ include 'includes/topbar.php';
 <div class="edit-container">
     
     <?php if($msg): ?>
-        <div class="alert alert-<?= $msg_type ?>">
+        <div class="alert alert-<?= e($msg_type) ?>">
             <i class="fa <?= $msg_type == 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
         </div>
@@ -363,8 +363,8 @@ include 'includes/topbar.php';
                             <label>Internet Plan</label>
                             <select name="plan_id" class="form-control">
                                 <?php foreach($plans_list as $p): ?>
-                                    <option value="<?= $p['id'] ?>" <?= ($user['plan_id']==$p['id'])?'selected':'' ?>>
-                                        <?= htmlspecialchars($p['name']) ?> (<?= $p['speed'] ?>)
+                                    <option value="<?= e($p['id']) ?>" <?= ($user['plan_id']==$p['id'])?'selected':'' ?>>
+                                        <?= htmlspecialchars($p['name']) ?> (<?= e($p['speed']) ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -374,7 +374,7 @@ include 'includes/topbar.php';
                             <select name="branch_id" class="form-control">
                                 <option value="">Global / No Branch</option>
                                 <?php foreach($branches_list as $b): ?>
-                                    <option value="<?= $b['id'] ?>" <?= ($user['branch_id']==$b['id'])?'selected':'' ?>>
+                                    <option value="<?= e($b['id']) ?>" <?= ($user['branch_id']==$b['id'])?'selected':'' ?>>
                                         <?= htmlspecialchars($b['name']) ?>
                                     </option>
                                 <?php endforeach; ?>

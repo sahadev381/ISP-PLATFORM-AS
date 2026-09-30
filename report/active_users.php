@@ -75,7 +75,7 @@ include $base_path . 'includes/topbar.php';
 
     <div class="card">
         <div class="card-header">
-            <h2>Online Users (<?= $num_rows ?>)</h2>
+            <h2>Online Users (<?= e($num_rows) ?>)</h2>
             <form method="post" action="export_active_users.php">
                 <button type="submit" style="background:#8b5cf6; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
@@ -111,12 +111,12 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= htmlspecialchars($row['plan_name'] ?? 'N/A') ?></td>
                                 <td><code style="background:#f1f5f9; padding:2px 5px; border-radius:4px;"><?= htmlspecialchars($row['nasipaddress']) ?></code></td>
                                 <td><?= date('H:i:s', strtotime($row['acctstarttime'])) ?><br><small><?= date('M d', strtotime($row['acctstarttime'])) ?></small></td>
-                                <td style="font-weight: 600; color: #8b5cf6;"><?= $h ?>h <?= $m ?>m</td>
+                                <td style="font-weight: 600; color: #8b5cf6;"><?= e($h) ?>h <?= e($m) ?>m</td>
                                 <td><span class="badge-online"><i class="fa fa-circle" style="font-size: 8px; vertical-align: middle;"></i> ONLINE</span></td>
                                 <td>
                                     <div style="display:flex; gap:5px;">
-                                        <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($uname) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
-                                        <form action="<?= $base_path ?>disconnect_user.php" method="POST" onsubmit="return confirm('Disconnect this user?')">
+                                        <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($uname) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
+                                        <form action="<?= e($base_path) ?>disconnect_user.php" method="POST" onsubmit="return confirm('Disconnect this user?')">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="username" value="<?= htmlspecialchars($uname) ?>">
                                             <button type="submit" class="btn-action btn-disconnect"><i class="fa fa-power-off"></i></button>

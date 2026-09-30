@@ -66,7 +66,7 @@ include 'includes/sidebar.php';
         <tr><td>Subject:</td><td><?= htmlspecialchars($ticket['subject']) ?></td></tr>
         <tr><td>Status:</td><td><?= htmlspecialchars($ticket['status']) ?></td></tr>
         <tr><td>Created:</td><td><?= htmlspecialchars($ticket['created_at']) ?></td></tr>
-        <tr><td>Description:</td><td><?= nl2br(htmlspecialchars($ticket['description'])) ?></td></tr>
+        <tr><td>Description:</td><td><?= e(nl2br(htmlspecialchars($ticket['description']))) ?></td></tr>
     </table>
 </div>
 

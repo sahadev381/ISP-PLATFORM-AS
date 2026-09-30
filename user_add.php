@@ -151,7 +151,7 @@ include 'includes/topbar.php';
 
 <div class="form-container">
     <?php if($msg): ?>
-        <div class="alert <?= $msg_type ?>"><?= htmlspecialchars($msg) ?></div>
+        <div class="alert <?= e($msg_type) ?>"><?= htmlspecialchars($msg) ?></div>
     <?php endif; ?>
 
     <div class="card">
@@ -290,7 +290,7 @@ include 'includes/topbar.php';
                                 <select name="plan_id" class="form-control" required style="padding-left: 38px;">
                                     <option value="">Select a plan</option>
                                     <?php while($p = $plans->fetch_assoc()): ?>
-                                        <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?> (<?= $p['speed'] ?>)</option>
+                                        <option value="<?= e($p['id']) ?>"><?= htmlspecialchars($p['name']) ?> (<?= e($p['speed']) ?>)</option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>
@@ -309,7 +309,7 @@ include 'includes/topbar.php';
                                 <select name="branch_id" class="form-control" style="padding-left: 38px;">
                                     <option value="">Main Branch</option>
                                     <?php while($b = $branches->fetch_assoc()): ?>
-                                        <option value="<?= $b['id'] ?>"><?= htmlspecialchars($b['name']) ?></option>
+                                        <option value="<?= e($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>

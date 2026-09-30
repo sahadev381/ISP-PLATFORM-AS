@@ -78,11 +78,11 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= htmlspecialchars($row['plan_name'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($row['phone'] ?? '-') ?></td>
                                 <td style="font-weight: 600; color: #f59e0b;"><?= date('M d, Y', strtotime($row['expiry'])) ?></td>
-                                <td><span class="badge-warning"><?= $days_left ?> Days Left</span></td>
+                                <td><span class="badge-warning"><?= e($days_left) ?> Days Left</span></td>
                                 <td>
                                     <div style="display:flex; gap:5px;">
-                                        <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
-                                        <a href="<?= $base_path ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew"><i class="fa fa-bolt"></i> Renew</a>
+                                        <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
+                                        <a href="<?= e($base_path) ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew"><i class="fa fa-bolt"></i> Renew</a>
                                     </div>
                                 </td>
                             </tr>

@@ -880,28 +880,28 @@ if(empty($connections)) {
     <div class="stat-item">
         <div class="stat-icon olt"><i class="fa fa-server"></i></div>
         <div class="stat-info">
-            <div class="stat-count"><?= $stats['olt']['total'] ?></div>
+            <div class="stat-count"><?= e($stats['olt']['total']) ?></div>
             <div class="stat-label">OLT</div>
         </div>
     </div>
     <div class="stat-item">
         <div class="stat-icon mikrotik"><i class="fa fa-microchip"></i></div>
         <div class="stat-info">
-            <div class="stat-count"><?= $stats['mikrotik']['total'] ?></div>
+            <div class="stat-count"><?= e($stats['mikrotik']['total']) ?></div>
             <div class="stat-label">MikroTik</div>
         </div>
     </div>
     <div class="stat-item">
         <div class="stat-icon switch"><i class="fa fa-network-wired"></i></div>
         <div class="stat-info">
-            <div class="stat-count"><?= $stats['switch']['total'] ?></div>
+            <div class="stat-count"><?= e($stats['switch']['total']) ?></div>
             <div class="stat-label">Switches</div>
         </div>
     </div>
     <div class="stat-item">
         <div class="stat-icon router"><i class="fa fa-router"></i></div>
         <div class="stat-info">
-            <div class="stat-count"><?= $stats['router']['total'] ?></div>
+            <div class="stat-count"><?= e($stats['router']['total']) ?></div>
             <div class="stat-label">Routers</div>
         </div>
     </div>
@@ -922,15 +922,15 @@ if(empty($connections)) {
         </div>
         <div class="device-list" id="deviceList">
             <?php foreach($device_list as $dev): ?>
-            <div class="device-card <?= $dev['status'] ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" onclick="handleDeviceClick('<?= $dev['id'] ?>', '<?= $dev['name'] ?>', '<?= $dev['type'] ?>', '<?= $dev['ip'] ?>')">
-                <div class="device-icon-small <?= $dev['type'] ?>">
+            <div class="device-card <?= e($dev['status']) ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" onclick="handleDeviceClick('<?= e($dev['id']) ?>', '<?= e($dev['name']) ?>', '<?= e($dev['type']) ?>', '<?= e($dev['ip']) ?>')">
+                <div class="device-icon-small <?= e($dev['type']) ?>">
                     <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 </div>
                 <div class="device-info">
                     <div class="device-name"><?= htmlspecialchars($dev['name']) ?></div>
-                    <div class="device-ip"><?= $dev['ip'] ?></div>
+                    <div class="device-ip"><?= e($dev['ip']) ?></div>
                 </div>
-                <div class="status-indicator <?= $dev['status'] ?>"></div>
+                <div class="status-indicator <?= e($dev['status']) ?>"></div>
             </div>
             <?php endforeach; ?>
             
@@ -964,8 +964,8 @@ if(empty($connections)) {
                 $from = $positions[$conn['from']] ?? ['x' => 0, 'y' => 0];
                 $to = $positions[$conn['to']] ?? ['x' => 0, 'y' => 0];
             ?>
-            <line class="conn-line <?= $conn['type'] ?>" 
-                  data-from="<?= $conn['from'] ?>" data-to="<?= $conn['to'] ?>"
+            <line class="conn-line <?= e($conn['type']) ?>" 
+                  data-from="<?= e($conn['from']) ?>" data-to="<?= e($conn['to']) ?>"
                   x1="<?= $from['x'] + 35 ?>" y1="<?= $from['y'] + 35 ?>"
                   x2="<?= $to['x'] + 35 ?>" y2="<?= $to['y'] + 35 ?>" />
             <?php endforeach; ?>
@@ -979,20 +979,20 @@ if(empty($connections)) {
         
         <!-- Device Nodes -->
         <?php foreach($device_list as $idx => $dev): ?>
-        <div class="device-node <?= $dev['status'] ?>" 
-             data-id="<?= $dev['id'] ?>"
-             data-status="<?= $dev['status'] ?>"
-             style="left:<?= $positions[$idx]['x'] ?>px; top:<?= $positions[$idx]['y'] ?>px; <?= $dev['status'] === 'offline' ? 'opacity: 0.5;' : '' ?>" 
-             onclick="handleDeviceClick('<?= $dev['id'] ?>', '<?= $dev['name'] ?>', '<?= $dev['type'] ?>', '<?= $dev['ip'] ?>')">
-            <div class="node-icon <?= $dev['type'] ?> <?= $dev['status'] ?>">
+        <div class="device-node <?= e($dev['status']) ?>" 
+             data-id="<?= e($dev['id']) ?>"
+             data-status="<?= e($dev['status']) ?>"
+             style="left:<?= e($positions[$idx]['x']) ?>px; top:<?= e($positions[$idx]['y']) ?>px; <?= $dev['status'] === 'offline' ? 'opacity: 0.5;' : '' ?>" 
+             onclick="handleDeviceClick('<?= e($dev['id']) ?>', '<?= e($dev['name']) ?>', '<?= e($dev['type']) ?>', '<?= e($dev['ip']) ?>')">
+            <div class="node-icon <?= e($dev['type']) ?> <?= e($dev['status']) ?>">
                 <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 <?php if($dev['status'] === 'offline'): ?>
                 <div class="offline-badge"><i class="fa fa-times"></i></div>
                 <?php endif; ?>
             </div>
             <div class="node-label"><?= htmlspecialchars($dev['name']) ?></div>
-            <div class="node-ip"><?= $dev['ip'] ?></div>
-            <div class="status-dot <?= $dev['status'] ?>"></div>
+            <div class="node-ip"><?= e($dev['ip']) ?></div>
+            <div class="status-dot <?= e($dev['status']) ?>"></div>
         </div>
         <?php endforeach; ?>
         

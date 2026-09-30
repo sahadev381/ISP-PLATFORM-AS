@@ -41,19 +41,19 @@ include 'includes/sidebar.php';
             <tbody>
                 <?php while($b = $branches->fetch_assoc()): ?>
                     <tr>
-                        <td><?= $b['id'] ?></td>
+                        <td><?= e($b['id']) ?></td>
                         <td><?= htmlspecialchars($b['name']) ?></td>
                         <td><?= htmlspecialchars($b['code'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($b['address'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($b['phone'] ?? '-') ?></td>
                         <td>
                             <span class="badge <?= $b['status'] == 'active' ? 'active' : 'inactive' ?>">
-                                <?= ucfirst($b['status']) ?>
+                                <?= e(ucfirst($b['status'])) ?>
                             </span>
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <a href="branch_edit.php?id=<?= $b['id'] ?>" class="btn btn-sm edit">
+                                <a href="branch_edit.php?id=<?= e($b['id']) ?>" class="btn btn-sm edit">
                                     <i class="fa fa-edit"></i>
                                 </a>
                                 <form action="branch_delete.php" method="POST" style="display:inline"

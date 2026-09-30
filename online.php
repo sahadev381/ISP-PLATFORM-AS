@@ -57,8 +57,8 @@ $page_title = "Online Users";
                 <td><?= htmlspecialchars($u['speed']) ?></td>
                 <td><?= htmlspecialchars($u['callingstationid']) ?></td>
                 <td><?= htmlspecialchars($u['callingstationid']) ?></td>
-                <td><?= $u['acctstarttime'] ?></td>
-                <td><?= sprintf("%02d:%02d:%02d", $hours, $mins, $secs) ?></td>
+                <td><?= e($u['acctstarttime']) ?></td>
+                <td><?= e(sprintf("%02d:%02d:%02d", $hours, $mins, $secs)) ?></td>
                 <td>
                     <span class="badge active" id="status-<?= htmlspecialchars($u['username']) ?>"></span>
                     <button type="button"

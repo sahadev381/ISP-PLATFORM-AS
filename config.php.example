@@ -70,10 +70,5 @@ try {
 /* Shared prepared-statement helpers (db_one/db_all/db_exec) */
 require_once __DIR__ . '/includes/db.php';
 
-/* HTML escaping helper — use e($value) in every template output */
-if (!function_exists('e')) {
-    function e($value): string
-    {
-        return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-}
+/* Output escaping — e() for HTML, e_js() in <script>, e_url()/e_href() for links */
+require_once __DIR__ . '/includes/html.php';

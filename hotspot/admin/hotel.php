@@ -109,7 +109,7 @@ include 'includes/header_hotspot.php';
     </div>
 
     <?php if ($message): ?>
-        <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= $message ?></div>
+        <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= e($message) ?></div>
     <?php endif; ?>
 
     <!-- Tabs -->
@@ -141,25 +141,25 @@ include 'includes/header_hotspot.php';
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><?= htmlspecialchars($hotel['name']) ?></h5>
-                            <span class="badge bg-primary"><?= $hotel['code'] ?></span>
+                            <span class="badge bg-primary"><?= e($hotel['code']) ?></span>
                         </div>
                         <div class="card-body">
                             <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($hotel['address'] ?? 'N/A') ?></p>
-                            <p><i class="fas fa-phone"></i> <?= $hotel['phone'] ?? 'N/A' ?></p>
+                            <p><i class="fas fa-phone"></i> <?= e($hotel['phone'] ?? 'N/A') ?></p>
                             <div class="row text-center mt-3">
                                 <div class="col-6">
-                                    <h4 class="text-success"><?= $available ?></h4>
+                                    <h4 class="text-success"><?= e($available) ?></h4>
                                     <small>Available</small>
                                 </div>
                                 <div class="col-6">
-                                    <h4 class="text-danger"><?= $occupied ?></h4>
+                                    <h4 class="text-danger"><?= e($occupied) ?></h4>
                                     <small>Occupied</small>
                                 </div>
                             </div>
                         </div>
                         <div class="card-footer">
                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#roomModal" 
-                                data-hotel-id="<?= $hotel['id'] ?>" data-hotel-name="<?= $hotel['name'] ?>">
+                                data-hotel-id="<?= e($hotel['id']) ?>" data-hotel-name="<?= e($hotel['name']) ?>">
                                 <i class="fas fa-door-open"></i> Manage Rooms
                             </button>
                         </div>
@@ -201,32 +201,32 @@ include 'includes/header_hotspot.php';
                             while ($room = $allRooms->fetch_assoc()): 
                             ?>
                             <tr>
-                                <td><?= $room['hotel_name'] ?></td>
-                                <td><?= $room['room_number'] ?></td>
-                                <td><?= $room['floor'] ?? '-' ?></td>
-                                <td><code><?= $room['mac_address'] ?? '-' ?></code></td>
-                                <td><?= $room['guest_name'] ?? '-' ?></td>
-                                <td><?= $room['guest_phone'] ?? '-' ?></td>
+                                <td><?= e($room['hotel_name']) ?></td>
+                                <td><?= e($room['room_number']) ?></td>
+                                <td><?= e($room['floor'] ?? '-') ?></td>
+                                <td><code><?= e($room['mac_address'] ?? '-') ?></code></td>
+                                <td><?= e($room['guest_name'] ?? '-') ?></td>
+                                <td><?= e($room['guest_phone'] ?? '-') ?></td>
                                 <td><?= $room['checkin_time'] ? date('M d, H:i', strtotime($room['checkin_time'])) : '-' ?></td>
                                 <td>
                                     <span class="badge bg-<?= 
                                         $room['status'] == 'occupied' ? 'danger' : 
                                         ($room['status'] == 'available' ? 'success' : 'warning')
                                     ?>">
-                                        <?= $room['status'] ?>
+                                        <?= e($room['status']) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <?php if ($room['status'] == 'available'): ?>
                                         <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#checkinModal"
-                                            data-room-id="<?= $room['id'] ?>" data-room-number="<?= $room['room_number'] ?>">
+                                            data-room-id="<?= e($room['id']) ?>" data-room-number="<?= e($room['room_number']) ?>">
                                             <i class="fas fa-sign-in-alt"></i> Check-in
                                         </button>
                                     <?php else: ?>
                                         <form method="POST" style="display:inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="checkout">
-                                            <input type="hidden" name="room_id" value="<?= $room['id'] ?>">
+                                            <input type="hidden" name="room_id" value="<?= e($room['id']) ?>">
                                             <button type="submit" class="btn btn-sm btn-warning">
                                                 <i class="fas fa-sign-out-alt"></i> Check-out
                                             </button>
@@ -372,7 +372,7 @@ include 'includes/header_hotspot.php';
                         <label>Plan</label>
                         <select name="plan_id" class="form-select">
                             <?php while ($plan = $plans->fetch_assoc()): ?>
-                                <option value="<?= $plan['id'] ?>"><?= $plan['name'] ?> - Rs.<?= $plan['price'] ?></option>
+                                <option value="<?= e($plan['id']) ?>"><?= e($plan['name']) ?> - Rs.<?= e($plan['price']) ?></option>
                             <?php endwhile; ?>
                         </select>
                     </div>

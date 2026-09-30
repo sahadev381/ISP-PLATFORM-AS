@@ -51,16 +51,16 @@ include 'includes/topbar.php';
                     <?php while($f = $faults->fetch_assoc()): ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 15px;">
-                            <b style="color: #e11d48;"><?= str_replace('_', ' ', $f['fault_type']) ?></b>
+                            <b style="color: #e11d48;"><?= e(str_replace('_', ' ', $f['fault_type'])) ?></b>
                         </td>
-                        <td style="padding: 15px;"><?= $f['node_name'] ?: 'Backbone' ?></td>
+                        <td style="padding: 15px;"><?= e($f['node_name'] ?: 'Backbone') ?></td>
                         <td style="padding: 15px;">
                             <span class="badge" style="background: <?= ($f['severity'] == 'CRITICAL') ? '#ef4444' : '#f59e0b' ?>; color: #fff;">
-                                <?= $f['severity'] ?>
+                                <?= e($f['severity']) ?>
                             </span>
                         </td>
                         <td style="padding: 15px;">
-                            <a href="map.php?lat=<?= $f['predicted_lat'] ?>&lng=<?= $f['predicted_lng'] ?>" class="btn btn-sm" style="background: #eff6ff; color: #3b82f6; text-decoration: none;">
+                            <a href="map.php?lat=<?= e($f['predicted_lat']) ?>&lng=<?= e($f['predicted_lng']) ?>" class="btn btn-sm" style="background: #eff6ff; color: #3b82f6; text-decoration: none;">
                                 <i class="fa fa-location-dot"></i> View on GIS
                             </a>
                         </td>
@@ -68,7 +68,7 @@ include 'includes/topbar.php';
                             <?= date('M d, h:i A', strtotime($f['created_at'])) ?>
                         </div>
                         <td style="padding: 15px;">
-                            <a href="?resolve=<?= $f['id'] ?>" class="btn btn-sm" style="background: #dcfce7; color: #16a34a; text-decoration: none;">Resolve</a>
+                            <a href="?resolve=<?= e($f['id']) ?>" class="btn btn-sm" style="background: #dcfce7; color: #16a34a; text-decoration: none;">Resolve</a>
                         </td>
                     </tr>
                     <?php endwhile; ?>

@@ -72,9 +72,9 @@ include 'includes/topbar.php';
                     $h = $driver->getHealth();
                 ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 15px;"><b><?= $o['nasname'] ?></b><br><small><?= $o['ip_address'] ?></small></td>
-                    <td style="padding: 15px; font-weight:700;"><?= $h['cpu'] ?>%</td>
-                    <td style="padding: 15px;"><?= $h['temp'] ?>°C</td>
+                    <td style="padding: 15px;"><b><?= e($o['nasname']) ?></b><br><small><?= e($o['ip_address']) ?></small></td>
+                    <td style="padding: 15px; font-weight:700;"><?= e($h['cpu']) ?>%</td>
+                    <td style="padding: 15px;"><?= e($h['temp']) ?>°C</td>
                     <td style="padding: 15px;"><span class="badge active">HEALTHY</span></td>
                 </tr>
                 <?php endwhile; ?>

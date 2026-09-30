@@ -30,16 +30,16 @@ include '../includes/header.php';
         <p style="color:#64748b;">Redirecting to eSewa gateway...</p>
         <div style="font-size:24px; font-weight:700; margin:20px 0; color:#1e293b;">NPR <?= number_format($amount, 2) ?></div>
         
-        <form id="esewaForm" method="POST" action="<?= $esewa_url ?>">
-            <input type="hidden" name="amt" value="<?= $amount ?>">
+        <form id="esewaForm" method="POST" action="<?= e($esewa_url) ?>">
+            <input type="hidden" name="amt" value="<?= e($amount) ?>">
             <input type="hidden" name="pdc" value="0">
             <input type="hidden" name="psc" value="0">
             <input type="hidden" name="txAmt" value="0">
-            <input type="hidden" name="tAmt" value="<?= $amount ?>">
-            <input type="hidden" name="pid" value="<?= $txn_id ?>">
-            <input type="hidden" name="scd" value="<?= $esewa_merchant ?>">
-            <input type="hidden" name="su" value="<?= $success_url ?>">
-            <input type="hidden" name="fu" value="<?= $failure_url ?>">
+            <input type="hidden" name="tAmt" value="<?= e($amount) ?>">
+            <input type="hidden" name="pid" value="<?= e($txn_id) ?>">
+            <input type="hidden" name="scd" value="<?= e($esewa_merchant) ?>">
+            <input type="hidden" name="su" value="<?= e($success_url) ?>">
+            <input type="hidden" name="fu" value="<?= e($failure_url) ?>">
             
             <div style="padding:20px; border-top:1px solid #eee;">
                 <p style="font-size:12px; color:#94a3b8;">Please do not close this window.</p>

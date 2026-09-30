@@ -43,7 +43,7 @@ if (!$transaction) {
                 $transaction['status'] == 'completed' ? 'success' : 
                 ($transaction['status'] == 'pending' ? 'warning' : 'danger')
             ?>">
-                <?= ucfirst($transaction['status']) ?>
+                <?= e(ucfirst($transaction['status'])) ?>
             </span>
         </td></tr>
         <tr><th>Created</th><td><?= date('M d, Y H:i:s', strtotime($transaction['created_at'])) ?></td></tr>

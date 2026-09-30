@@ -40,7 +40,7 @@ $replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER
 
 
 <?php foreach($replies as $r){ ?>
-<div><b><?= e($r['sender']) ?>:</b> <?= nl2br(e($r['message'])) ?></div>
+<div><b><?= e($r['sender']) ?>:</b> <?= e(nl2br(e($r['message']))) ?></div>
 <?php } ?>
 
 

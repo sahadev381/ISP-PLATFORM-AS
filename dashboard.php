@@ -210,8 +210,8 @@ include 'includes/topbar.php';
     <div class="cards" style="margin-bottom: 25px;">
         <div class="card"><div class="card-header"><div><div class="card-title">Today's Revenue</div><div class="card-value">NPR <?= number_format($today_revenue) ?></div></div><div class="card-icon green"><i class="fa fa-sack-dollar"></i></div></div></div>
         <div class="card"><div class="card-header"><div><div class="card-title">Monthly Revenue</div><div class="card-value">NPR <?= number_format($month_revenue) ?></div></div><div class="card-icon blue"><i class="fa fa-calendar"></i></div></div></div>
-        <a href="report/expiring_users.php" class="card" style="text-decoration: none; color: inherit;"><div class="card-header"><div><div class="card-title">Expiring Soon</div><div class="card-value"><?= $expiring_soon ?></div></div><div class="card-icon orange"><i class="fa fa-clock"></i></div></div></a>
-        <a href="tickets.php" class="card" style="text-decoration: none; color: inherit;"><div class="card-header"><div><div class="card-title">Open Tickets</div><div class="card-value"><?= $total_tickets ?></div></div><div class="card-icon red"><i class="fa fa-headset"></i></div></div></a>
+        <a href="report/expiring_users.php" class="card" style="text-decoration: none; color: inherit;"><div class="card-header"><div><div class="card-title">Expiring Soon</div><div class="card-value"><?= e($expiring_soon) ?></div></div><div class="card-icon orange"><i class="fa fa-clock"></i></div></div></a>
+        <a href="tickets.php" class="card" style="text-decoration: none; color: inherit;"><div class="card-header"><div><div class="card-title">Open Tickets</div><div class="card-value"><?= e($total_tickets) ?></div></div><div class="card-icon red"><i class="fa fa-headset"></i></div></div></a>
     </div>
 
     <!-- Customer Statistics - Splynx Style -->
@@ -237,12 +237,12 @@ include 'includes/topbar.php';
             </div>
             <div style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
                 <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">New Today</div>
-                <div style="font-size: 24px; font-weight: 700; color: #3b82f6;"><?= $new_today ?></div>
+                <div style="font-size: 24px; font-weight: 700; color: #3b82f6;"><?= e($new_today) ?></div>
                 <div style="font-size: 11px; color: #94a3b8;"><?= date('M d, Y') ?></div>
             </div>
             <div style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
                 <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">New This Week</div>
-                <div style="font-size: 24px; font-weight: 700; color: #8b5cf6;"><?= $new_week ?></div>
+                <div style="font-size: 24px; font-weight: 700; color: #8b5cf6;"><?= e($new_week) ?></div>
                 <div style="font-size: 11px; color: #94a3b8;">Last 7 days</div>
             </div>
         </div>
@@ -284,19 +284,19 @@ include 'includes/topbar.php';
                     $color = $a['type'] == 'ticket' ? '#f59e0b' : '#10b981';
                 ?>
                 <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-bottom: 1px solid #f1f5f9;">
-                    <div style="width: 32px; height: 32px; background: <?= $color ?>20; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa <?= $icon ?>" style="color: <?= $color ?>; font-size: 12px;"></i>
+                    <div style="width: 32px; height: 32px; background: <?= e($color) ?>20; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa <?= e($icon) ?>" style="color: <?= e($color) ?>; font-size: 12px;"></i>
                     </div>
                     <div style="flex: 1;">
                         <div style="font-size: 13px; font-weight: 600; color: #1e293b;">
-                            <?= $a['type'] == 'ticket' ? '#' . $a['id'] . ' ' . htmlspecialchars(substr($a['subject'], 0, 30)) : 'Recharge #' . $a['id'] ?>
+                            <?= $a['type'] == 'ticket' ? '#' . (int) $a['id'] . ' ' . e(substr($a['subject'] ?? '', 0, 30)) : 'Recharge #' . (int) $a['id'] ?>
                         </div>
                         <div style="font-size: 11px; color: #94a3b8;">
                             <?= date('M d, h:i A', strtotime($a['created_at'])) ?>
                         </div>
                     </div>
                     <span class="badge" style="background: <?= $a['status'] == 'Open' ? '#fef3c7' : '#d1fae5' ?>; color: <?= $a['status'] == 'Open' ? '#d97706' : '#059669' ?>; font-size: 10px;">
-                        <?= ucfirst($a['status']) ?>
+                        <?= e(ucfirst($a['status'])) ?>
                     </span>
                 </div>
                 <?php endwhile; ?>
@@ -367,7 +367,7 @@ include 'includes/topbar.php';
         data: {
             labels: ['Active', 'Expired', 'Blocked', 'Pending'],
             datasets: [{
-                data: [<?= $active_users ?>, <?= $expired_users ?>, 50, 20],
+                data: [<?= (int) $active_users ?>, <?= (int) $expired_users ?>, 50, 20],
                 backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#64748b'],
                 borderWidth: 0
             }]

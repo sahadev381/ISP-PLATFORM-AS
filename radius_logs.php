@@ -39,7 +39,7 @@ include 'includes/topbar.php';
                 <?php if($logs->num_rows > 0): ?>
                     <?php while($l = $logs->fetch_assoc()): ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 15px; font-size: 12px; color: #64748b;"><?= $l['authdate'] ?></td>
+                        <td style="padding: 15px; font-size: 12px; color: #64748b;"><?= e($l['authdate']) ?></td>
                         <td style="padding: 15px;"><b><?= htmlspecialchars($l['username']) ?></b></td>
                         <td style="padding: 15px; font-family: monospace; font-size: 12px;"><?= htmlspecialchars($l['pass']) ?></td>
                         <td style="padding: 15px;">

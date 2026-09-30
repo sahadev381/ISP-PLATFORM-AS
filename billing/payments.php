@@ -58,7 +58,7 @@ $total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_tr
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -246,7 +246,7 @@ $total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_tr
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -267,7 +267,7 @@ $total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_tr
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -324,31 +324,31 @@ $total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_tr
                         <tbody>
                             <?php foreach ($transactions as $t): ?>
                             <tr>
-                                <td><code><?= substr($t['transaction_id'], 0, 16) ?>...</code></td>
+                                <td><code><?= e(substr($t['transaction_id'], 0, 16)) ?>...</code></td>
                                 <td>
-                                    <strong><?= $t['full_name'] ?></strong><br>
-                                    <small style="color: #64748b;"><?= $t['username'] ?></small>
+                                    <strong><?= e($t['full_name']) ?></strong><br>
+                                    <small style="color: #64748b;"><?= e($t['username']) ?></small>
                                 </td>
-                                <td><?= $t['gateway_name'] ?: '-' ?></td>
+                                <td><?= e($t['gateway_name'] ?: '-') ?></td>
                                 <td><strong>Rs.<?= number_format($t['amount'], 2) ?></strong></td>
-                                <td><?= $t['payment_method'] ?: '-' ?></td>
+                                <td><?= e($t['payment_method'] ?: '-') ?></td>
                                 <td>
                                     <span class="badge <?= 
                                         $t['status'] == 'completed' ? 'badge-success' : 
                                         ($t['status'] == 'pending' ? 'badge-warning' : 
                                         ($t['status'] == 'failed' ? 'badge-danger' : 'badge-secondary'))
                                     ?>">
-                                        <?= ucfirst($t['status']) ?>
+                                        <?= e(ucfirst($t['status'])) ?>
                                     </span>
                                 </td>
                                 <td><?= date('M d, Y H:i', strtotime($t['created_at'])) ?></td>
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($t['status'] == 'pending'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('verify_payment', <?= $t['id'] ?>)" title="Verify">
+                                            <button class="btn btn-success btn-sm" onclick="submitAction('verify_payment', <?= e($t['id']) ?>)" title="Verify">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button class="btn btn-danger btn-sm" onclick="submitAction('reject_payment', <?= $t['id'] ?>)" title="Reject">
+                                            <button class="btn btn-danger btn-sm" onclick="submitAction('reject_payment', <?= e($t['id']) ?>)" title="Reject">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         <?php endif; ?>
