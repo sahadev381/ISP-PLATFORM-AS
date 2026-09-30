@@ -1,5 +1,5 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
 // session_start(); removed as it's in config.php
 
 if (!isset($_SESSION['customer_user'])) {

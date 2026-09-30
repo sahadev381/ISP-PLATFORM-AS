@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php'; // must contain session check
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php'; // must contain session check
 
 $msg = "";
 
@@ -27,8 +27,8 @@ if (isset($_POST['change'])) {
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -47,5 +47,5 @@ include 'includes/sidebar.php';
 </form>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

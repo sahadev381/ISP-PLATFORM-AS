@@ -1,5 +1,5 @@
 <?php
-include 'config.php';
+include __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 /* Page info */
@@ -7,7 +7,7 @@ $page_title = "Admin Users";
 $active = "admin";
 
 /* Auth check */
-include 'includes/auth.php';
+include __DIR__ . '/includes/auth.php';
 
 /* Only Super Admin */
 if ($_SESSION['role'] !== 'superadmin') {
@@ -94,8 +94,8 @@ if(isset($_POST['change_password'])){
 }
 
 /* Layout */
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 <div class="main">
 

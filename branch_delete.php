@@ -3,8 +3,8 @@
  * Delete a branch. Superadmin only, POST + CSRF token required
  * (it used to be a plain GET link, so any image tag could trigger it).
  */
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 if (!isSuperAdmin()) {

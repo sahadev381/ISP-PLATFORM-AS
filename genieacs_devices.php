@@ -1,8 +1,8 @@
 <?php
 $base_path = './';
-include "config.php";
-include "includes/auth.php";
-include "includes/genieacs_api.php";
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/genieacs_api.php';
 
 $page_title = "TR-069 Device Management";
 $active = "operations";
@@ -66,9 +66,9 @@ if ($total_devices > 0) {
     }
 }
 
-include "includes/header.php";
-include "includes/sidebar.php";
-include "includes/topbar.php";
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -278,4 +278,4 @@ window.onclick = function(event) {
 }
 </script>
 
-<?php include "includes/footer.php"; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

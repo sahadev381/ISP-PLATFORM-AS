@@ -26,7 +26,7 @@ if (!function_exists('snmpget')) {
 }
 
 try {
-    include 'includes/mikrotik_snmp.php';
+    include __DIR__ . '/includes/mikrotik_snmp.php';
     
     $snmp = new MikrotikSNMP($host, $community);
     $response['data'] = $snmp->getAll();

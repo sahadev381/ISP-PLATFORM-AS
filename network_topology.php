@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 // Create network_topology_links table if not exists
 $conn->query("CREATE TABLE IF NOT EXISTS network_topology_links (

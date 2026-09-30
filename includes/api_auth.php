@@ -8,7 +8,7 @@
  *      (for cron jobs and external integrations).  The key comes from
  *      the API_KEY entry in .env and is compared in constant time.
  *
- * Usage — put this right after `include '../config.php';`:
+ * Usage — put this right after the config include:
  *
  *     require_once __DIR__ . '/../includes/api_auth.php';
  *     api_require_auth();                 // any authenticated caller

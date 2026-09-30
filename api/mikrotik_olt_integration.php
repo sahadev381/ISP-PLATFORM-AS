@@ -6,8 +6,8 @@
  */
 
 header('Content-Type: application/json');
-include_once '../config.php';
-include_once '../includes/mikrotik_api.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/mikrotik_api.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -119,7 +119,7 @@ switch ($action) {
         $api->disconnect();
         
         // Also try to get ONT data directly from OLT
-        include_once '../includes/olt_api.php';
+        include_once __DIR__ . '/../includes/olt_api.php';
         $olt_driver = new OLT_Driver($olt);
         $direct_onus = $olt_driver->getAllOnus();
         

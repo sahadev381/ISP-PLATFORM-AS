@@ -4,8 +4,8 @@
  * Supports BDCOM GPON/EPON OLTs via SNMP and Telnet/SSH
  */
 
-include_once 'bdcom_snmp.php';
-include_once 'bdcom_telnet.php';
+include_once __DIR__ . '/bdcom_snmp.php';
+include_once __DIR__ . '/bdcom_telnet.php';
 
 class BDCOM_OLT {
     private $olt;
@@ -15,7 +15,7 @@ class BDCOM_OLT {
     
     public function __construct($olt_data) {
         $this->olt = $olt_data;
-        include 'config.php';
+        include __DIR__ . '/../config.php';
         $this->conn = $conn;
         
         // Initialize Telnet connection

@@ -1,5 +1,5 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/csrf.php';
 // session_start(); removed as it's in config.php
 

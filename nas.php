@@ -1,7 +1,7 @@
 <?php
 
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Network Devices";
@@ -43,9 +43,9 @@ if(isset($_GET['del'])){
 /* FETCH DEVICES */
 $bng = $conn->query("SELECT * FROM nas ORDER BY id DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main">
@@ -210,4 +210,4 @@ setInterval(pollDevices, 15000); // Update every 15 seconds
 pollDevices(); // Initial check
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

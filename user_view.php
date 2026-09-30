@@ -1,9 +1,9 @@
 <?php
 $base_path = './';
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/genieacs_api.php';
-include 'includes/tr069_pppoe.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/genieacs_api.php';
+include __DIR__ . '/includes/tr069_pppoe.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 /* ============================
@@ -172,9 +172,9 @@ function formatBytes($bytes, $precision = 2) {
 }
 
 $page_title = "Profile: " . $user['username'];
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <script>
@@ -730,4 +730,4 @@ function updatePowerUI(rx, tx, time) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

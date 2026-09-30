@@ -2,8 +2,8 @@
 session_start();
 
 chdir(__DIR__ . '/..');
-include_once 'config.php';
-include_once 'hotspot/includes/auth.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/includes/auth.php';
 
 $auth = new HotspotAuth();
 $auth->logout();

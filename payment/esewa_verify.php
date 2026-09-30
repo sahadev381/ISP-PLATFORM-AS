@@ -64,7 +64,7 @@ if (strpos((string) $response, "Success") !== false) {
 }
 
 $page_title = "Payment Verification";
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="main-content-inner" style="display:flex; justify-content:center; align-items:center; height:80vh;">
@@ -83,4 +83,4 @@ include '../includes/header.php';
     </div>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

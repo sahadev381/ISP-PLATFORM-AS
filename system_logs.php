@@ -3,8 +3,8 @@ session_start();
 $page_title = "System Logs";
 $base_path = '';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/config.php';
+include_once __DIR__ . '/includes/auth.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -80,8 +80,8 @@ $message = '';
     </style>
 </head>
 <body>
-    <?php include 'includes/header.php'; ?>
-    <?php include 'includes/sidebar.php'; ?>
+    <?php include __DIR__ . '/includes/header.php'; ?>
+    <?php include __DIR__ . '/includes/sidebar.php'; ?>
     
     <div class="main-content">
         <div class="container-fluid p-4">
@@ -276,6 +276,6 @@ $message = '';
             window.location.href = '?type=' + encodeURIComponent(<?= e_js($log_type) ?>) + '&export=1';
         }
     </script>
-    <?php include 'includes/footer.php'; ?>
+    <?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
 </html>

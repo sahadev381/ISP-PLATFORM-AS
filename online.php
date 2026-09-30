@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Online Users";
 $active = "online";
@@ -17,9 +17,9 @@ $q = $conn->query("
     ORDER BY radacct.acctstarttime DESC
 ");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 $page_title = "Online Users";
 ?>
 
@@ -95,5 +95,5 @@ $('.disconnect-btn').on('click', function(){
 });
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

@@ -89,8 +89,8 @@ $users = $conn->query("SELECT username FROM customers ORDER BY username ASC");
 /* PAGE TITLE */
 $page_title = "User Renewal";
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -184,5 +184,5 @@ include 'includes/sidebar.php';
 
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

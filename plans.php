@@ -1,7 +1,7 @@
 <?php
 $base_path = './';
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 /* Page info */
@@ -146,9 +146,9 @@ if(isset($_POST['edit'])){
 
 $plans_res = $conn->query("SELECT * FROM plans ORDER BY id DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -295,4 +295,4 @@ window.onclick = function(event) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

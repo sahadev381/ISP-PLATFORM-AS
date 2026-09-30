@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/security.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 $security = new Security($conn);

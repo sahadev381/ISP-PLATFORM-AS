@@ -4,8 +4,8 @@ $page_title = "Hotspot Settings";
 
 chdir(__DIR__ . '/../..');
 $base_path = '.';
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {

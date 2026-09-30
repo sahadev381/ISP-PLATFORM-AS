@@ -5,7 +5,7 @@
  */
 
 header('Content-Type: application/json');
-include_once '../config.php';
+include_once __DIR__ . '/../config.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 

@@ -24,9 +24,9 @@ if ($planSpeed <= 0) $planSpeed = 10; // fallback
 
 $page_title = "Live Usage - {$user['username']}";
 $active = "users";
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 
 ?>
 
@@ -46,5 +46,5 @@ include 'includes/topbar.php';
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="assets/js/live_chart.js"></script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

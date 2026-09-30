@@ -1,12 +1,12 @@
 <?php
 
-include 'config.php';
-include 'includes/genieacs_api.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/genieacs_api.php';
 
 $page_title = "Dashboard";
 $active = "dashboard";
 
-include 'includes/auth.php';
+include __DIR__ . '/includes/auth.php';
 
 // Combined Main stats
 $main_stats = $conn->query("
@@ -37,9 +37,9 @@ $fin_stats = $conn->query("
 $today_revenue = $fin_stats['today'] ?? 0;
 $month_revenue = $fin_stats['month'] ?? 0;
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -435,4 +435,4 @@ $(document).ready(function() {
 });
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

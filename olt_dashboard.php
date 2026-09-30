@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/olt_api.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/olt_api.php';
 
 $page_title = "OLT Management & ZTP Dashboard";
 $active = "nas";
@@ -25,9 +25,9 @@ if ($olt_id) {
     $oltStats['critical'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND rx_power < -28", [(int) $olt_id], 0);
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -762,4 +762,4 @@ window.onclick = function(event) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

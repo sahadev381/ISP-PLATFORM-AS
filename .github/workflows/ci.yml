@@ -38,6 +38,19 @@ jobs:
       - name: Unit tests
         run: php tests/run.php
 
+      - name: Block working-directory-relative includes
+        run: |
+          set -e
+          # include 'config.php' only resolves when the process happens to
+          # be running from the right directory, so it breaks under cron,
+          # CLI and some FPM setups. Every include must be __DIR__-relative.
+          if git grep -nE "(include|require)(_once)?[[:space:]]*\(?[[:space:]]*['\"][^/$.\"']" -- '*.php' \
+               | grep -vE ':[[:space:]]*(\*|//|#|/\*)' ; then
+            echo "::error::relative include found - use __DIR__ . '/...' instead"
+            exit 1
+          fi
+          echo "All includes are __DIR__-relative."
+
       - name: Block committed secrets
         run: |
           set -e

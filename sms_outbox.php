@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "SMS Outbox & Logs";
 $active = "sms";
@@ -8,9 +8,9 @@ $active = "sms";
 $logs = $conn->query("SELECT * FROM sms_logs ORDER BY sent_at DESC LIMIT 500");
 $stats = $conn->query("SELECT status, COUNT(*) as count FROM sms_logs GROUP BY status")->fetch_all(MYSQLI_ASSOC);
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -61,4 +61,4 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

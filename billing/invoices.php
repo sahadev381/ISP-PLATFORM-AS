@@ -5,8 +5,8 @@ $page_title = "Invoice Management";
 chdir(__DIR__ . '/..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/auth.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');

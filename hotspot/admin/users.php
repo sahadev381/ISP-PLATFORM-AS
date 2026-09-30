@@ -5,8 +5,8 @@ $page = 'users';
 $base_path = '.';
 
 chdir(__DIR__ . '/../..');
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -143,7 +143,7 @@ $recentActivity = $conn->query("SELECT * FROM hotspot_access_logs ORDER BY creat
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
-<?php include 'includes/header_hotspot.php'; ?>
+<?php include __DIR__ . '/includes/header_hotspot.php'; ?>
 
 
 <style>

@@ -8,7 +8,7 @@ class VoucherSystem {
     
     public function __construct() {
         chdir(__DIR__ . '/../..');
-        include 'config.php';
+        include __DIR__ . '/../../config.php';
         $this->conn = $conn;
     }
     

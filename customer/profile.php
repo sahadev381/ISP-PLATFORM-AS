@@ -1,8 +1,8 @@
 <?php
-include '../config.php';
-include '../includes/customer.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/customer.php';
 require_once __DIR__ . '/../includes/csrf.php';
-include '../includes/user-header.php';
+include __DIR__ . '/../includes/user-header.php';
 
 $id = (int) ($_SESSION['customer_id'] ?? 0);
 if (!$id) {

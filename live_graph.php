@@ -1,8 +1,8 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <h2>PPPoE Live Usage (MB)</h2>

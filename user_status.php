@@ -7,8 +7,8 @@
  * (It used to be an unauthenticated GET with the value interpolated
  * straight into the UPDATE statement.)
  */
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {

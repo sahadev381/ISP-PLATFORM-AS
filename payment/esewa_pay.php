@@ -1,6 +1,6 @@
 <?php
-include '../config.php';
-include '../includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 // Fetch Settings
 $esewa_merchant = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='esewa_merchant_id'")->fetch_assoc()['setting_value'] ?? 'EPAYTEST';
@@ -20,7 +20,7 @@ $success_url = $base_url . "/esewa_verify.php";
 $failure_url = $base_url . "/khalti_pay.php?msg=failed";
 
 $page_title = "Processing eSewa Payment";
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="main-content-inner" style="display:flex; justify-content:center; align-items:center; height:80vh;">
@@ -54,4 +54,4 @@ include '../includes/header.php';
     }, 2000);
 </script>
 
-<?php include '../includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

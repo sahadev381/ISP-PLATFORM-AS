@@ -28,9 +28,9 @@ $stats = db_one($conn, "
     FROM network_alerts
 ") ?? ['active' => 0, 'critical' => 0, 'warning' => 0, 'total' => 0];
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 25px;">
@@ -164,4 +164,4 @@ function resolveAlert(id) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

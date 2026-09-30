@@ -18,7 +18,7 @@ class OLT_Driver {
         
         switch ($brand) {
             case 'bdcom':
-                include_once 'bdcom_olt.php';
+                include_once __DIR__ . '/bdcom_olt.php';
                 $this->driver = new BDCOM_OLT($this->olt);
                 break;
             case 'huawei':

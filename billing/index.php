@@ -5,9 +5,9 @@ $page_title = "Billing Dashboard";
 chdir(__DIR__ . '/..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
-include_once 'includes/payment_gateway.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/auth.php';
+include_once __DIR__ . '/../includes/payment_gateway.php';
 
 $paymentGateway = new PaymentGateway();
 

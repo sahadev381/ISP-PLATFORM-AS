@@ -96,9 +96,9 @@ $stats = [
 
 $plans = db_all($conn, "SELECT * FROM plans ORDER BY name");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -370,4 +370,4 @@ include 'includes/topbar.php';
     }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

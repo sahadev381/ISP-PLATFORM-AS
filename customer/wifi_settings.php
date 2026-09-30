@@ -1,6 +1,6 @@
 <?php
-include '../config.php';
-include '../includes/genieacs_api.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/genieacs_api.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 if (!isset($_SESSION['customer_user'])) {

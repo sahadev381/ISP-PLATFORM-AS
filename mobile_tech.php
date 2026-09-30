@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Smart Tech Pro - Field Force";
 $active = "mobile";
@@ -10,7 +10,7 @@ $username = $_SESSION['username'];
 // Fetch branch info
 $branch_id = $_SESSION['branch_id'] ?? 0;
 
-include 'includes/header.php';
+include __DIR__ . '/includes/header.php';
 ?>
 
 <!-- Mobile Optimized Meta -->
@@ -987,4 +987,4 @@ function num(value) { return Number(value) || 0; }
     }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

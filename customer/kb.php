@@ -1,5 +1,5 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
 
 $search = $_GET['search'] ?? '';
 $category = $_GET['category'] ?? '';

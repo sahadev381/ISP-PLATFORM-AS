@@ -4,7 +4,7 @@
  * Only runnable from the CLI or with a valid API key — it must not be
  * triggerable by an anonymous web request.
  */
-include 'config.php';
+include __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/api_auth.php';
 
 if (PHP_SAPI !== 'cli' && !api_has_valid_key()) {

@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/mikrotik_api.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/mikrotik_api.php';
 
 header('Content-Type: application/json');
 

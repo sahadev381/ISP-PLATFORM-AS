@@ -5,8 +5,8 @@ $page = 'logs';
 $base_path = '.';
 
 chdir(__DIR__ . '/../..');
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -40,7 +40,7 @@ $stats = $conn->query("
     GROUP BY action, status
 ")->fetch_all(MYSQLI_ASSOC);
 
-include 'includes/header_hotspot.php';
+include __DIR__ . '/includes/header_hotspot.php';
 ?>
 
 <div class="container-fluid p-4">

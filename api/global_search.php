@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: text/html');
-include_once '../config.php';
+include_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/api_auth.php';
 api_require_auth();
 

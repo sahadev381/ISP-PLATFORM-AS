@@ -20,7 +20,7 @@ $response = [
 ];
 
 try {
-    include 'includes/mikrotik_web.php';
+    include __DIR__ . '/includes/mikrotik_web.php';
     
     $mikrotik = new MikrotikWeb($host, $user, $pass);
     

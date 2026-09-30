@@ -13,7 +13,7 @@ class SMSGateway {
     
     private function loadConfig() {
         chdir(__DIR__ . '/../..');
-        include 'config.php';
+        include __DIR__ . '/../../config.php';
         
         $result = $conn->query("SELECT setting_key, setting_value FROM hotspot_settings");
         while ($row = $result->fetch_assoc()) {

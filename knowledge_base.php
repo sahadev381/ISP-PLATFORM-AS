@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Knowledge Base";
@@ -36,8 +36,8 @@ if (isset($_GET['del'])) {
 $articles = $conn->query("SELECT kb.*, a.username as author FROM knowledge_base kb LEFT JOIN admins a ON kb.created_by = a.id ORDER BY kb.created_at DESC");
 $categories = $conn->query("SELECT * FROM kb_categories ORDER BY sort_order");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -130,4 +130,4 @@ include 'includes/sidebar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

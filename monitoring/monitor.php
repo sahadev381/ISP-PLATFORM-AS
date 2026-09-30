@@ -1,7 +1,7 @@
 <?php
-include 'db.php';
-require 'check.php';
-require 'twilio.php';
+include __DIR__ . '/db.php';
+require __DIR__ . '/check.php';
+require __DIR__ . '/twilio.php';
 
 $devices = $conn->query("SELECT * FROM devices");
 

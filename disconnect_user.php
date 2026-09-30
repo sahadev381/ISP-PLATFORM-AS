@@ -10,8 +10,8 @@ define('RBAC_JSON_ENDPOINT', true); // errors from the RBAC guards must be JSON
  *    anyone able to edit a NAS record got shell execution;
  *  - the shared secret was echoed back in the error message.
  */
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
 header('Content-Type: application/json');

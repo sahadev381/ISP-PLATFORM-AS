@@ -613,3 +613,65 @@ Full run: **206 files, 0 parse errors; 130 assertions, 130 passed.**
 `hotspot/admin/users.php` · 4. duplicate-page merge · 5. split
 oversized files. There is also a wider cleanup worth doing: ~40 sites
 still use working-directory-relative `include '../config.php';`.
+
+---
+
+## §14 — Phase 8: working-directory-relative includes
+
+### The bug
+
+433 include/require statements across 118 files named their target with
+a bare relative path:
+
+```php
+include 'config.php';
+include '../includes/auth.php';
+```
+
+PHP resolves those against `include_path`, then the calling script's
+directory, then the **current working directory**. Under a normal web
+request the CWD is the entry script's directory, so most of these
+happened to work — but a cron job (`php /var/www/scripts/auto_invoice.php`
+run from `/`), a CLI invocation, or an FPM pool with a different
+`chdir` gets a fatal "Failed opening required file". The cron scripts
+are exactly the ones that must not break silently at 2am.
+
+All of them now use `__DIR__ . '/...'`, which is resolved from the
+file's own location and cannot depend on how the process was started.
+
+### 42 of them were already broken
+
+Checking that each rewritten path actually points at a real file
+surfaced a second, pre-existing bug: pages in subdirectories were
+naming their includes **as seen from the repository root**.
+
+| File | Wrote | Would have needed CWD |
+|---|---|---|
+| `billing/index.php` | `include 'config.php'` | repo root |
+| `hotspot/admin/*.php` (8 files) | `include 'includes/auth.php'` | repo root |
+| `hotspot/index.php` | `include 'hotspot/includes/auth.php'` | repo root |
+| `hotspot/includes/voucher.php` | `include 'config.php'` | repo root |
+
+A request to `/billing/index.php` gives a CWD of `billing/`, so
+`config.php` resolved to `billing/config.php` and the page died. These
+were corrected to the right depth (`__DIR__ . '/../config.php'`) rather
+than being faithfully preserved.
+
+One was broken in both directions: `api/snmp_monitor.php` included
+`mikrotik_api.php`, but that file has only ever existed in `includes/`,
+so no working directory could have satisfied it.
+
+### Verification
+
+- Every `__DIR__`-relative include was resolved against the filesystem;
+  the only unresolved paths left are non-includes (a log file, a backup
+  directory, a glob pattern) plus `config.php` and `vendor/autoload.php`,
+  which exist at runtime but are not in the repository.
+- The rewrite was driven by PHP's own lexer (`token_get_all`), not a
+  regex, after a regex pass was caught mis-parsing `accept="image/*"`
+  in `work_diary.php` as the start of a block comment and skipping the
+  rest of that file.
+- New CI step **"Block working-directory-relative includes"** fails the
+  build on any new bare relative include; confirmed it passes on the
+  current tree and catches a deliberately reintroduced one.
+- Full run: **206 files, 0 parse errors; 130 assertions, 130 passed.**

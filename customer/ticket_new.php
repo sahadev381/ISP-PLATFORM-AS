@@ -1,7 +1,7 @@
 <?php
-include '../includes/customer.php';
-include '../includes/user-header.php';
-include '../user-config.php';
+include __DIR__ . '/../includes/customer.php';
+include __DIR__ . '/../includes/user-header.php';
+include __DIR__ . '/../user-config.php';
 
 $error = '';
 $success = '';

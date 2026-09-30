@@ -1,5 +1,5 @@
 <?php
-require_once 'includes/mikrotik_api.php';
+require_once __DIR__ . '/includes/mikrotik_api.php';
 
 function getRouterInfo($api) {
     $resource = $api->comm('/system/resource/print');

@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Stock Management Dashboard";
 $active = "inventory";
@@ -48,9 +48,9 @@ $status_stats = $conn->query("SELECT status, COUNT(*) as count FROM inventory_it
 $recent = $conn->query("SELECT * FROM inventory_items WHERE status != 'in_stock' ORDER BY created_at DESC LIMIT 5");
 $items = $conn->query("SELECT * FROM inventory_items ORDER BY status ASC, created_at DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 25px;">
@@ -178,4 +178,4 @@ include 'includes/topbar.php';
         document.getElementById('issueModal').style.display = 'block';
     }
 </script>
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

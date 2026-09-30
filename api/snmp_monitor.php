@@ -5,7 +5,7 @@
  */
 
 header('Content-Type: application/json');
-include_once '../config.php';
+include_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/api_auth.php';
 api_require_auth();
 
@@ -192,7 +192,7 @@ function getMikrotikStats($device) {
     $api_port = $device['api_port'] ?? 8728;
     
     // Include MikroTik API
-    include_once 'mikrotik_api.php';
+    include_once __DIR__ . '/../includes/mikrotik_api.php';
     
     $stats = [
         'device' => [

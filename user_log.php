@@ -26,9 +26,9 @@ $login_attempts = db_all($conn, "
     LIMIT 50
 ", [$username]);
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 
 /* Failure reason detector (PHP 7 compatible) */
 function radius_reason($reply, $pass) {
@@ -111,5 +111,5 @@ function radius_reason($reply, $pass) {
 
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

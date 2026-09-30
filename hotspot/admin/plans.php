@@ -5,10 +5,10 @@ $page = 'plans';
 $base_path = '.';
 
 chdir(__DIR__ . '/../..');
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/csrf.php';
-include_once 'hotspot/includes/plan_manager.php';
+include_once __DIR__ . '/../includes/plan_manager.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -72,7 +72,7 @@ $stats = $planMgr->getStats();
 // Get old profiles
 $oldProfiles = $conn->query("SELECT * FROM hotspot_profiles ORDER BY type, name");
 
-include 'includes/header_hotspot.php';
+include __DIR__ . '/includes/header_hotspot.php';
 ?>
 
 <div class="row mb-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">

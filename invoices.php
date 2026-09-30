@@ -69,8 +69,8 @@ if(!$user){
 
 $invoice_rows = db_all($conn, "SELECT * FROM invoices WHERE username = ? ORDER BY created_at DESC", [$user]);
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 $page_title = "Invoices";
 ?>
 
@@ -116,5 +116,5 @@ $page_title = "Invoices";
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

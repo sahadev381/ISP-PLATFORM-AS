@@ -5,10 +5,10 @@ $page_title = "Hotspot Portal";
 chdir(__DIR__ . '/../..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/csrf.php';
-include_once 'hotspot/includes/voucher.php';
+include_once __DIR__ . '/../includes/voucher.php';
 
 $voucherSys = new VoucherSystem();
 

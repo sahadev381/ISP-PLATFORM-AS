@@ -1,8 +1,8 @@
 <?php
 if (ob_get_length()) ob_end_clean();
 
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 // Fetch data
 $nodes = $conn->query("SELECT * FROM ftth_nodes");
