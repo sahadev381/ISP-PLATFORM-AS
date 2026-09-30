@@ -2,6 +2,9 @@
 include 'config.php';
 include 'includes/auth.php';
 
+// Bulk customer creation is a manager-level action.
+require_role('manager');
+
 $page_title = "Import Customers";
 
 include 'includes/header.php';
@@ -56,7 +59,7 @@ include 'includes/sidebar.php';
                 }
                 
                 fclose($file);
-                echo "<div class='alert alert-success'>Successfully imported $count customers!</div>";
+                echo "<div class='alert alert-success'>Successfully imported " . (int) $count . " customers!</div>";
             }
         }
         ?>

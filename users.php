@@ -23,13 +23,17 @@ if($res_online){
    STATS CALCULATION
    Optimization: Combine multiple COUNT queries into one using conditional aggregation
 ============================ */
-$stats = $conn->query("
+// A non-superadmin only ever counts and lists its own branch.
+[$branch_sql, $branch_params] = branch_scope();
+
+$stats = db_one($conn, "
     SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active,
         SUM(CASE WHEN expiry < CURDATE() THEN 1 ELSE 0 END) as expired
     FROM customers
-")->fetch_assoc();
+    WHERE 1=1 $branch_sql
+", $branch_params) ?: [];
 
 $total_users   = $stats['total'] ?? 0;
 $active_users  = $stats['active'] ?? 0;
@@ -44,6 +48,10 @@ $q = $_GET['q'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 $where_clauses = [];
 $where_params = [];
+if ($branch_sql !== '') {
+    $where_clauses[] = "c.branch_id = ?";
+    $where_params[] = $branch_params[0];
+}
 if ($q) {
     $where_clauses[] = "(c.username LIKE ? OR c.full_name LIKE ? OR c.phone LIKE ? OR c.address LIKE ?)";
     $like = db_like($q);

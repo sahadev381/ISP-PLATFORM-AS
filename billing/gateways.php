@@ -14,6 +14,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Payment gateway API keys live on this page - superadmin only.
+require_role('superadmin');
+
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
@@ -420,7 +423,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                                 </td>
                                 <td>
                                     <div class="btn-group">
-                                        <button class="btn btn-primary btn-sm" onclick="editGateway(<?= e($gw['id']) ?>, '<?= e($gw['gateway_name']) ?>', '<?= e($gw['display_name']) ?>', '<?= e($gw['merchant_id']) ?>', '<?= e($gw['api_key']) ?>', '<?= e($gw['api_secret']) ?>', '<?= e($gw['public_key']) ?>', <?= e($gw['is_active']) ?>, <?= e($gw['is_test_mode']) ?>)" title="Edit">
+                                        <button class="btn btn-primary btn-sm" onclick="editGateway(<?= (int) $gw['id'] ?>, '<?= e_attr_js($gw['gateway_name']) ?>', '<?= e_attr_js($gw['display_name']) ?>')" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle_gateway', <?= e($gw['id']) ?>)" title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
@@ -514,7 +517,10 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
             }
         }
         
-        function editGateway(id, name, display, merchant, apiKey, apiSecret, pubKey, active, testMode) {
+        // Credentials are deliberately not passed in: they must never be
+        // written into the page. Fetch them server-side when this grows a
+        // real edit form.
+        function editGateway(id, name, display) {
             alert('Edit gateway ID: ' + id + '\n' + name);
         }
         

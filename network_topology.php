@@ -922,7 +922,7 @@ if(empty($connections)) {
         </div>
         <div class="device-list" id="deviceList">
             <?php foreach($device_list as $dev): ?>
-            <div class="device-card <?= e($dev['status']) ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" onclick="handleDeviceClick('<?= e($dev['id']) ?>', '<?= e($dev['name']) ?>', '<?= e($dev['type']) ?>', '<?= e($dev['ip']) ?>')">
+            <div class="device-card <?= e($dev['status']) ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" onclick="handleDeviceClick('<?= e_attr_js($dev['id']) ?>', '<?= e_attr_js($dev['name']) ?>', '<?= e_attr_js($dev['type']) ?>', '<?= e_attr_js($dev['ip']) ?>')">
                 <div class="device-icon-small <?= e($dev['type']) ?>">
                     <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 </div>
@@ -983,7 +983,7 @@ if(empty($connections)) {
              data-id="<?= e($dev['id']) ?>"
              data-status="<?= e($dev['status']) ?>"
              style="left:<?= e($positions[$idx]['x']) ?>px; top:<?= e($positions[$idx]['y']) ?>px; <?= $dev['status'] === 'offline' ? 'opacity: 0.5;' : '' ?>" 
-             onclick="handleDeviceClick('<?= e($dev['id']) ?>', '<?= e($dev['name']) ?>', '<?= e($dev['type']) ?>', '<?= e($dev['ip']) ?>')">
+             onclick="handleDeviceClick('<?= e_attr_js($dev['id']) ?>', '<?= e_attr_js($dev['name']) ?>', '<?= e_attr_js($dev['type']) ?>', '<?= e_attr_js($dev['ip']) ?>')">
             <div class="node-icon <?= e($dev['type']) ?> <?= e($dev['status']) ?>">
                 <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 <?php if($dev['status'] === 'offline'): ?>

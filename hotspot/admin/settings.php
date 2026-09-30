@@ -13,20 +13,29 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// SMS gateway credentials are edited here - superadmin only.
+require_role('superadmin');
+
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     csrf_check();
     $settings = [
         'sms_api_url' => $_POST['sms_api_url'] ?? '',
-        'sms_api_key' => $_POST['sms_api_key'] ?? '',
         'sms_sender_id' => $_POST['sms_sender_id'] ?? '',
         'sms_username' => $_POST['sms_username'] ?? '',
-        'sms_password' => $_POST['sms_password'] ?? '',
         'portal_title' => $_POST['portal_title'] ?? 'Hotspot Portal',
         'session_timeout' => $_POST['session_timeout'] ?? 3600,
         'otp_expiry' => $_POST['otp_expiry'] ?? 300,
     ];
+
+    // The form never renders the stored secrets, so an empty field means
+    // "leave it as it is" rather than "clear it".
+    foreach (['sms_api_key', 'sms_password'] as $secret) {
+        if (($_POST[$secret] ?? '') !== '') {
+            $settings[$secret] = $_POST[$secret];
+        }
+    }
 
     foreach ($settings as $key => $value) {
         db_exec($conn, "
@@ -40,8 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 $settings = [];
-$result = $conn->query("SELECT setting_key, setting_value FROM hotspot_settings");
-while ($row = $result->fetch_assoc()) {
+foreach (db_all($conn, "SELECT setting_key, setting_value FROM hotspot_settings") as $row) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 ?>
@@ -241,8 +249,9 @@ while ($row = $result->fetch_assoc()) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>API Key</label>
-                                    <input type="text" name="sms_api_key" class="form-control" 
-                                           value="<?= e($settings['sms_api_key'] ?? '') ?>">
+                                    <input type="password" name="sms_api_key" class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="<?= !empty($settings['sms_api_key']) ? 'unchanged - type to replace' : 'not set' ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -262,8 +271,9 @@ while ($row = $result->fetch_assoc()) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Password (if required)</label>
-                                    <input type="password" name="sms_password" class="form-control" 
-                                           value="<?= e($settings['sms_password'] ?? '') ?>">
+                                    <input type="password" name="sms_password" class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="<?= !empty($settings['sms_password']) ? 'unchanged - type to replace' : 'not set' ?>">
                                 </div>
                             </div>
                         </div>

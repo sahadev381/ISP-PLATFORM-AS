@@ -2,6 +2,7 @@
 
 include 'config.php';
 include 'includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Network Devices";
 $active = "nas";
@@ -33,6 +34,8 @@ if(isset($_POST['add'])){
 
 /* DELETE DEVICE */
 if(isset($_GET['del'])){
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = intval($_GET['del']);
     db_exec($conn, "DELETE FROM nas WHERE id = ?", [(int) $id]);
 }
@@ -169,7 +172,7 @@ include 'includes/topbar.php';
             <td style="padding: 15px;">
                 <div class="action-buttons" style="display: flex; gap: 8px;">
                     <a href="nas_edit.php?id=<?= e($n['id']) ?>" class="btn-icon btn-edit" title="Edit"><i class="fa fa-edit"></i></a>
-                    <a href="?del=<?= e($n['id']) ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Delete this device?')"><i class="fa fa-trash"></i></a>
+                    <a href="?del=<?= (int) $n['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Delete this device?')"><i class="fa fa-trash"></i></a>
                 </div>
             </td>
         </tr>

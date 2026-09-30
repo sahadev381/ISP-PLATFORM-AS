@@ -4,6 +4,9 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 
+// Global platform configuration - superadmin only.
+require_role('superadmin');
+
 $page_title = "System Configuration";
 $active = "Config";
 

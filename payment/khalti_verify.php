@@ -131,7 +131,7 @@ if(isset($res['idx']) && $res['idx']){
             </div>
             <h2>Payment Successful!</h2>
             <p>Your wallet has been recharged successfully.</p>
-            <div class='amount'>NPR $amount_val</div>
+            <div class='amount'>NPR " . number_format((float) $amount_val, 2) . "</div>
             <br>
             <a href='../dashboard.php' class='btn'>
                 <i class='fa fa-home'></i> Go to Dashboard

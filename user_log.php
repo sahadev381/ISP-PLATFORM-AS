@@ -4,6 +4,9 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/auth.php';
 
 $username = isset($_GET['user']) ? trim($_GET['user']) : '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 
 if ($username === '') {
     header("Location: users.php");

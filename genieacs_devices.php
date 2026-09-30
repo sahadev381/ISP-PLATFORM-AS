@@ -202,7 +202,7 @@ include "includes/topbar.php";
                                             <i class="fa fa-power-off"></i>
                                         </button>
                                     </form>
-                                    <button onclick="openWifiModal('<?= e($deviceId) ?>', '<?= htmlspecialchars($serial) ?>')" class="btn-action btn-wifi" title="Configure WiFi">
+                                    <button onclick="openWifiModal('<?= e_attr_js($deviceId) ?>', '<?= e_attr_js($serial) ?>')" class="btn-action btn-wifi" title="Configure WiFi">
                                         <i class="fa fa-wifi"></i>
                                     </button>
                                 </div>

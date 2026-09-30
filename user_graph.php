@@ -3,6 +3,9 @@ include 'config.php';
 include 'includes/auth.php';
 
 $username = $_GET['user'] ?? '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 if (!$username) die('User not specified');
 
 include 'includes/header.php';

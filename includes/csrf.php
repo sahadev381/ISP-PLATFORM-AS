@@ -41,6 +41,33 @@ if (!function_exists('csrf_token')) {
     }
 
     /**
+     * Same check, but also accepting the token from the query string.
+     *
+     * Only for destructive actions that are still wired up as GET links
+     * (for example tickets.php?delete=12). csrf_check() deliberately lets
+     * GET through, so those paths would otherwise be unprotected. Prefer
+     * converting the link to a POST form and using csrf_check() instead.
+     */
+    function csrf_valid_request(): bool
+    {
+        if (csrf_valid()) {
+            return true;
+        }
+        $sent = $_GET['_csrf'] ?? '';
+        return is_string($sent)
+            && $sent !== ''
+            && hash_equals(csrf_token(), $sent);
+    }
+
+    function csrf_check_request(): void
+    {
+        if (!csrf_valid_request()) {
+            http_response_code(419);
+            exit('CSRF token mismatch. Please reload the page and try again.');
+        }
+    }
+
+    /**
      * Abort the request when the token is missing or wrong.
      */
     function csrf_check(): void

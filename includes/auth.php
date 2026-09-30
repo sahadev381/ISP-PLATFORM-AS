@@ -14,9 +14,10 @@ $timeout = 30; // default 30 minutes
 $idleTimeout = 15; // default 15 minutes
 
 // Load settings from database if available
-if (isset($conn)) {
-    $result = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('session_timeout', 'session_idle_timeout')");
-    while ($row = $result->fetch_assoc()) {
+if (isset($conn) && function_exists('db_all')) {
+    $result = db_all($conn, "SELECT setting_key, setting_value FROM system_settings
+                             WHERE setting_key IN ('session_timeout', 'session_idle_timeout')");
+    foreach ($result as $row) {
         if ($row['setting_key'] == 'session_timeout') {
             $timeout = (int)$row['setting_value'];
         }
@@ -63,18 +64,9 @@ if($ROLE !== 'superadmin' && empty($BRANCH_ID)){
     die("Branch not assigned");
 }
 
-/* Helpers */
-function isSuperAdmin(){
-    return ($_SESSION['role'] ?? '') === 'superadmin';
-}
-
-function isBranchAdmin(){
-    return ($_SESSION['role'] ?? '') === 'branchadmin';
-}
-
-function isStaff(){
-    return ($_SESSION['role'] ?? '') === 'staff';
-}
+/* Role helpers and branch scoping live in rbac.php. It also keeps
+   isSuperAdmin()/isBranchAdmin()/isStaff() working for existing callers. */
+require_once __DIR__ . '/rbac.php';
 
 /* Log activity function */
 function logActivity($action, $description = '') {

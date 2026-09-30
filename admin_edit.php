@@ -5,6 +5,10 @@ require_once __DIR__ . '/includes/csrf.php';
 
 csrf_check();
 
+// Without this, any logged-in account could open admin_edit.php?id=1 and
+// give itself the superadmin role.
+require_role('superadmin');
+
 $page_title = "Edit Admin";
 $active = "admin";
 
@@ -93,7 +97,7 @@ include 'includes/topbar.php';
             $roles = ['superadmin','manager','support'];
             foreach ($roles as $r) {
                 $sel = ($admin['role'] === $r) ? 'selected' : '';
-                echo "<option value='$r' $sel>" . strtoupper($r) . "</option>";
+                echo "<option value='" . e($r) . "' $sel>" . e(strtoupper($r)) . "</option>";
             }
             ?>
         </select>
@@ -107,7 +111,7 @@ include 'includes/topbar.php';
             <option value="">All</option>
             <?php while($b=$branches->fetch_assoc()) {
                 $sel = ($admin['branch_id'] == $b['id']) ? 'selected' : '';
-                echo "<option value='{$b['id']}' $sel>{$b['name']}</option>";
+                echo "<option value='" . (int) $b['id'] . "' $sel>" . e($b['name']) . "</option>";
             } ?>
         </select>
     </td>

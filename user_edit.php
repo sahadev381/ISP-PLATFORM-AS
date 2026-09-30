@@ -23,6 +23,9 @@ function sendToACS($deviceId, $data) {
    FETCH USER
 ========================= */
 $username = $_GET['user'] ?? '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 if (!$username) die("No user specified.");
 
 $stmt = $conn->prepare("SELECT * FROM customers WHERE username=? LIMIT 1");

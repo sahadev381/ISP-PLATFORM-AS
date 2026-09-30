@@ -14,6 +14,9 @@ if (!isset($_GET['user']) || empty($_GET['user'])) {
 }
 
 $username = (string) $_GET['user'];
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 
 /* =========================
    FETCH CURRENT DATA

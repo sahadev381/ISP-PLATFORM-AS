@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Knowledge Base";
 $active = "kb";
@@ -23,6 +24,8 @@ if (isset($_POST['add'])) {
 
 // Delete article
 if (isset($_GET['del'])) {
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = intval($_GET['del']);
     db_exec($conn, "DELETE FROM knowledge_base WHERE id = ?", [(int) $id]);
     header("Location: knowledge_base.php");
@@ -75,7 +78,7 @@ include 'includes/sidebar.php';
                         <a href="kb_view.php?id=<?= e($article['id']) ?>" class="btn btn-sm view" target="_blank">
                             <i class="fa fa-eye"></i>
                         </a>
-                        <a href="?del=<?= e($article['id']) ?>" class="btn btn-sm danger" onclick="return confirm('Delete this article?')">
+                        <a href="?del=<?= (int) $article['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn btn-sm danger" onclick="return confirm('Delete this article?')">
                             <i class="fa fa-trash"></i>
                         </a>
                     </td>

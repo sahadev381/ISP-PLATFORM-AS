@@ -2,6 +2,9 @@
 require_once 'config.php';
 require_once 'includes/auth.php';
 
+// SMTP/SMS credentials are readable on this page - superadmin only.
+require_role('superadmin');
+
 $page_title = "Notification Settings";
 $active = "settings";
 

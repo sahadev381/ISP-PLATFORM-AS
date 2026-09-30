@@ -77,6 +77,36 @@ if (!function_exists('e_js')) {
     }
 }
 
+if (!function_exists('e_attr_js')) {
+    /**
+     * Escape a value that lands inside a JS string literal which is itself
+     * inside an HTML event attribute:
+     *
+     *     <button onclick="doThing('<?= e_attr_js($name) ?>')">
+     *
+     * e() alone is NOT enough here. The browser HTML-decodes the attribute
+     * before the JS parser sees it, so e()'s &#39; turns back into a bare
+     * quote and closes the string. The value has to be JS-escaped first
+     * (' becomes \') and only then HTML-escaped, so the backslash survives
+     * decoding and the quote stays inert.
+     *
+     * Emits the string contents only - keep your own surrounding quotes.
+     */
+    function e_attr_js($value): string
+    {
+        if ($value === null || is_bool($value)) {
+            $value = $value ? '1' : '';
+        }
+        $json = json_encode((string) $value, JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            return '';
+        }
+        $inner = substr($json, 1, -1);          // drop json_encode's own quotes
+        $inner = str_replace("'", "\\'", $inner); // JS-escape single quotes
+        return htmlspecialchars($inner, ENT_QUOTES, 'UTF-8');
+    }
+}
+
 if (!function_exists('e_href')) {
     /**
      * Escape a complete URL for an href/src attribute, rejecting schemes that

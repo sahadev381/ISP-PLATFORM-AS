@@ -1,4 +1,5 @@
 <?php
+define('RBAC_JSON_ENDPOINT', true); // errors from the RBAC guards must be JSON
 /**
  * Send a RADIUS Disconnect-Request (CoA) for a PPPoE user.
  *
@@ -24,6 +25,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 csrf_check();
 
 $username = trim($_POST['username'] ?? '');
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 if ($username === '') {
     echo json_encode(['success' => false, 'msg' => 'Username required']);
     exit;

@@ -38,6 +38,9 @@ $ticket = db_one($conn, "
 
 if (!$ticket) die("Ticket not found");
 
+// SELECT t.* carries branch_id, so ownership is checked directly.
+require_branch_access($ticket);
+
 $replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY created_at ASC", [$id]);
 
 $page_title = "Ticket #" . $id . ": " . $ticket['subject'];

@@ -200,7 +200,7 @@ include 'includes/topbar.php';
                             </span>
                         </td>
                         <td style="padding: 15px; text-align:right;">
-                            <button class="btn btn-sm btn-primary" onclick="openMonitor('<?= e($iface['name']) ?>')"><i class="fa fa-chart-line"></i> Monitor</button>
+                            <button class="btn btn-sm btn-primary" onclick="openMonitor('<?= e_attr_js($iface['name']) ?>')"><i class="fa fa-chart-line"></i> Monitor</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>

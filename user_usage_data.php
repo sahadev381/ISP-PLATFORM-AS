@@ -1,10 +1,14 @@
 <?php
+define('RBAC_JSON_ENDPOINT', true); // errors from the RBAC guards must be JSON
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/auth.php';
 
 header('Content-Type: application/json');
 
 $username = $_GET['user'] ?? '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 $range    = $_GET['range'] ?? 'daily';
 
 $username = (string) $username;

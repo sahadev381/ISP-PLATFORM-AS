@@ -22,6 +22,9 @@ $user = db_one($conn, "
 
 if (!$user) die("User not found");
 
+// The row carries branch_id, so check it directly.
+require_branch_access($user);
+
 /* ============================
    POST ACTIONS (TAB HANDLERS)
 ============================ */

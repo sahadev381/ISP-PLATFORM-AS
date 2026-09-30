@@ -18,6 +18,9 @@ if (isset($_POST['renew'])) {
     } else {
 
         $username = $_POST['username'];
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
         $months   = intval($_POST['months']);
 
         if ($months <= 0) {

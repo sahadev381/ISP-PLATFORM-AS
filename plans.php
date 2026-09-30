@@ -2,6 +2,7 @@
 $base_path = './';
 include 'config.php';
 include 'includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 /* Page info */
 $page_title = "Service Plans & FUP";
@@ -107,6 +108,8 @@ if(isset($_POST['add'])){
 
 /* Handle Delete Plan */
 if(isset($_GET['del'])){
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = (int)$_GET['del'];
     db_exec($conn, "DELETE FROM plans WHERE id = ?", [(int) $id]);
     header("Location: plans.php?msg=deleted");
@@ -217,7 +220,7 @@ include 'includes/topbar.php';
                         <td><span class="badge" style="background:#f0fdf4; color:#16a34a;">NPR <?= number_format($p['price']) ?></span></td>
                         <td>
                             <button onclick='openEditModal(<?= json_encode($p) ?>)' class="btn-icon btn-edit"><i class="fa fa-edit"></i></button>
-                            <a href="?del=<?= e($p['id']) ?>" class="btn-icon btn-delete" onclick="return confirm('Delete plan?')"><i class="fa fa-trash"></i></a>
+                            <a href="?del=<?= (int) $p['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" onclick="return confirm('Delete plan?')"><i class="fa fa-trash"></i></a>
                         </td>
                     </tr>
                     <?php endwhile; ?>

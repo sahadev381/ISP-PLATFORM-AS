@@ -1,5 +1,6 @@
 <?php
 include 'config.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 /* Page info */
 $page_title = "Admin Users";
@@ -40,13 +41,16 @@ if (isset($_POST['add'])) {
     if ($stmt->execute()) {
         $msg = "Admin added successfully!";
     } else {
-        $msg = "Error: " . $stmt->error;
+        $msg = "Could not add the admin. Please check the details and try again.";
+        error_log("admin.php add failed: " . $stmt->error);
     }
 }
 
 
 /* DELETE ADMIN */
 if(isset($_GET['del'])){
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = (int)$_GET['del'];
     if($id != $_SESSION['user_id']){
         db_exec($conn, "DELETE FROM admins WHERE id = ?", [(int) $id]);
@@ -197,7 +201,7 @@ $isSuper = ($a['role'] === 'superadmin');
 
     <!-- DELETE -->
     <a class="btn" style="background:#e74c3c;color:#fff;"
-       href="?del=<?= e($a['id']) ?>"
+       href="?del=<?= (int) $a['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>"
        onclick="return confirm('Delete this admin?')">
        <i class="fa fa-trash"></i>
     </a>

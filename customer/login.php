@@ -95,7 +95,7 @@ if (isset($_POST['login'])) {
     <div class="container">
         <h1>Customer Login</h1>
 
-        <?php if($error){ echo "<div class='error'>$error</div>"; } ?>
+        <?php if($error){ echo "<div class='error'>" . e($error) . "</div>"; } ?>
 
         <form method="POST">
             <?= csrf_field() ?>

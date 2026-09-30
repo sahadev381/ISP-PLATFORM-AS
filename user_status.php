@@ -19,6 +19,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 csrf_check();
 
 $user   = trim($_POST['user'] ?? '');
+
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $user);
+
 $status = strtolower(trim($_POST['status'] ?? ''));
 
 if ($user === '' || $status === '') {
