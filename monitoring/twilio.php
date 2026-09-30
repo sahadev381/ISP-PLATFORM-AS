@@ -3,14 +3,22 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Twilio\Rest\Client;
 
-define('TWILIO_SID', 'ACb924db5c3bf9dacee7c28a83513ce907');
-define('TWILIO_TOKEN', '587e2db2539e5a1991ea4aa2f83c7dbc');
+require_once __DIR__ . '/../includes/env.php';
+
+/* Credentials come from .env — see .env.example */
+define('TWILIO_SID', (string) env('TWILIO_SID', ''));
+define('TWILIO_TOKEN', (string) env('TWILIO_TOKEN', ''));
 
 /* WHATSAPP SETTINGS */
-define('TWILIO_FROM', 'whatsapp:+14155238886'); // Twilio sandbox
-define('ALERT_TO', 'whatsapp:+9779801116703');  // Your WhatsApp number
+define('TWILIO_FROM', (string) env('TWILIO_FROM', ''));
+define('ALERT_TO', (string) env('ALERT_TO', ''));
 
 function sendWhatsApp($message) {
+    if (TWILIO_SID === '' || TWILIO_TOKEN === '' || ALERT_TO === '') {
+        error_log('Twilio not configured — set TWILIO_* in .env');
+        return;
+    }
+
     try {
         $client = new Client(TWILIO_SID, TWILIO_TOKEN);
         $client->messages->create(

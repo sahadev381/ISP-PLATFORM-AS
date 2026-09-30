@@ -1,12 +1,14 @@
 <?php
 include 'config.php';
 include 'includes/security.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $security = new Security($conn);
 $error = '';
 $remainingAttempts = 0;
 
 if (isset($_POST['login'])) {
+    csrf_check();
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     
@@ -25,7 +27,10 @@ if (isset($_POST['login'])) {
                 // Login successful
                 $security->recordLoginAttempt($username, true);
                 $security->logActivity($row['id'], $username, 'login', 'Admin login successful');
-                
+
+                // Prevent session fixation: issue a brand new session id
+                session_regenerate_id(true);
+
                 $_SESSION['user_id']   = (int)$row['id'];
                 $_SESSION['username'] = $row['username'];
                 $_SESSION['role']     = $row['role'] ?? '';
@@ -339,6 +344,7 @@ if ($config) {
             <?php endif; ?>
             
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label>Username</label>
                     <div class="input-wrapper">

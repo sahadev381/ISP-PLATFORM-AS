@@ -1,34 +1,39 @@
 <?php
-session_start();
 include 'config.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $message = '';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $conn->real_escape_string($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
 
-    if ($username && $password) {
-        $result = $conn->query("SELECT id, username, password, role, branch_id FROM admins WHERE username = '$username'");
-        if ($result && $result->num_rows > 0) {
-            $admin = $result->fetch_assoc();
-            if (password_verify($password, $admin['password'])) {
-                $_SESSION['user_id'] = $admin['id'];
-                $_SESSION['username'] = $admin['username'];
-                $_SESSION['role'] = $admin['role'];
-                $_SESSION['branch_id'] = $admin['branch_id'];
-                $_SESSION['login_time'] = time();
+    $username = trim($_POST['username'] ?? '');
+    $password = (string) ($_POST['password'] ?? '');
 
-                header('Location: dashboard.php');
-                exit;
-            } else {
-                $message = 'Invalid username or password';
-            }
-        } else {
-            $message = 'Invalid username or password';
-        }
-    } else {
+    if ($username === '' || $password === '') {
         $message = 'Please enter username and password';
+    } else {
+        $admin = db_one(
+            $conn,
+            "SELECT id, username, password, role, branch_id FROM admins WHERE username = ? LIMIT 1",
+            [$username]
+        );
+
+        if ($admin && password_verify($password, $admin['password'])) {
+            // Prevent session fixation
+            session_regenerate_id(true);
+
+            $_SESSION['user_id']    = (int) $admin['id'];
+            $_SESSION['username']   = $admin['username'];
+            $_SESSION['role']       = $admin['role'];
+            $_SESSION['branch_id']  = $admin['branch_id'];
+            $_SESSION['login_time'] = time();
+
+            header('Location: dashboard.php');
+            exit;
+        }
+
+        $message = 'Invalid username or password';
     }
 }
 ?>
@@ -218,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
             
             <form method="POST" aria-label="Login form">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" required aria-required="true"

@@ -1,30 +1,26 @@
 <?php
-session_start();
-
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-include '../user-config.php';
+include '../config.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $error = '';
 
 if (isset($_POST['login'])) {
+    csrf_check();
 
-    $u = $_POST['username'] ?? '';
-    $p = $_POST['password'] ?? '';
+    $u = trim($_POST['username'] ?? '');
+    $p = (string) ($_POST['password'] ?? '');
 
-    $q = $conn->prepare("SELECT id, password FROM customers WHERE username=?");
-    $q->bind_param("s", $u);
-    $q->execute();
-    $res = $q->get_result()->fetch_assoc();
+    $res = db_one($conn, "SELECT id, username, password FROM customers WHERE username = ?", [$u]);
 
     if ($res && password_verify($p, $res['password'])) {
-        $_SESSION['customer_id'] = $res['id'];
+        session_regenerate_id(true);
+        $_SESSION['customer_id']   = $res['id'];
+        $_SESSION['customer_user'] = $res['username'];
         header("Location: dashboard.php");
         exit; // VERY IMPORTANT
-    } else {
-        $error = "Invalid username or password";
     }
+
+    $error = "Invalid username or password";
 }
 ?>
 <!DOCTYPE html>
@@ -102,6 +98,7 @@ if (isset($_POST['login'])) {
         <?php if($error){ echo "<div class='error'>$error</div>"; } ?>
 
         <form method="POST">
+            <?= csrf_field() ?>
             <div class="input-box">
                 <input type="text" name="username" placeholder="Username" required>
                 <i class="fa fa-user"></i>

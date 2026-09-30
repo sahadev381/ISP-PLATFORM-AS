@@ -4,9 +4,6 @@
 // Run every 15 minutes: */15 * * * * /usr/bin/php /home/devdutta/isp\ system\ with\ tr069/scripts/fup_cron.php >> /var/log/fup_cron.log
 include __DIR__ . '/../config.php';
 
-// Re-establish connection for CLI
-$conn = new mysqli("localhost", "radius", "radiuspass", "radius");
-
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }

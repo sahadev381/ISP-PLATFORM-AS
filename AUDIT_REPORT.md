@@ -1,0 +1,235 @@
+# ISP-PLATFORM-AS — Code Audit Report
+_तयार मिति: 2026-09-30_
+
+## 1. यो repo के हो?
+
+Splynx-जस्तो **ISP / WISP billing + network management system**, पूरै **vanilla PHP + MySQL (mysqli)** मा लेखिएको।
+कुनै framework छैन, कुनै router छैन — हरेक page एउटा `.php` file हो (classic LAMP style)।
+
+| कुरा | विवरण |
+|---|---|
+| भाषा | PHP (procedural + केही class), MySQL/MariaDB (mysqli) |
+| Frontend | Inline HTML/CSS/JS प्रत्येक PHP file भित्रै |
+| Dependency | `composer.json` → phpspreadsheet, twilio/sdk मात्र |
+| Tracked files | ~254 |
+| Test/CI | **छैन** (0 test, 0 CI workflow) |
+
+### मुख्य module हरू
+- **Admin panel** (root मा ~100 php): `dashboard.php`, `users.php`, `user_add/edit/view.php`, `plans.php`, `invoices.php`, `recharge.php`, `tickets.php`, `inventory.php`, `leads.php`
+- **Network**: `mikrotik_*.php` (RouterOS API), `olt_dashboard.php` + `includes/bdcom_*.php` (BDCOM/Huawei OLT, SNMP/Telnet), `switch_dashboard.php`, `network_topology.php` (60KB!), `map.php`
+- **Monitoring**: `monitoring/` (ping/SNMP + Twilio/WhatsApp/Viber alert), `network_alerts.php`, `noc_dashboard.php`
+- **RADIUS**: `radcheck` / `radreply` / `radacct` / `radpostauth` table हरू सिधै manipulate — FreeRADIUS सँग जोडिएको
+- **Hotspot**: `hotspot/` — captive portal, voucher, SMS OTP, PIN, admin panel
+- **Customer portal**: `customer/` — login, invoice, ticket, WiFi settings
+- **Payment**: eSewa + Khalti (`payment/`, `api/payment/`), wallet recharge
+- **TR-069**: `genieacs_devices.php`, `includes/genieacs_api.php`
+- **Field app**: `mobile_tech.php` (44KB) — technician mobile view
+- **Cron**: `scripts/` — auto invoice, FUP, expiry block, backup, uptime
+
+---
+
+## 2. 🔴 Critical Bugs / Security Issues
+
+### 2.1 SQL Injection (सबैभन्दा ठूलो समस्या)
+धेरै जसो query string interpolation ले बनेको छ, prepared statement प्रायः छैन।
+
+| File | Line | समस्या |
+|---|---|---|
+| `user_view.php` | 11–12, 36–68, 303–560 | `$username = $_GET['user']` **escape नगरी** ~19 वटा query मा सिधै घुसाइएको |
+| `recharge.php` | 51–100 | उही — `$_GET['user']` raw, अनि `UPDATE`/`DELETE`/`INSERT` मा प्रयोग |
+| `api/resolve_alert.php` | 12 | auth छैन + `UPDATE ... WHERE id=$id` (id intval छ, तर auth नै छैन) |
+| `hotspot/includes/auth.php` | 62, 119, 340, 414, 484, 569 | login/OTP/session सबै raw string query — **unauthenticated SQLi** |
+| `hotspot/includes/sms.php` | 122–149 | OTP table मा raw `$phone`, `$otp` |
+| `customer/profile.php`, `customer/wifi_settings.php`, `customer/register.php` | — | raw interpolation |
+| `admin_edit.php` | 52 | `UPDATE admins SET password='$new_password'` — string query मा hash |
+| `includes/payment_gateway.php` | 160–183 | `transaction_id` raw |
+
+> `hotspot/includes/auth.php` सबैभन्दा खतरनाक — यो login गर्नु अघि नै पुग्ने कोड हो।
+
+### 2.2 Authentication पूरै छुटेका endpoint हरू
+`includes/auth.php` include नगरिएका, तर data दिने/बदल्ने file हरू:
+
+```
+api/global_search.php        ← सबै customer data search, auth छैन
+api/network_topology.php     ← nas table मा INSERT गर्छ, auth छैन
+api/resolve_alert.php        ← alert resolve गर्छ, auth छैन
+api/snmp_monitor.php         ← device poll, auth छैन
+api/payment/esewa.php        ← payment verify, auth छैन
+api/payment/get_details.php  ← auth छैन
+api_mikrotik.php / api_mikrotik_snmp.php / api_network_status.php / api_status.php
+mikrotik_connect.php / mikrotik_manager.php / mikrotik_test.php
+olt_power_sync.php / cron_block_expired.php  ← web बाट पनि चल्छ
+user_graph_data.php / user_live_graph_data.php / user_status.php
+```
+
+### 2.3 Customer login मा plaintext password fallback
+`customer/index.php:17`
+```php
+if (password_verify($password, $user['password']) || $password === $user['password']) {
+```
+यदि DB मा hash बिग्रियो/plaintext छ भने बाइपास हुन्छ। यसले hash migration लाई पनि रोक्छ।
+`customer/login.php` मा चाहिँ सही (`password_verify` मात्र) — दुई वटा login page, दुई फरक logic।
+
+### 2.4 Repo भित्रै hardcoded credentials
+```
+user-config.php:6            new mysqli("localhost","radius","radiuspass","radius")
+scripts/billing_cron.php:12  same
+scripts/fup_cron.php:8       same
+scripts/metrics_collector.php:11  same
+monitoring/db.php:2          new mysqli("localhost","monitordb","password","monitoring")
+test_login.php:5             $password = 'admin123'
+test_pass.php:3              $password = 'radiuspass'
+test_pass2.php:2             real bcrypt hash + password guessing list
+cookies.txt                  live PHPSESSID committed
+```
+`.gitignore` ले `config.php` लाई ignore गरेको छ (राम्रो) — तर बाँकी सबैले त्यो सुरक्षा भत्काइदिएको छ।
+
+### 2.5 CSRF protection **शून्य**
+पुरै codebase मा `csrf` शब्द एक ठाउँ पनि छैन। `admin_edit.php` (password change), `branch_delete.php`, `disconnect_user.php`, `recharge.php` (renew) — सबै GET/POST मा एकै click बाट trigger हुन सक्छन्।
+
+### 2.6 Command injection risk + quoting bug — `disconnect_user.php`
+```php
+$username = escapeshellarg($_POST['username']);
+$cmd = "echo 'User-Name = $username' | $radclient -x {$nas['ip_address']}:3799 disconnect {$nas['secret']}";
+```
+- `escapeshellarg()` ले आफैँ quote थप्छ, तर यो पहिले नै single-quote भित्र छ → **quoting भाँचिन्छ, command fail हुन्छ** (functional bug)
+- `$nas['ip_address']` र `$nas['secret']` **escape गरिएको छैन** → NAS record edit गर्न सक्ने जोसुकैले shell command चलाउन सक्छ
+- RADIUS secret error message मा leak हुन सक्छ
+
+### 2.7 Production मा error display on
+`dashboard.php`, `nas_edit.php`, `quick_renew.php`, `customer/login.php`, `monitoring/*` मा `ini_set('display_errors', 1)` — stack trace, query, path सबै browser मा देखिन्छ।
+
+### 2.8 Session security
+`session_start()` सादा — `session_regenerate_id()` login पछि छैन (session fixation), cookie मा `httponly`/`secure`/`samesite` set छैन।
+
+---
+
+## 3. 🟡 Repo Hygiene समस्या
+
+Git मा commit भइसकेका जंक file हरू (`.gitignore` ले `*.swp` मात्र समात्छ, `.sw[a-i]` होइन):
+```
+.admin.php.swd/.swg, .recharge.php.swc/.swf/.swi
+.user_view.php.swg/.swh/.swi, .users.php.sv*/.sw*  (13 वटा!)
+includes/.sidebar.php.swe/.swh, assets/css/.theme.css.sw*
+assets/css/theme.bak2, assets/css/theme.csswq
+user_view.bak1, monitoring/dashboard.bak1, user_add_befor_plug
+isp-system-v1.0.0.zip   ← 518 KB build artifact repo भित्र
+cookies.txt             ← session cookie
+test_login.php test_pass.php test_pass2.php test_post.php test_session.php test.php
+```
+
+अन्य:
+- **`config.php` gitignored छ तर `config.php.example` छैन** → नयाँ मान्छेले clone गरे app चल्दैन, कुन variable चाहिन्छ थाहा हुँदैन
+- `map_api.php` र `map_api_temp.php`, `report/` र `reports/`, `invoices.php` र `billing/invoices.php` — duplicate
+- `network_topology.php` 60KB, `mobile_tech.php` 44KB, `user_view.php` 38KB — single file मा PHP+HTML+CSS+JS सबै
+- Commit history मा जम्मा **1 commit** — history छैन
+
+---
+
+## 4. ✅ के सुधार गर्ने — Priority अनुसार
+
+### P0 — अहिल्यै (security)
+1. **`hotspot/includes/auth.php` सबै query prepared statement मा बदल्ने** — यो unauthenticated हो
+2. **`customer/index.php:17` को `|| $password === $user['password']` हटाउने**, अनि `customer/index.php` लाई पूरै हटाएर `customer/login.php` मात्र राख्ने
+3. **सबै `api/*.php` मा auth guard थप्ने** — session वा API key + HMAC
+4. **Hardcoded DB password हटाउने**: सबैलाई `require __DIR__.'/config.php'` गराउने, credentials `.env` वा gitignored `config.php` मा
+5. **Git history बाट secret हटाउने** + ती password हरू rotate गर्ने (`radiuspass`, `admin123`)
+6. **`test_*.php` सबै delete** — production मा deploy भए password oracle बन्छ
+7. `ini_set('display_errors', 1)` सबै हटाएर एकै ठाउँ (`config.php`) मा env-based राख्ने
+
+### P1 — छिट्टै
+8. **CSRF token helper** बनाएर सबै POST form मा लगाउने:
+   ```php
+   // includes/csrf.php
+   function csrf_token(){ return $_SESSION['csrf'] ??= bin2hex(random_bytes(32)); }
+   function csrf_check(){ if(!hash_equals($_SESSION['csrf']??'', $_POST['_csrf']??'')) { http_response_code(419); exit('CSRF'); } }
+   ```
+9. **`user_view.php` + `recharge.php` को `$_GET['user']` parameterize गर्ने** — यी दुई सबैभन्दा धेरै touch हुने page
+10. **`disconnect_user.php` fix**: quoting मिलाउने, `$nas['secret']`/`ip` पनि `escapeshellarg()` गर्ने, error message बाट secret हटाउने
+11. Login पछि **`session_regenerate_id(true)`**, र `session_set_cookie_params(['httponly'=>true,'samesite'=>'Lax','secure'=>true])`
+12. **XSS**: सबै echo मा `htmlspecialchars()` — छोटो helper `e($v)` बनाउने
+
+### P2 — Structural
+13. **`config.php.example` + `README` मा setup step** थप्ने (schema SQL सहित — अहिले कतै schema छैन!)
+14. **`.gitignore` सच्याउने**: `.*.sw[a-p]`, `*.bak*`, `*.zip`, `cookies.txt`, `.env`
+15. Junk/duplicate file हरू `git rm` गर्ने
+16. **साझा layout**: `includes/header/sidebar/topbar` छ तर inline CSS हरेक page मा दोहोरिएको — `assets/css/theme.css` मा सार्ने
+17. **DB layer helper** बनाउने: `db_all($sql, $params)`, `db_one()`, `db_exec()` → prepared statement default
+18. **Composer autoload प्रयोग गर्ने** (`vendor/autoload.php`), `includes/*` लाई PSR-4 class मा सार्ने
+19. **GitHub Actions CI**: `php -l` सबै file मा + PHPStan level 1 + PHP_CodeSniffer
+20. `network_topology.php`, `mobile_tech.php` लाई logic / view / JS मा फुटाउने
+
+### P3 — Feature/Ops
+21. RBAC सही गर्ने — अहिले `isSuperAdmin()`/`isBranchAdmin()` helper छ तर धेरै page मा check हुँदैन; branch isolation पनि query मा enforce छैन
+22. Rate limiting — `includes/security.php` मा admin login को lockout छ, तर customer/hotspot login मा छैन
+23. Payment callback मा **signature verification** (eSewa/Khalti) — अहिले transaction_id मात्र match गरिएको देखिन्छ
+24. Audit log सबै mutation मा (`logActivity()` छ, तर प्रायः call हुँदैन)
+25. Structured logging + cron को lock file (`scripts/*` मा concurrent run protection छैन)
+
+---
+
+## 5. सुझाव गरिएको क्रम (practical)
+
+```
+Week 1  → P0 items 1–7      (security emergency)   ✅ सकियो
+Week 2  → P1 items 8–12     (CSRF + SQLi + session) ✅ प्रायः सकियो
+Week 3  → P2 items 13–16    (repo सफा + setup docs) ✅ सकियो
+Week 4+ → P2 17–20, P3      (refactor + CI)         ◻ बाँकी
+```
+
+---
+
+## 6. ✅ यस session मा के-के fix भयो
+
+### नयाँ infrastructure
+| File | काम |
+|---|---|
+| `.env.example` | सबै secret को एकल source; real `.env` gitignored |
+| `config.php.example` | bootstrap — env load, error policy, hardened session cookie, `$conn`, `e()` |
+| `includes/env.php` | dependency-free `.env` loader + `env()` helper |
+| `includes/db.php` | `db_one/db_all/db_value/db_exec/db_insert/db_like` — prepared statement मात्र |
+| `includes/csrf.php` | `csrf_token() / csrf_field() / csrf_check()` |
+| `includes/api_auth.php` | `api_require_auth()` — session वा `X-API-Key` (constant-time) |
+| `.github/workflows/ci.yml` | हरेक push मा `php -l`, committed-secret detection, SQLi grep |
+
+### Security fixes
+- **SQL injection हटाइयो**: `hotspot/includes/auth.php` (पूरै rewrite — login/voucher/MAC/IP/PPPoE/OTP/session/blacklist/log), `user_view.php` (~19 query), `recharge.php`, `admin_edit.php`, `branch_delete.php`, `user_status.php`, `customer/{index,login,profile,register,wifi_settings}.php`, `api/{global_search,network_topology,resolve_alert}.php`
+- **Header-driven injection बन्द**: `HotspotAuth::createSession()` मा `X-Client-MAC` header सिधै INSERT हुन्थ्यो → अब bound + `getClientMac()` ले MAC format validate गर्छ
+- **Command injection / RCE**: `disconnect_user.php` र `user_view.php` को `radclient` call — अब `proc_open` + stdin, NAS IP `FILTER_VALIDATE_IP`, secret `escapeshellarg`, output log मा मात्र (पहिले response मा RADIUS secret leak हुन्थ्यो)
+- **Quoting bug fix**: `escapeshellarg()` single-quote भित्र थियो → disconnect कहिल्यै काम गर्दैनथ्यो
+- **Auth bypass हटाइयो**: `customer/index.php` को `|| $password === $user['password']`
+- **15 endpoint मा auth guard**: `api/*`, `api_mikrotik*.php`, `api_status.php`, `olt_power_sync.php`, `user_*_data.php`; `cron_block_expired.php` अब CLI/API-key मात्र
+- **CSRF protection**: helper + सबै login form, `user_view.php` (5 form), `recharge.php`, `admin_edit.php`, `branches.php`, customer portal; `includes/header.php` ले meta tag + jQuery/fetch मा auto-attach गर्छ
+- **GET → POST**: `branch_delete.php`, `recharge.php?del_invoice`, `user_status.php` (एक click/`<img>` बाट trigger हुन्थे)
+- **Session**: सबै login मा `session_regenerate_id(true)`; cookie `httponly` + `samesite=Lax` + `secure`
+- **`display_errors` हटाइयो** 15 file बाट → `APP_DEBUG` env ले नियन्त्रण
+
+### Secrets
+`radiuspass`, `monitordb/password`, Twilio SID+token, GenieACS `StrongPass123`, Khalti keys — सबै code बाट हटेर `.env` मा गए।
+`test_pass2.php` (bcrypt hash + guess list), `cookies.txt` (live PHPSESSID), `test_*.php` delete भए।
+
+> ⚠️ **तपाईंले अझै गर्नुपर्ने**: ती password/token हरू git history मा अझै छन् — **rotate गर्नुहोस्** (DB password, Twilio token, GenieACS, Khalti), र चाहनुहुन्छ भने `git filter-repo` ले history सफा गर्नुहोस्।
+
+### Bug fixes (security बाहेक)
+- `customer/profile.php` — `$address` कहिल्यै POST बाट पढिँदैनथ्यो, address हरेक save मा मेटिन्थ्यो
+- `recharge.php` — renewal अब transaction भित्र; बीचमै fail भए customers/radcheck/radreply/invoices out-of-sync हुँदैन
+- `customer/register.php` — transaction + username/email validation + min 8 char
+- `hotspot` PPPoE password compare अब `hash_equals()` (timing attack)
+
+### Repo hygiene
+30+ vim swap file, `.bak`, `theme.csswq`, `isp-system-v1.0.0.zip` (518KB), `cookies.txt`, 7 वटा test file हटे। `.gitignore` पूरै rewrite। README मा real setup guide + cron + security convention थपियो।
+
+**Net: 108 files changed, ~4400 lines deleted.**
+
+---
+
+## 7. ◻ अझै बाँकी (अर्को phase)
+
+1. बाँकी file हरूमा raw SQL — `includes/payment_gateway.php`, `includes/notification.php`, `hotspot/admin/*`, `hotspot/includes/sms.php`, `leads.php`, `mobile_tech_api.php`, `olt_dashboard.php` (`git grep -nE '(query|exec)\("[^"]*\$'` ले देखाउँछ; CI मा warning छ)
+2. बाँकी सबै form मा `csrf_field()` (अहिले सबैभन्दा जोखिमपूर्ण मात्र भएको छ)
+3. XSS — सबै echo मा `e()` लगाउने
+4. RBAC/branch isolation query-level मा enforce
+5. Payment callback signature verification (eSewa/Khalti)
+6. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`
+7. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
+8. DB schema SQL repo मा राख्ने (अहिले कतै छैन — clone गरेर table बनाउन सकिँदैन)

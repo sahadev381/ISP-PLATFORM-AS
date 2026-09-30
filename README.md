@@ -183,12 +183,60 @@ A comprehensive ISP/WISP billing and network management system similar to Splynx
 - **Protocols**: SNMP v1/v2c/v3, TR-069, RADIUS, DHCP, PPPoE
 - **Database**: MySQL/MariaDB, PostgreSQL (experimental)
 
+
 ## 🔧 Installation & Setup
-- One-click installer script available
-- Docker Compose for containerized deployment
-- Detailed documentation with screenshots
-- Video tutorials for common tasks
-- Community forum and professional support options
+
+### Requirements
+- PHP 8.0+ with the `mysqli`, `curl`, `snmp` and `json` extensions
+- MySQL 8 / MariaDB 10.4+
+- Composer
+- FreeRADIUS (for PPPoE/hotspot authentication)
+- `radclient` (from `freeradius-utils`) for disconnect / CoA requests
+
+### Steps
+
+```bash
+git clone <this-repo> isp-platform
+cd isp-platform
+
+# 1. PHP dependencies
+composer install
+
+# 2. Configuration
+cp config.php.example config.php
+cp .env.example .env
+$EDITOR .env          # fill in DB credentials, API_KEY, gateway keys…
+
+# 3. Generate an API key for cron jobs / integrations
+openssl rand -hex 32   # paste into API_KEY in .env
+
+# 4. Point your web root at the project directory and browse to /index.php
+```
+
+> `config.php` and `.env` are git-ignored on purpose — **never commit real
+> credentials**. Everything secret is read from `.env`; see `.env.example`
+> for the full list of supported keys.
+
+### Cron jobs
+
+```cron
+1  0 * * *  php /path/to/scripts/billing_cron.php        >> /var/log/isp/billing.log 2>&1
+*/15 * * * * php /path/to/scripts/fup_cron.php           >> /var/log/isp/fup.log 2>&1
+*/5  * * * * php /path/to/scripts/metrics_collector.php  >> /var/log/isp/metrics.log 2>&1
+0  2 * * *  php /path/to/scripts/db_backup.php           >> /var/log/isp/backup.log 2>&1
+0  8 * * *  php /path/to/cron_block_expired.php          >> /var/log/isp/expiry.log 2>&1
+```
+
+### Security notes
+- All admin pages go through `includes/auth.php`; `api/*.php` endpoints go
+  through `includes/api_auth.php` (session **or** `X-API-Key` header).
+- State-changing forms must include `<?= csrf_field() ?>` and call
+  `csrf_check()` in the handler — see `includes/csrf.php`.
+- Use the `db_one()` / `db_all()` / `db_exec()` helpers in `includes/db.php`
+  instead of interpolating values into SQL strings.
+- Escape everything you print with `e($value)`.
+- See `AUDIT_REPORT.md` for the current security backlog.
+
 
 --- 
 

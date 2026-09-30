@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Branches";
 $active = "branches";
@@ -55,9 +56,14 @@ include 'includes/sidebar.php';
                                 <a href="branch_edit.php?id=<?= $b['id'] ?>" class="btn btn-sm edit">
                                     <i class="fa fa-edit"></i>
                                 </a>
-                                <a href="branch_delete.php?id=<?= $b['id'] ?>" class="btn btn-sm danger" onclick="return confirm('Delete this branch?');">
-                                    <i class="fa fa-trash"></i>
-                                </a>
+                                <form action="branch_delete.php" method="POST" style="display:inline"
+                                      onsubmit="return confirm('Delete this branch?');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+                                    <button type="submit" class="btn btn-sm danger">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

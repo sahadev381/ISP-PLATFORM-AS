@@ -7,9 +7,6 @@
 include __DIR__ . '/../config.php';
 include __DIR__ . '/../includes/olt_api.php';
 
-// Re-establish connection for CLI
-$conn = new mysqli("localhost", "radius", "radiuspass", "radius");
-
 function logMetric($type, $target, $id, $val) {
     global $conn;
     $stmt = $conn->prepare("INSERT INTO performance_metrics (metric_type, target_type, target_id, metric_value) VALUES (?, ?, ?, ?)");

@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
 include_once '../../config.php';
+require_once __DIR__ . '/../../includes/api_auth.php';
+api_require_auth();
+
 
 $transaction_id = $_GET['transaction_id'] ?? '';
 

@@ -1,7 +1,7 @@
 <?php
 include '../config.php';
 include '../includes/genieacs_api.php';
-session_start();
+require_once __DIR__ . '/../includes/csrf.php';
 
 if (!isset($_SESSION['customer_user'])) {
     header("Location: index.php");
@@ -9,7 +9,12 @@ if (!isset($_SESSION['customer_user'])) {
 }
 
 $username = $_SESSION['customer_user'];
-$user = $conn->query("SELECT * FROM customers WHERE username = '$username'")->fetch_assoc();
+$user = db_one($conn, "SELECT * FROM customers WHERE username = ?", [$username]);
+if (!$user) {
+    session_destroy();
+    header("Location: index.php");
+    exit;
+}
 $deviceId = $user['tr069_device_id'] ?? '';
 
 $msg = '';
@@ -17,8 +22,10 @@ $msg_type = '';
 
 // Handle Update
 if (isset($_POST['update_wifi']) && $deviceId) {
-    $new_ssid = $_POST['ssid'];
-    $new_pass = $_POST['password'];
+    csrf_check();
+
+    $new_ssid = trim($_POST['ssid'] ?? '');
+    $new_pass = (string) ($_POST['password'] ?? '');
     
     // Push to GenieACS
     $payload = [
@@ -36,7 +43,8 @@ if (isset($_POST['update_wifi']) && $deviceId) {
         $msg_type = "success";
         
         // Update local cache
-        $conn->query("UPDATE customers SET wifi_ssid='$new_ssid', wifi_password='$new_pass' WHERE username='$username'");
+        db_exec($conn, "UPDATE customers SET wifi_ssid = ?, wifi_password = ? WHERE username = ?",
+            [$new_ssid, $new_pass, $username]);
     } else {
         $msg = "Failed to reach your router. Please ensure it is powered on.";
         $msg_type = "error";
@@ -89,6 +97,7 @@ if ($deviceId) {
         <?php if($msg): ?><div class="alert alert-<?= $msg_type ?>"><?= $msg ?></div><?php endif; ?>
 
         <form method="POST">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label>Wi-Fi Name (SSID)</label>
                 <input type="text" name="ssid" value="<?= htmlspecialchars($live_ssid) ?>" required>

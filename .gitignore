@@ -1,33 +1,54 @@
 # OS files
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
-*.swk
-*.swm
-*.swl
-*.swj
-*.swn
+
+# Editor swap / temp files (vim writes .file.swp .. .swa, .svz etc.)
+*~
+.*.sw[a-p]
+.*.sv[a-z]
+*.sw[a-p]
+*.orig
+*.rej
 
 # IDE
 .vscode/
 .idea/
+
+# Backups / scratch copies
 *.bak
+*.bak[0-9]
+*.old
+*_backup
+*_temp
 
 # Vendor (use composer)
 vendor/
+composer.phar
 
 # Uploads
 uploads/*
 !uploads/.gitkeep
 
-# Config (contains secrets)
+# Secrets & local config
+.env
+.env.*
+!.env.example
 config.php
 !config.php.example
 
 # Logs
 *.log
+logs/
 
-# Database
+# Database dumps & backups
 *.sql
+*.sql.gz
 *.db
+backups/
+
+# Build artifacts
+*.zip
+*.tar.gz
+
+# Session / curl leftovers
+cookies.txt

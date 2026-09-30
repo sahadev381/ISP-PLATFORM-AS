@@ -8,9 +8,6 @@
 include __DIR__ . '/../config.php';
 include __DIR__ . '/../includes/messaging.php';
 
-// Re-establish connection for CLI
-$conn = new mysqli("localhost", "radius", "radiuspass", "radius");
-
 echo "[" . date('Y-m-d H:i:s') . "] Starting Billing & Reminder Service...\n";
 
 // --- PART 1: Automated Monthly Invoicing ---

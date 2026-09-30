@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  lint:
+    name: PHP lint & security grep
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, curl, json
+          coverage: none
+
+      - name: Syntax check every PHP file
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' f; do
+            if ! php -l "$f" > /dev/null; then
+              php -l "$f" || true
+              fail=1
+            fi
+          done < <(find . -name '*.php' -not -path './vendor/*' -print0)
+          exit $fail
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Block committed secrets
+        run: |
+          set -e
+          bad=0
+
+          # Real config / env files must never be committed
+          for f in config.php .env cookies.txt; do
+            if git ls-files --error-unmatch "$f" > /dev/null 2>&1; then
+              echo "::error::$f must not be committed"
+              bad=1
+            fi
+          done
+
+          # Editor swap files and backups
+          if git ls-files | grep -E '\.sw[a-p]$|\.sv[a-z]$|\.bak[0-9]*$|\.zip$'; then
+            echo "::error::swap/backup/archive files are committed"
+            bad=1
+          fi
+
+          # Hardcoded database credentials
+          if git grep -nE 'new mysqli\(\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]*"' -- '*.php' \
+              | grep -v 'config.php.example'; then
+            echo "::error::hardcoded database credentials found — use env()"
+            bad=1
+          fi
+
+          exit $bad
+
+      - name: Warn on raw SQL interpolation
+        continue-on-error: true
+        run: |
+          echo "Files still interpolating variables into SQL strings:"
+          git grep -nE '(query|exec)\("[^"]*\$' -- '*.php' | grep -v vendor || echo "  none 🎉"

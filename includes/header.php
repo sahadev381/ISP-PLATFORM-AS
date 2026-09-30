@@ -2,6 +2,7 @@
 if(!isset($base_path)) {
     $base_path = '';
 }
+require_once __DIR__ . '/csrf.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -9,6 +10,7 @@ if(!isset($base_path)) {
     <meta charset="UTF-8">
     <title><?= $page_title ?? 'ISP System' ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,6 +18,37 @@ if(!isset($base_path)) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= $base_path ?>assets/css/theme.css">
 <script>
+// Attach the CSRF token to every same-origin POST made from this page.
+(function () {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    window.CSRF_TOKEN = token ? token.getAttribute('content') : '';
+
+    // jQuery (loaded later on some pages) — hook in once it is available.
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.jQuery) {
+            window.jQuery.ajaxSetup({
+                headers: { 'X-CSRF-Token': window.CSRF_TOKEN }
+            });
+        }
+    });
+
+    // Plain fetch()
+    var nativeFetch = window.fetch;
+    if (nativeFetch) {
+        window.fetch = function (input, init) {
+            init = init || {};
+            var method = (init.method || 'GET').toUpperCase();
+            if (method !== 'GET' && method !== 'HEAD') {
+                init.headers = new Headers(init.headers || {});
+                if (!init.headers.has('X-CSRF-Token')) {
+                    init.headers.set('X-CSRF-Token', window.CSRF_TOKEN);
+                }
+            }
+            return nativeFetch(input, init);
+        };
+    }
+})();
+
 function toggleSidebar() {
     document.querySelector('.sidebar').classList.toggle('show');
     document.querySelector('.sidebar-overlay').classList.toggle('show');
