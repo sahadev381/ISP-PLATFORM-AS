@@ -24,7 +24,10 @@ if (!function_exists('e')) {
         }
 
         if (is_bool($value)) {
-            return $value ? '1' : '0';
+            // Match what a bare echo of the value would print, so
+            // swapping a raw echo for e() never changes the output:
+            // true is "1" and false is the empty string.
+            return $value ? '1' : '';
         }
 
         if (is_array($value) || is_object($value)) {

@@ -20,11 +20,14 @@
 if (!defined('RBAC_LOADED')) {
     define('RBAC_LOADED', true);
 
+    /* `const` is only legal at the top level of a file or inside a class,
+       never inside an if block, so these have to use define(). */
+
     /** Canonical roles, most privileged first. */
-    const RBAC_ROLES = ['superadmin', 'manager', 'support'];
+    define('RBAC_ROLES', ['superadmin', 'manager', 'support']);
 
     /** Higher number wins. Unknown roles get 0, i.e. no privileges. */
-    const RBAC_RANK = ['superadmin' => 30, 'manager' => 20, 'support' => 10];
+    define('RBAC_RANK', ['superadmin' => 30, 'manager' => 20, 'support' => 10]);
 
     /**
      * End the request with an error, matching the caller's content type.

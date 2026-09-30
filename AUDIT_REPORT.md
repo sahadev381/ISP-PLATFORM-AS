@@ -484,3 +484,60 @@ MySQL 8 service मा:
 
 - `sqlglot` (MySQL dialect): 71 statement parse, 67 `CREATE TABLE`, कुनै duplicate छैन, सबै FK ले अस्तित्वमा भएकै table देखाउँछन्
 - Code का सबै `INSERT`/`UPDATE` column schema सँग resolve हुन्छन् — **0 missing**
+
+---
+
+## 12. ✅ Phase 6 — Automated test (सकियो)
+
+### 12.1 अन्ततः वास्तविक PHP
+
+यो सत्रभरि sandbox मा PHP binary थिएन, त्यसैले Python ले लेखिएको delimiter-balance checker ले काम चलाइएको थियो — त्यो brace/paren मात्र गन्छ, PHP grammar बुझ्दैन। यसपटक npm बाट **`@php-wasm/node` (PHP 8.2.33, WebAssembly)** ल्याएर वास्तविक PHP parser चलाइयो।
+
+### 12.2 त्यसले तुरुन्तै समातेको critical regression
+
+```
+FAIL includes/rbac.php
+    syntax error, unexpected token "const" on line 24
+```
+
+PHP मा `const` केवल file को top level वा class भित्र मात्र लेख्न मिल्छ — **`if` block भित्र होइन**। Phase 4 मा थपिएको `includes/rbac.php` यसै कारण parse नै हुँदैनथ्यो, र `auth.php` ले त्यही require गर्छ — अर्थात् **हरेक login-गरिएको page 500 हुन्थ्यो**। `define()` मा बदलेर मिलाइयो।
+
+Python checker ले यो कहिल्यै भेट्दैनथ्यो, किनभने bracket सन्तुलन त ठीकै थियो।
+
+### 12.3 दोस्रो समातिएको बग
+
+`e()` मा comment लेख्दा भित्र `?>` अक्षर परेको थियो। PHP ले **`//` comment भित्रको `?>` लाई पनि PHP block को अन्त्य मान्छ**, त्यसैले फाइल भाँचियो। Linter ले तुरुन्तै देखायो।
+
+### 12.4 `tests/` — dependency-free harness
+
+Repo मा composer dev dependency छैन र CI ले runtime मात्र install गर्छ, त्यसैले PHPUnit थप्नुभन्दा ~८० line को `tests/bootstrap.php` लेखियो। `php tests/run.php` जताततै चल्छ, fail भए exit code 1।
+
+| फाइल | के जाँच्छ |
+|---|---|
+| `tests/escaping_test.php` | `e()`, `e_js()`, `e_attr_js()`, `e_url()`, `e_href()` — XSS payload सहित |
+| `tests/rbac_test.php` | role hierarchy, `branch_scope()` fragment, row ownership |
+| `tests/csrf_test.php` | token issue, POST/header/GET validation, cross-session rejection |
+| `tests/db_helpers_test.php` | `db_types()`, `db_like()` |
+
+उल्लेखनीय assertion हरू:
+
+- `e_href()` ले `javascript:`, `JaVaScRiPt:`, `data:`, `vbscript:` र अगाडि space राखेको `javascript:` सबै `#` बनाउँछ
+- `e_js('</script>')` मा `</` रहँदैन — नत्र JS string भित्र भए पनि `<script>` element बन्द हुन्छ
+- `e_attr_js("a'b")` लाई HTML-decode गर्दा `a\'b` आउँछ (bare quote होइन) — यही Phase 3 ले छुटाएको बग हो
+- `branch_scope()` को fragment मा branch id कहिल्यै inline हुँदैन, सधैं `?` placeholder
+- अज्ञात role (`branchadmin`) को rank 0 — पुरानो `isBranchAdmin()` bug दोहोरिन नदिन
+
+### 12.5 Test ले भेटेको तेस्रो बग
+
+`e(false)` ले `'0'` फर्काउँथ्यो तर `e_attr_js(false)` ले `''` — दुई helper असहमत थिए। साथै native `<?php echo false; ?>` ले केही छाप्दैन। अब `e()` ले पनि `''` फर्काउँछ, अर्थात् **raw echo लाई `e()` ले बदल्दा output कहिल्यै फेरिँदैन**।
+
+### 12.6 CI
+
+`lint` job मा `php tests/run.php` step थपियो। अब CI मा तीन तह छन्: `php -l` (सबै फाइल) → unit test → schema job (MySQL मा schema load + column verification)।
+
+### 12.7 अन्तिम अवस्था
+
+```
+LINT: 204 files, 0 parse errors
+105 assertions, 105 passed, 0 failed
+```

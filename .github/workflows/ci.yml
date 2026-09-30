@@ -35,6 +35,9 @@ jobs:
       - name: Validate composer.json
         run: composer validate --no-check-publish
 
+      - name: Unit tests
+        run: php tests/run.php
+
       - name: Block committed secrets
         run: |
           set -e

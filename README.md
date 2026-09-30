@@ -230,6 +230,18 @@ php scripts/create_admin.php
 > credentials**. Everything secret is read from `.env`; see `.env.example`
 > for the full list of supported keys.
 
+### Tests
+
+```bash
+php tests/run.php            # everything
+php tests/run.php escaping   # one file
+```
+
+Zero dependencies — the harness is `tests/bootstrap.php`, about eighty
+lines. It covers the security primitives: output escaping
+(`includes/html.php`), role and branch checks (`includes/rbac.php`),
+CSRF tokens and the query helpers. CI runs it on every push.
+
 ### Cron jobs
 
 ```cron
