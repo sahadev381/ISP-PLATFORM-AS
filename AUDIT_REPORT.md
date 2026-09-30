@@ -299,13 +299,14 @@ Phase 1 पछि बाँकी रहेका सबै interpolated query �
 ## 8. ◻ अझै बाँकी (अर्को phase)
 
 1. बाँकी सबै form मा `csrf_field()` (जोखिमपूर्ण write path हरू सकिए)
-3. `hotspot/admin/users.php` — HTML output truncated, `<form>` छैन, JS ले नभएका DOM id खोज्छ
-4. RBAC/branch isolation query-level मा enforce (अहिले `$_SESSION['role']` UI मा मात्र)
-5. `api/payment/*` मा `Access-Control-Allow-Origin: *` — payment endpoint मा origin सीमित गर्ने
-6. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`, `invoices.php`/`billing/invoices.php`
-7. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
-8. DB schema SQL repo मा राख्ने (अहिले कतै छैन — clone गरेर table बनाउन सकिँदैन)
-9. Automated test सुरु गर्ने — अहिले शून्य; CI मा `php -l` मात्र छ
+2. `hotspot/admin/users.php` — HTML output truncated, `<form>` छैन, JS ले नभएका DOM id खोज्छ
+3. `api/payment/*` मा `Access-Control-Allow-Origin: *` — payment endpoint मा origin सीमित गर्ने
+4. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`, `invoices.php`/`billing/invoices.php`
+5. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
+6. DB schema SQL repo मा राख्ने (अहिले कतै छैन — clone गरेर table बनाउन सकिँदैन)
+7. Automated test सुरु गर्ने — अहिले शून्य; CI मा `php -l` मात्र छ
+
+> RBAC/branch isolation (पुरानो item 4) §10 मा सकियो।
 
 ---
 
@@ -359,3 +360,74 @@ Constant मात्र निकाल्ने expression (जस्तै `$
 
 - Delimiter-balance checker: 85 फाइल, **0 problem**
 - SQL regression: interpolated SQL **0** (बाँकी दुई hit `exec()` shell call हुन्, `escapeshellarg()` लागेको छ)
+
+---
+
+## 10. ✅ Phase 4 — RBAC, branch isolation र बाँकी XSS (सकियो)
+
+### 10.1 Role vocabulary को बेमेल (असली बग)
+
+`includes/auth.php` मा `isBranchAdmin()` ले `'branchadmin'` र `isStaff()` ले `'staff'` खोज्थ्यो — तर database मा कहिल्यै त्यो value बस्दैन। असली role हुन् `superadmin` / `manager` / `support` (`admin.php` को `$allowed_roles` हेर्नुहोस्)। अर्थात् **ती दुई function सधैं `false` फर्काउँथे** — dead code थियो।
+
+### 10.2 नयाँ `includes/rbac.php`
+
+`auth.php` ले require गर्छ, त्यसैले authenticate हुने हरेक page मा उपलब्ध:
+
+| Function | काम |
+|---|---|
+| `require_role($role)` | Minimum role (`'manager'`) वा explicit list। नमिले 403 + activity log |
+| `branch_scope($alias)` | `[" AND c.branch_id = ?", [$id]]` फर्काउँछ; superadmin लाई `['', []]` — त्यसैले query मा बिना `if` splice गर्न मिल्छ |
+| `require_branch_access($row)` | पहिले नै load भएको row अर्को branch को हो भने 403 |
+| `require_customer_access($conn, $username)` | `?user=` लिने page का लागि — customer resolve गरेर branch जाँच्छ |
+| `rbac_deny($code, $msg)` | JSON endpoint लाई JSON, page लाई HTML error |
+
+Role hierarchy: `superadmin 30 > manager 20 > support 10`। पुराना `isSuperAdmin()` आदि alias भएर चल्छन्, तर अब सही role मा map हुन्छन्।
+
+### 10.3 Privilege escalation (सबैभन्दा गम्भीर)
+
+| फाइल | पहिले | अब |
+|---|---|---|
+| **`admin_edit.php`** | **कुनै role check थिएन** — जो-कोही logged-in ले `?id=1` खोलेर आफैँलाई superadmin बनाउन सक्थ्यो | `require_role('superadmin')` |
+| `system_config.php` | global config जो-कोहीले बदल्न सक्थ्यो | `require_role('superadmin')` |
+| `notification_settings.php` | SMTP/SMS credential देखिन्थ्यो | `require_role('superadmin')` |
+| `billing/gateways.php` | payment gateway API key/secret | `require_role('superadmin')` |
+| `hotspot/admin/settings.php` | SMS gateway credential | `require_role('superadmin')` |
+| `import_customers.php` | bulk customer creation | `require_role('manager')` |
+
+### 10.4 Secret हरू DOM मा जानु
+
+`billing/gateways.php` ले हरेक gateway को `api_key` र `api_secret` लाई `onclick="editGateway(…)"` भित्र हाल्थ्यो — जबकि `editGateway()` त **केवल `alert(id + name)` गर्ने stub** थियो। Credential हरू argument बाट पूरै हटाइयो।
+
+`hotspot/admin/settings.php` मा SMS API key/password `value="…"` मा render हुन्थ्यो। अब render हुँदैन; field खाली छोडे पुरानै value रहन्छ ("unchanged - type to replace")।
+
+### 10.5 IDOR / branch isolation
+
+`branch_id` भएका table: `admins`, `customers`, `tickets`।
+
+- `users.php` — list र stats दुवै `branch_scope()` ले scoped
+- `tickets.php` — 4 वटा अलग count query एउटै scoped query मा मिलाइयो, list पनि scoped
+- `user_view.php`, `ticket_view.php` — load भएको row मा `require_branch_access()`
+- `user_edit.php`, `user_graph.php`, `user_log.php`, `user_status.php`, `user_expiry.php`, `user_usage_data.php`, `user_live_graph.php`, `quick_renew.php`, `disconnect_user.php` — `require_customer_access()`
+
+### 10.6 GET मा destructive action + CSRF
+
+`tickets.php?delete=`, `admin.php?del=`, `nas.php?del=`, `plans.php?del=`, `knowledge_base.php?del=` — पाँचै वटा **token बिना** थिए। `csrf_check()` ले GET लाई छोड्ने भएकाले नयाँ **`csrf_check_request()`** थपियो (query string बाट पनि token पढ्छ) र लिंकमा `&_csrf=` जोडियो।
+
+`tickets.php` को delete ले अब branch ownership पनि जाँच्छ — पहिले जुनसुकै branch को ticket मेटाउन मिल्थ्यो।
+
+### 10.7 Phase 3 ले छुटाएको XSS pattern
+
+**`onclick="fn('<?= e($x) ?>')"` सुरक्षित छैन।** Browser ले attribute पहिले HTML-decode गर्छ, त्यसैले `e()` को `&#39;` फेरि `'` बन्छ र JS string बाट breakout हुन्छ। नयाँ **`e_attr_js()`** ले पहिले JS-escape (`'` → `\'`) अनि HTML-escape गर्छ, जसले backslash जोगिन्छ। **१८ site** मा लागू (`network_topology.php` 8, `billing/gateways.php` 6, `genieacs_devices.php` 2, `inventory.php` 1, `mikrotik_dashboard.php` 1)।
+
+साथै `echo "<div>$var</div>"` ढाँचाका 5 site (`admin_edit.php` 2, `customer/login.php`, `import_customers.php`, `payment/khalti_verify.php`) escape गरिए।
+
+### 10.8 अन्य
+
+- `admin.php` ले `$stmt->error` सिधै page मा देखाउँथ्यो (DB structure leak) → generic message + `error_log()`
+- `includes/auth.php` र `hotspot/admin/settings.php` का raw `$conn->query()` + `while(fetch_assoc())` → `db_all()` + `foreach`
+
+### 10.9 प्रमाणीकरण
+
+- Delimiter-balance checker: 33 फाइल, **0 problem**
+- सबै helper call site definition सँग resolve हुन्छन् (`require_role` 6, `require_customer_access` 9, `e_attr_js` 5, `csrf_check_request` 5, `branch_scope` 2, `require_branch_access` 3)
+- Loop pairing र बाँकी `fetch_assoc()` जाँचिए
