@@ -265,15 +265,45 @@ Phase 1 पछि बाँकी रहेका सबै interpolated query �
 
 ---
 
+### Batch 4 — पेज, cron र helper (clean ✅)
+`leads.php`, `invoices.php`, `customer/invoices.php`, `customer/ticket_view.php`, `ticket_view.php`, `ticket_detail.php`, `ticket_new.php`, `user_expiry.php`, `user_edit.php`, `user_add.php`, `users.php`, `user_log.php`, `user_graph_data.php`, `user_live_graph{,_data}.php`, `user_usage_data.php`, `plans.php`, `inventory.php`, `knowledge_base.php`, `kb_view.php`, `system_logs.php`, `network_alerts.php`, `map_api.php`, `wire_lease_api.php`, `work_diary_api.php`, `mikrotik_{dashboard,traffic_api}.php`, `billing/gateways.php`, `payment/{esewa_verify,recharge_wallet}.php`, `scripts/{billing_cron,fup_cron,fup_speed}.php`
+
+### Batch 5 — multi-line queries (clean ✅)
+`api/{olt_ont,snmp_monitor}.php`, `billing/payments.php`, `includes/{bdcom_olt,olt_api,security}.php`, `customer/{dashboard,usage_history}.php`, `payment/{khalti_pay,khalti_verify}.php`, `quick_renew.php`, `import_customers.php`, `notification_settings.php`, `hotspot/admin/{add_profile,hotel}.php`, `scripts/{auto_disable_expired,auto_invoice}.php`, `report/export_*_users.php`
+
+**अन्तिम verification:** हरेक non-vendor PHP file मा `->query("...")` / `->prepare("...")` भित्रको string literal मा `$var` खोज्दा — **० मात्र**।
+
+### Batch 4–5 मा भेटिएका bug हरू
+
+| फाइल | समस्या | असर | अवस्था |
+|---|---|---|---|
+| `payment/khalti_verify.php` | auth guard छैन; `username` POST body बाट | **जो-कोहीले जुनसुकै ग्राहकको wallet भर्न सक्थ्यो** | ✅ session बाट username, amount match, replay guard |
+| `report/export_{active,expired,expiring,new}_users.php` | PHP code बीचमै खुला SQL fragment | चारै export **parse error** — कहिल्यै चलेनन् | ✅ पुनर्लेखन + filter query भित्र + CSV escape |
+| `customer/ticket_view.php` | reply insert मा ownership check छैन | एक ग्राहकले अर्काको ticket मा पोस्ट | ✅ ticket पहिले load + `customer_id` match |
+| `customer/invoices.php` | `WHERE username=$id` (numeric id) | पेज सधैँ खाली | ✅ `customers` सँग join |
+| `ticket_detail.php` | बनेको statement फालेर id-only lookup | `?username=` सधैँ "not found" | ✅ |
+| `wire_lease_api.php` terminate | पटक-पटक चलाउँदा `used_cores` घट्दै जान्थ्यो | route capacity शून्य | ✅ status guard + transaction |
+| `wire_lease_api.php` add | check-then-insert race | एउटै core दुई जनालाई lease | ✅ `FOR UPDATE` lock |
+| `payment/esewa_verify.php` | refresh/back गर्दा फेरि credit | wallet दोहोरो भरिने | ✅ `txn_id` replay guard |
+| `invoices.php` | GET link ले invoice delete + expiry rollback | `<img>` ले पनि trigger | ✅ POST + CSRF |
+| `leads.php` convert | username uniqueness छैन; दोहोरो convert | duplicate customer | ✅ suffix + status guard |
+| `ticket_new.php` | escape + prepare दुवै | ticket मा literal backslash | ✅ |
+| `map_api.php` | client capacity अनुसार असीमित port row; delete मा orphan | table भरिने | ✅ cap 1024 + cascade |
+| `user_edit.php` | password लेखेपछि rename | दुई वटा `Cleartext-Password` row | ✅ क्रम उल्टाइयो |
+| `quick_renew.php` | expiry र invoice अलग query | बीचमा fail भए mismatch | ✅ transaction |
+| `scripts/fup_speed.php`, `customer/dashboard.php` | row नभेटिए fatal | cron/पोर्टल crash | ✅ guard |
+| `includes/olt_api.php::getAllOnus` | method भित्र `include 'config.php'` | CWD + scope निर्भर | ✅ `require_once __DIR__` + `global` |
+
+---
+
 ## 8. ◻ अझै बाँकी (अर्को phase)
 
-1. बाँकी raw SQL — `wire_lease_api.php` (6), `user_expiry.php` (5), `map_api.php` (5), `leads.php` (5), `user_edit.php` (4), `invoices.php`, `inventory.php`, `scripts/*_cron.php`, `ticket_view.php`, `kb_view.php` आदि (~25 file, `git grep -nE '(query|exec)\("[^"]*\$'`)
-2. `customer/invoices.php:8` — `WHERE username = $id` ले username column लाई numeric id सँग तुलना गर्छ (**अझै unfixed bug**)
-3. `hotspot/admin/users.php` — HTML output truncated छ, `<form>` छैन, JS ले नभएका DOM id खोज्छ
-4. `hotspot/admin/add_profile.php` — `csrf_check()` बाँकी
-5. बाँकी सबै form मा `csrf_field()`; सबै echo मा `e()` (XSS)
-6. RBAC/branch isolation query-level मा enforce
-7. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`, `invoices.php`/`billing/invoices.php`
-8. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
-9. DB schema SQL repo मा राख्ने (अहिले कतै छैन)
-10. `api/payment/*` मा `Access-Control-Allow-Origin: *` छ — payment endpoint मा origin सीमित गर्ने
+1. **XSS** — सबै `echo`/`<?=` मा `e()` लगाउने (अहिले आंशिक मात्र)। सबैभन्दा ठूलो बाँकी काम यही हो।
+2. बाँकी सबै form मा `csrf_field()` (जोखिमपूर्ण write path हरू सकिए)
+3. `hotspot/admin/users.php` — HTML output truncated, `<form>` छैन, JS ले नभएका DOM id खोज्छ
+4. RBAC/branch isolation query-level मा enforce (अहिले `$_SESSION['role']` UI मा मात्र)
+5. `api/payment/*` मा `Access-Control-Allow-Origin: *` — payment endpoint मा origin सीमित गर्ने
+6. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`, `invoices.php`/`billing/invoices.php`
+7. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
+8. DB schema SQL repo मा राख्ने (अहिले कतै छैन — clone गरेर table बनाउन सकिँदैन)
+9. Automated test सुरु गर्ने — अहिले शून्य; CI मा `php -l` मात्र छ
