@@ -210,8 +210,21 @@ $EDITOR .env          # fill in DB credentials, API_KEY, gateway keys…
 # 3. Generate an API key for cron jobs / integrations
 openssl rand -hex 32   # paste into API_KEY in .env
 
-# 4. Point your web root at the project directory and browse to /index.php
+# 4. Create the database and load the schema
+mysql -u root -p -e "CREATE DATABASE isp_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+mysql -u root -p isp_platform < database/schema.sql
+mysql -u root -p isp_platform < database/seed.sql     # plans, branches, default settings
+
+# 5. Create the first administrator (prompts for the password)
+php scripts/create_admin.php
+
+# 6. Point your web root at the project directory and browse to /index.php
 ```
+
+> The schema in `database/schema.sql` was reconstructed from the queries in
+> the application, because the project previously had none in version
+> control. Column types are best-effort: if you already run this platform,
+> diff it against your live database rather than replacing it.
 
 > `config.php` and `.env` are git-ignored on purpose — **never commit real
 > credentials**. Everything secret is read from `.env`; see `.env.example`
@@ -234,7 +247,13 @@ openssl rand -hex 32   # paste into API_KEY in .env
   `csrf_check()` in the handler — see `includes/csrf.php`.
 - Use the `db_one()` / `db_all()` / `db_exec()` helpers in `includes/db.php`
   instead of interpolating values into SQL strings.
-- Escape everything you print with `e($value)`.
+- Escape everything you print with `e($value)`. Inside `<script>` use
+  `e_js()`; inside an inline handler such as `onclick="fn('…')"` use
+  `e_attr_js()` — plain `e()` is unsafe there, because the browser
+  HTML-decodes the attribute before the JavaScript parser sees it.
+- Role checks belong in the query, not the sidebar: use `require_role()`
+  and `branch_scope()` / `require_customer_access()` from
+  `includes/rbac.php`. Roles are `superadmin`, `manager` and `support`.
 - See `AUDIT_REPORT.md` for the current security backlog.
 
 

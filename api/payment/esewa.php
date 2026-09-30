@@ -144,7 +144,7 @@ function handleCallback($data) {
             db_exec($conn, "UPDATE payment_transactions SET
                           status = 'completed',
                           gateway_response = ?,
-                          ref_id = ?,
+                          reference_id = ?,
                           verified_at = NOW()
                           WHERE id = ? AND status <> 'completed'",
                 [$response, $ref_id, (int) $transaction['id']]);

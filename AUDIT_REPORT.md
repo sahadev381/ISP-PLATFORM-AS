@@ -431,3 +431,56 @@ Role hierarchy: `superadmin 30 > manager 20 > support 10`। पुराना 
 - Delimiter-balance checker: 33 फाइल, **0 problem**
 - सबै helper call site definition सँग resolve हुन्छन् (`require_role` 6, `require_customer_access` 9, `e_attr_js` 5, `csrf_check_request` 5, `branch_scope` 2, `require_branch_access` 3)
 - Loop pairing र बाँकी `fetch_assoc()` जाँचिए
+
+---
+
+## 11. ✅ Phase 5 — Database schema (सकियो)
+
+### 11.1 समस्या
+
+Repo मा **कुनै SQL थिएन**। Clone गरेर चलाउँदा पहिलो query मै हरेक page मर्थ्यो — अर्थात् नयाँ install असम्भव थियो, र automated test लेख्ने कुनै आधार थिएन।
+
+### 11.2 `database/schema.sql` — 67 table
+
+Code का हरेक `INSERT INTO t (…)` column list, `UPDATE … SET` clause र qualified column reference निकालेर, अनि प्रत्येक column कसरी प्रयोग हुन्छ (int bind, `CURDATE()` सँग तुलना, money format) हेरेर type अनुमान गरियो।
+
+समूहहरू: tenancy/staff · plans+customers · FreeRADIUS · billing · support · network/FTTH · hotspot · settings।
+
+उल्लेखनीय निर्णय:
+
+- **FreeRADIUS table हरू (`radacct`, `radcheck`, `radreply`, `radusergroup`, `radpostauth`) upstream FreeRADIUS 3.x layout कै हुन्** — `radiusd` ले ठ्याक्कै ती column नाम खोज्छ, त्यसैले "सफा" पार्न मिल्दैन।
+- `radacct` मा `idx_radacct_online (acctstoptime, username)` थपियो — dashboard हरू बारम्बार "अहिले को online छ" सोध्छन्, जुन `WHERE acctstoptime IS NULL` हो; index बिना पूरै table scan हुन्थ्यो।
+- `payment_transactions` मा `UNIQUE KEY (gateway_id, reference_id)` — `khalti_verify.php` को replay सुरक्षा application code मा मात्र थियो, जुन concurrency मा भरपर्दो हुँदैन। अब database ले नै रोक्छ।
+- `wallet_transactions` मा `UNIQUE KEY (gateway, txn_id)` — त्यही कारण।
+- Branch isolation का तीन table (`admins`, `customers`, `tickets`) मा `branch_id` सँग index र FK।
+
+### 11.3 Schema लेख्दा भेटिएका असली code बग
+
+| बग | विवरण | कारबाही |
+|---|---|---|
+| **`ticket_replies` को दुई असंगत shape** | `ticket_view.php` र `customer/ticket_view.php` ले `(ticket_id, sender, message)` लेख्छन्; `ticket_detail.php` ले `(ticket_id, reply_text, created_at, admin)` — जुन schema भए पनि एउटा page भाँचिन्थ्यो | `ticket_detail.php` कतैबाट linked थिएन (orphan) → हटाइयो |
+| **`payment_transactions.ref_id` vs `reference_id`** | `api/payment/esewa.php` ले `ref_id` लेख्थ्यो, `includes/payment_gateway.php` ले `reference_id` — एउटा "Unknown column" ले fail हुन्थ्यो | `esewa.php` लाई `reference_id` मा मिलाइयो |
+| छुटेका table | `recharge`, `billing_history`, `billing_cycles` — code ले लेख्छ तर कहीँ document थिएन | schema मा थपिए |
+| छुटेका column | `customers.blocked`, `payment_transactions.payment_method`, `customer_subscriptions.billing_cycle_id` | थपिए |
+
+### 11.4 `database/seed.sql`
+
+Branch, 3 plan, billing cycle, role, र **`includes/auth.php` ले हरेक request मा पढ्ने `session_timeout`/`session_idle_timeout`** — ती नभए चुपचाप default मा झर्थ्यो। `system_config` मा ठ्याक्कै एउटा row (page ले `LIMIT 1` गर्छ)।
+
+**Admin account जानाजान seed मा राखिएको छैन** — version control मा password hash पठाउनु भनेको सबैलाई password दिनु हो, जुन यही audit ले `admin123` मा औंल्याएको समस्या हो।
+
+### 11.5 `scripts/create_admin.php`
+
+CLI-only (`PHP_SAPI` जाँच)। Password सधैं prompt हुन्छ, **argument बाट कहिल्यै लिँदैन** — argument shell history र `ps` मा देखिन्छ। `stty -echo` ले echo बन्द गर्छ, नभए warning दिन्छ। Non-superadmin लाई branch अनिवार्य, किनभने `auth.php` ले branch बिनाको non-superadmin लाई login गर्नै दिँदैन।
+
+### 11.6 CI मा नयाँ `schema` job
+
+MySQL 8 service मा:
+1. `schema.sql` + `seed.sql` load हुन्छ (MySQL आफैँले syntax जाँच्छ)
+2. `schema.sql` दोहोर्‍याएर चलाइन्छ — idempotent छ कि
+3. **Code ले लेख्ने हरेक column `information_schema` मा छ कि** — schema र code बेग्लै हुन नदिने असली guard
+
+### 11.7 प्रमाणीकरण
+
+- `sqlglot` (MySQL dialect): 71 statement parse, 67 `CREATE TABLE`, कुनै duplicate छैन, सबै FK ले अस्तित्वमा भएकै table देखाउँछन्
+- Code का सबै `INSERT`/`UPDATE` column schema सँग resolve हुन्छन् — **0 missing**
