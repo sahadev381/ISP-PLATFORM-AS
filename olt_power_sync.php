@@ -16,14 +16,14 @@ $olt_id = $_GET['olt_id'] ?? null;
 
 if (!$olt_id) {
     // Get all active OLTs
-    $olts = $conn->query("SELECT * FROM nas WHERE device_type = 'olt' AND status = 1");
+    $olts = db_all($conn, "SELECT * FROM nas WHERE device_type = 'olt' AND status = 1");
 } else {
-    $olts = $conn->query("SELECT * FROM nas WHERE id = $olt_id");
+    $olts = db_all($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
 }
 
 $results = [];
 
-while ($olt = $olts->fetch_assoc()) {
+foreach ($olts as $olt) {
     $oltResult = [
         'olt' => $olt['nasname'],
         'ip' => $olt['ip_address'],

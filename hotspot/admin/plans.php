@@ -7,6 +7,7 @@ $base_path = '.';
 chdir(__DIR__ . '/../..');
 include_once 'config.php';
 include_once 'includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 include_once 'hotspot/includes/plan_manager.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -19,12 +20,13 @@ $message = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
-    
+
     // Generate PINs
     if ($action == 'generate_pins') {
-        $profileId = $_POST['profile_id'] ?? 1;
-        $count = (int)($_POST['count'] ?? 10);
+        $profileId = (int) ($_POST['profile_id'] ?? 1);
+        $count = min(1000, max(1, (int)($_POST['count'] ?? 10)));
         
         $pins = $planMgr->generatePINs($profileId, $count);
         $message = "Generated " . count($pins) . " PINs: " . implode(', ', array_slice($pins, 0, 10));
@@ -148,6 +150,7 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="card-body">
                     <form method="POST" class="row g-3">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create_plan">
                         
                         <div class="col-md-3">
@@ -225,6 +228,7 @@ include 'includes/header_hotspot.php';
                                 <td><span class="badge bg-<?= $p['status'] == 'active' ? 'success' : 'secondary' ?>"><?= $p['status'] ?></span></td>
                                 <td>
                                     <form method="POST" style="display:inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_plan">
                                         <input type="hidden" name="plan_id" value="<?= $p['id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this plan?')">
@@ -283,6 +287,7 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="card-body">
                     <form method="POST" class="row g-3">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="generate_pins">
                         
                         <div class="col-md-4">
@@ -325,6 +330,7 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="card-body">
                     <form method="POST" class="row g-3">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="generate_vouchers">
                         
                         <div class="col-md-3">

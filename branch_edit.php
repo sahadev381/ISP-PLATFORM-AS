@@ -8,7 +8,7 @@ include 'includes/header.php';
 if(!isSuperAdmin()) die("Access Denied");
 
 $id = (int)$_GET['id'];
-$branch = $conn->query("SELECT * FROM branches WHERE id=$id")->fetch_assoc();
+$branch = db_one($conn, "SELECT * FROM branches WHERE id = ?", [(int) $id]);
 $error = '';
 
 if(isset($_POST['update'])){

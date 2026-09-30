@@ -8,7 +8,7 @@ $active = "faults";
 // Resolve Fault Logic
 if (isset($_GET['resolve'])) {
     $id = intval($_GET['resolve']);
-    $conn->query("UPDATE network_faults SET is_resolved = 1 WHERE id = $id");
+    db_exec($conn, "UPDATE network_faults SET is_resolved = 1 WHERE id = ?", [(int) $id]);
     header("Location: faults.php?msg=resolved");
     exit;
 }

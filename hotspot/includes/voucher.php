@@ -18,24 +18,23 @@ class VoucherSystem {
     public function generatePins($profileId, $count = 10) {
         $pins = [];
         
+        // Read the profile once instead of on every iteration.
+        $profile = db_one($this->conn, "SELECT validity_hours FROM hotspot_profiles WHERE id = ?", [(int) $profileId]);
+        $validityHours = $profile['validity_hours'] ?? 24;
+
         for ($i = 0; $i < $count; $i++) {
             // Generate 4-digit PIN
-            $pin = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-            
-            // Get profile validity
-            $result = $this->conn->query("SELECT validity_hours FROM hotspot_profiles WHERE id = $profileId");
-            $profile = $result->fetch_assoc();
-            $validityHours = $profile['validity_hours'] ?? 24;
-            
+            $pin = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
             // Calculate expiry
             $expires = date('Y-m-d H:i:s', time() + ($validityHours * 3600));
-            
+
             // Insert into database
-            $this->conn->query("
-                INSERT INTO hotspot_vouchers (pin_code, profile_id, expires_at) 
-                VALUES ('$pin', $profileId, '$expires')
-            ");
-            
+            db_exec($this->conn, "
+                INSERT INTO hotspot_vouchers (pin_code, profile_id, expires_at)
+                VALUES (?, ?, ?)
+            ", [$pin, (int) $profileId, $expires]);
+
             $pins[] = $pin;
         }
         
@@ -48,18 +47,17 @@ class VoucherSystem {
     public function validatePin($pin) {
         $pin = preg_replace('/[^0-9]/', '', $pin);
         
-        $result = $this->conn->query("
+        $voucher = db_one($this->conn, "
             SELECT v.*, p.name as plan_name, p.data_limit_mb, p.validity_hours, p.speed_kbps
             FROM hotspot_vouchers v
             JOIN hotspot_profiles p ON v.profile_id = p.id
-            WHERE v.pin_code = '$pin'
-        ");
-        
-        if ($result->num_rows == 0) {
+            WHERE v.pin_code = ?
+        ", [$pin]);
+
+        if (!$voucher) {
             return ['status' => 'error', 'message' => 'Invalid PIN'];
         }
-        
-        $voucher = $result->fetch_assoc();
+
         
         // Check status
         if ($voucher['status'] == 'used') {
@@ -76,7 +74,7 @@ class VoucherSystem {
         
         // Check expiry
         if (strtotime($voucher['expires_at']) < time()) {
-            $this->conn->query("UPDATE hotspot_vouchers SET status = 'expired' WHERE id = {$voucher['id']}");
+            db_exec($this->conn, "UPDATE hotspot_vouchers SET status = 'expired' WHERE id = ?", [(int) $voucher['id']]);
             return ['status' => 'error', 'message' => 'PIN expired'];
         }
         
@@ -92,11 +90,11 @@ class VoucherSystem {
     public function usePin($pin, $username) {
         $pin = preg_replace('/[^0-9]/', '', $pin);
         
-        $this->conn->query("
-            UPDATE hotspot_vouchers 
-            SET status = 'used', used_by = '$username', used_at = NOW() 
-            WHERE pin_code = '$pin'
-        ");
+        db_exec($this->conn, "
+            UPDATE hotspot_vouchers
+            SET status = 'used', used_by = ?, used_at = NOW()
+            WHERE pin_code = ?
+        ", [$username, $pin]);
         
         return true;
     }
@@ -105,8 +103,7 @@ class VoucherSystem {
      * Get profile by ID
      */
     public function getProfile($profileId) {
-        $result = $this->conn->query("SELECT * FROM hotspot_profiles WHERE id = $profileId");
-        return $result->fetch_assoc();
+        return db_one($this->conn, "SELECT * FROM hotspot_profiles WHERE id = ?", [(int) $profileId]);
     }
     
     /**

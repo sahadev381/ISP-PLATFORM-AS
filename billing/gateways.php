@@ -54,12 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     }
     
     if ($_POST['action'] == 'delete_gateway') {
-        $conn->query("DELETE FROM payment_gateways WHERE id = $gateway_id");
+        db_exec($conn, "DELETE FROM payment_gateways WHERE id = ?", [(int) $gateway_id]);
         $message = 'Gateway deleted';
     }
     
     if ($_POST['action'] == 'toggle_gateway') {
-        $conn->query("UPDATE payment_gateways SET is_active = IF(is_active = 1, 0, 1), updated_at = NOW() WHERE id = $gateway_id");
+        db_exec($conn, "UPDATE payment_gateways SET is_active = IF(is_active = 1, 0, 1), updated_at = NOW() WHERE id = ?", [(int) $gateway_id]);
         $message = 'Gateway status updated';
     }
 }

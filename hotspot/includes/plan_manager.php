@@ -22,37 +22,34 @@ class PlanManager {
     public function getAllPlans($type = null, $status = 'active') {
         $sql = "SELECT * FROM hotspot_plan_types WHERE 1=1";
         
+        $params = [];
         if ($type) {
-            $sql .= " AND type = '$type'";
+            $sql     .= " AND type = ?";
+            $params[] = $type;
         }
         if ($status) {
-            $sql .= " AND status = '$status'";
+            $sql     .= " AND status = ?";
+            $params[] = $status;
         }
-        
+
         $sql .= " ORDER BY type, price";
-        
-        $result = $this->conn->query($sql);
-        $plans = [];
-        while ($row = $result->fetch_assoc()) {
-            $plans[] = $row;
-        }
-        return $plans;
+
+        return db_all($this->conn, $sql, $params);
     }
     
     /**
      * Get plan by ID
      */
     public function getPlan($id) {
-        $result = $this->conn->query("SELECT * FROM hotspot_plan_types WHERE id = $id");
-        return $result ? $result->fetch_assoc() : null;
+        return db_one($this->conn, "SELECT * FROM hotspot_plan_types WHERE id = ?", [(int) $id]);
     }
     
     /**
      * Create new plan
      */
     public function createPlan($data) {
-        $name = $this->conn->real_escape_string($data['name']);
-        $type = $this->conn->real_escape_string($data['type']);
+        $name = (string) ($data['name'] ?? '');
+        $type = (string) ($data['type'] ?? '');
         $dataLimit = (int)($data['data_limit_mb'] ?? 0);
         $timeLimit = (int)($data['time_limit_mins'] ?? 0);
         $speed = (int)($data['speed_kbps'] ?? 1024);
@@ -63,44 +60,56 @@ class PlanManager {
         $price = (float)($data['price'] ?? 0);
         $setupFee = (float)($data['setup_fee'] ?? 0);
         $validity = (int)($data['validity_days'] ?? 30);
-        $billingCycle = $this->conn->real_escape_string($data['billing_cycle'] ?? 'monthly');
+        $billingCycle = (string) ($data['billing_cycle'] ?? 'monthly');
         $isShared = isset($data['is_shared']) ? 1 : 0;
         $sharedUsers = (int)($data['shared_users'] ?? 1);
-        $description = $this->conn->real_escape_string($data['description'] ?? '');
-        
-        $sql = "INSERT INTO hotspot_plan_types (
+        $description = (string) ($data['description'] ?? '');
+
+        return db_insert($this->conn, "INSERT INTO hotspot_plan_types (
             name, type, data_limit_mb, time_limit_mins, speed_kbps, speed_down_kbps, speed_up_kbps,
             fup_limit_mb, fup_speed_kbps, price, setup_fee, validity_days, billing_cycle,
             is_shared, shared_users, description
-        ) VALUES (
-            '$name', '$type', $dataLimit, $timeLimit, $speed, $speedDown, $speedUp,
-            $fupLimit, $fupSpeed, $price, $setupFee, $validity, '$billingCycle',
-            $isShared, $sharedUsers, '$description'
-        )";
-        
-        $this->conn->query($sql);
-        return $this->conn->insert_id;
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+            $name, $type, $dataLimit, $timeLimit, $speed, $speedDown, $speedUp,
+            $fupLimit, $fupSpeed, $price, $setupFee, $validity, $billingCycle,
+            $isShared, $sharedUsers, $description,
+        ]);
     }
     
     /**
      * Update plan
      */
     public function updatePlan($id, $data) {
+        // Only these columns may ever be written, and only via bound values.
+        $textCols = ['name', 'type', 'billing_cycle', 'description'];
+        $intCols  = ['data_limit_mb', 'time_limit_mins', 'speed_kbps', 'speed_down_kbps',
+                     'speed_up_kbps', 'fup_limit_mb', 'fup_speed_kbps', 'validity_days',
+                     'shared_users', 'is_shared'];
+        $numCols  = ['price', 'setup_fee'];
+
         $fields = [];
-        
+        $params = [];
+
         foreach ($data as $key => $value) {
-            if (in_array($key, ['name', 'type', 'billing_cycle', 'description'])) {
-                $fields[] = "$key = '" . $this->conn->real_escape_string($value) . "'";
-            } elseif (in_array($key, ['is_shared'])) {
-                $fields[] = "$key = " . ($value ? 1 : 0);
-            } elseif (is_numeric($value)) {
-                $fields[] = "$key = " . (int)$value;
+            if (in_array($key, $textCols, true)) {
+                $fields[] = "`$key` = ?";
+                $params[] = (string) $value;
+            } elseif ($key === 'is_shared') {
+                $fields[] = "`$key` = ?";
+                $params[] = $value ? 1 : 0;
+            } elseif (in_array($key, $intCols, true)) {
+                $fields[] = "`$key` = ?";
+                $params[] = (int) $value;
+            } elseif (in_array($key, $numCols, true)) {
+                $fields[] = "`$key` = ?";
+                $params[] = (float) $value;
             }
         }
-        
-        if (!empty($fields)) {
-            $sql = "UPDATE hotspot_plan_types SET " . implode(', ', $fields) . " WHERE id = $id";
-            return $this->conn->query($sql);
+
+        if ($fields) {
+            $params[] = (int) $id;
+            return db_exec($this->conn, "UPDATE hotspot_plan_types SET "
+                . implode(', ', $fields) . " WHERE id = ?", $params);
         }
         return false;
     }
@@ -109,7 +118,7 @@ class PlanManager {
      * Delete plan
      */
     public function deletePlan($id) {
-        return $this->conn->query("DELETE FROM hotspot_plan_types WHERE id = $id");
+        return db_exec($this->conn, "DELETE FROM hotspot_plan_types WHERE id = ?", [(int) $id]);
     }
     
     // ==================== VOUCHER TYPES ====================
@@ -118,43 +127,38 @@ class PlanManager {
      * Get all voucher types
      */
     public function getAllVoucherTypes($status = 'active') {
-        $sql = "SELECT * FROM hotspot_voucher_types";
+        $sql    = "SELECT * FROM hotspot_voucher_types";
+        $params = [];
         if ($status) {
-            $sql .= " WHERE status = '$status'";
+            $sql     .= " WHERE status = ?";
+            $params[] = $status;
         }
         $sql .= " ORDER BY type, price";
-        
-        $result = $this->conn->query($sql);
-        $types = [];
-        while ($row = $result->fetch_assoc()) {
-            $types[] = $row;
-        }
-        return $types;
+
+        return db_all($this->conn, $sql, $params);
     }
     
     /**
      * Create voucher type
      */
     public function createVoucherType($data) {
-        $name = $this->conn->real_escape_string($data['name']);
-        $type = $this->conn->real_escape_string($data['type']);
-        $value = (float)$data['value'];
-        $unit = $this->conn->real_escape_string($data['unit'] ?? 'mb');
-        $price = (float)($data['price'] ?? 0);
-        $validity = (int)($data['validity_days'] ?? 30);
-        
-        $sql = "INSERT INTO hotspot_voucher_types (name, type, value, unit, price, validity_days) 
-                VALUES ('$name', '$type', $value, '$unit', $price, $validity)";
-        
-        $this->conn->query($sql);
-        return $this->conn->insert_id;
+        return db_insert($this->conn,
+            "INSERT INTO hotspot_voucher_types (name, type, value, unit, price, validity_days)
+             VALUES (?, ?, ?, ?, ?, ?)", [
+            (string) ($data['name'] ?? ''),
+            (string) ($data['type'] ?? ''),
+            (float) ($data['value'] ?? 0),
+            (string) ($data['unit'] ?? 'mb'),
+            (float) ($data['price'] ?? 0),
+            (int) ($data['validity_days'] ?? 30),
+        ]);
     }
     
     /**
      * Delete voucher type
      */
     public function deleteVoucherType($id) {
-        return $this->conn->query("DELETE FROM hotspot_voucher_types WHERE id = $id");
+        return db_exec($this->conn, "DELETE FROM hotspot_voucher_types WHERE id = ?", [(int) $id]);
     }
     
     // ==================== VOUCHER GENERATION ====================
@@ -163,7 +167,7 @@ class PlanManager {
      * Generate vouchers
      */
     public function generateVouchers($voucherTypeId, $count = 10, $profileId = null) {
-        $type = $this->conn->query("SELECT * FROM hotspot_voucher_types WHERE id = $voucherTypeId")->fetch_assoc();
+        $type = db_one($this->conn, "SELECT * FROM hotspot_voucher_types WHERE id = ?", [(int) $voucherTypeId]);
         if (!$type) {
             return ['status' => 'error', 'message' => 'Voucher type not found'];
         }
@@ -182,19 +186,18 @@ class PlanManager {
             if (!$assignedProfile) {
                 // Find matching profile based on voucher type
                 if ($type['type'] == 'data_topup') {
-                    $result = $this->conn->query("SELECT id FROM hotspot_profiles WHERE type = 'data' ORDER BY data_limit_mb DESC LIMIT 1");
+                    $p = db_one($this->conn, "SELECT id FROM hotspot_profiles WHERE type = 'data' ORDER BY data_limit_mb DESC LIMIT 1");
                 } else {
-                    $result = $this->conn->query("SELECT id FROM hotspot_profiles WHERE type = 'time' ORDER BY validity_hours DESC LIMIT 1");
+                    $p = db_one($this->conn, "SELECT id FROM hotspot_profiles WHERE type = 'time' ORDER BY validity_hours DESC LIMIT 1");
                 }
-                if ($result && $result->num_rows > 0) {
-                    $p = $result->fetch_assoc();
+                if ($p) {
                     $assignedProfile = $p['id'];
                 }
             }
             
             // Insert voucher
-            $this->conn->query("INSERT INTO hotspot_vouchers (pin_code, profile_id, expires_at) 
-                VALUES ('$code', $assignedProfile, '$expires')");
+            db_exec($this->conn, "INSERT INTO hotspot_vouchers (pin_code, profile_id, expires_at)
+                VALUES (?, ?, ?)", [$code, (int) $assignedProfile, $expires]);
             
             $vouchers[] = $code;
         }
@@ -216,8 +219,8 @@ class PlanManager {
         $profile = $this->getPlan($profileId);
         if (!$profile) {
             // Try old profiles table
-            $result = $this->conn->query("SELECT validity_hours FROM hotspot_profiles WHERE id = $profileId");
-            $profile = $result ? $result->fetch_assoc() : ['validity_hours' => 24];
+            $profile = db_one($this->conn, "SELECT validity_hours FROM hotspot_profiles WHERE id = ?", [(int) $profileId])
+                ?? ['validity_hours' => 24];
         }
         
         $validityHours = $profile['validity_hours'] ?? 24;
@@ -226,8 +229,8 @@ class PlanManager {
             $pin = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             $expires = date('Y-m-d H:i:s', time() + ($validityHours * 3600));
             
-            $this->conn->query("INSERT INTO hotspot_vouchers (pin_code, profile_id, expires_at) 
-                VALUES ('$pin', $profileId, '$expires')");
+            db_exec($this->conn, "INSERT INTO hotspot_vouchers (pin_code, profile_id, expires_at)
+                VALUES (?, ?, ?)", [$pin, (int) $profileId, $expires]);
             
             $pins[] = $pin;
         }
@@ -241,32 +244,29 @@ class PlanManager {
      * Redeem voucher (for user account)
      */
     public function redeemVoucher($userId, $voucherCode) {
-        $code = $this->conn->real_escape_string($voucherCode);
-        
         // Check voucher
-        $result = $this->conn->query("
+        $voucher = db_one($this->conn, "
             SELECT v.*, p.data_limit_mb, p.validity_hours, p.speed_kbps
             FROM hotspot_vouchers v
             JOIN hotspot_profiles p ON v.profile_id = p.id
-            WHERE v.pin_code = '$code'
-        ");
-        
-        if (!$result || $result->num_rows == 0) {
+            WHERE v.pin_code = ?
+        ", [(string) $voucherCode]);
+
+        if (!$voucher) {
             return ['status' => 'error', 'message' => 'Invalid voucher'];
         }
-        
-        $voucher = $result->fetch_assoc();
+
         
         if ($voucher['status'] != 'available') {
             return ['status' => 'error', 'message' => 'Voucher already used or expired'];
         }
         
         // Get user
-        $user = $this->conn->query("SELECT * FROM hotspot_users WHERE id = $userId")->fetch_assoc();
+        $user = db_one($this->conn, "SELECT * FROM hotspot_users WHERE id = ?", [(int) $userId]);
         if (!$user) {
             return ['status' => 'error', 'message' => 'User not found'];
         }
-        
+
         // Apply voucher based on profile type
         $newDataLimit = $user['data_limit_mb'];
         $newValidUntil = $user['valid_until'];
@@ -292,18 +292,18 @@ class PlanManager {
         }
         
         // Update user
-        $this->conn->query("UPDATE hotspot_users SET 
-            data_limit_mb = $newDataLimit,
-            valid_until = '$newValidUntil',
+        db_exec($this->conn, "UPDATE hotspot_users SET
+            data_limit_mb = ?,
+            valid_until = ?,
             status = 'active'
-            WHERE id = $userId");
-        
+            WHERE id = ?", [$newDataLimit, $newValidUntil, (int) $userId]);
+
         // Mark voucher as used
-        $this->conn->query("UPDATE hotspot_vouchers SET 
-            status = 'used', 
-            used_by = '{$user['username']}', 
-            used_at = NOW() 
-            WHERE id = {$voucher['id']}");
+        db_exec($this->conn, "UPDATE hotspot_vouchers SET
+            status = 'used',
+            used_by = ?,
+            used_at = NOW()
+            WHERE id = ?", [$user['username'], (int) $voucher['id']]);
         
         return [
             'status' => 'success',
@@ -317,14 +317,14 @@ class PlanManager {
      * TopUp user data
      */
     public function topupData($userId, $mb) {
-        $user = $this->conn->query("SELECT * FROM hotspot_users WHERE id = $userId")->fetch_assoc();
+        $user = db_one($this->conn, "SELECT * FROM hotspot_users WHERE id = ?", [(int) $userId]);
         if (!$user) {
             return ['status' => 'error', 'message' => 'User not found'];
         }
-        
+
         $newLimit = $user['data_limit_mb'] + $mb;
-        
-        $this->conn->query("UPDATE hotspot_users SET data_limit_mb = $newLimit WHERE id = $userId");
+
+        db_exec($this->conn, "UPDATE hotspot_users SET data_limit_mb = ? WHERE id = ?", [$newLimit, (int) $userId]);
         
         return [
             'status' => 'success',
@@ -337,18 +337,18 @@ class PlanManager {
      * Recharge user balance
      */
     public function recharge($userId, $amount) {
-        $user = $this->conn->query("SELECT * FROM hotspot_users WHERE id = $userId")->fetch_assoc();
+        $user = db_one($this->conn, "SELECT * FROM hotspot_users WHERE id = ?", [(int) $userId]);
         if (!$user) {
             return ['status' => 'error', 'message' => 'User not found'];
         }
-        
+
         $newBalance = $user['current_balance'] + $amount;
-        
-        $this->conn->query("UPDATE hotspot_users SET current_balance = $newBalance WHERE id = $userId");
-        
+
+        db_exec($this->conn, "UPDATE hotspot_users SET current_balance = ? WHERE id = ?", [$newBalance, (int) $userId]);
+
         // Log transaction
-        $this->conn->query("INSERT INTO hotspot_invoices (user_id, description, amount, total, status, paid_at) 
-            VALUES ($userId, 'Account Recharge', $amount, $amount, 'paid', NOW())");
+        db_exec($this->conn, "INSERT INTO hotspot_invoices (user_id, description, amount, total, status, paid_at)
+            VALUES (?, 'Account Recharge', ?, ?, 'paid', NOW())", [(int) $userId, $amount, $amount]);
         
         return [
             'status' => 'success',
@@ -363,7 +363,7 @@ class PlanManager {
      * Create invoice
      */
     public function createInvoice($userId, $planId, $description = '') {
-        $user = $this->conn->query("SELECT * FROM hotspot_users WHERE id = $userId")->fetch_assoc();
+        $user = db_one($this->conn, "SELECT * FROM hotspot_users WHERE id = ?", [(int) $userId]);
         $plan = $this->getPlan($planId);
         
         if (!$user || !$plan) {
@@ -376,17 +376,16 @@ class PlanManager {
         $total = $amount + $tax;
         $dueDate = date('Y-m-d', strtotime('+' . $plan['validity_days'] . ' days'));
         
-        $desc = $this->conn->real_escape_string($description ?: "{$plan['name']} - {$plan['validity_days']} days");
-        
-        $this->conn->query("INSERT INTO hotspot_invoices (
+        $desc = $description ?: "{$plan['name']} - {$plan['validity_days']} days";
+
+        $invoiceId = db_insert($this->conn, "INSERT INTO hotspot_invoices (
             invoice_number, user_id, plan_id, description, amount, tax, total, due_date
-        ) VALUES (
-            '$invoiceNumber', $userId, $planId, '$desc', $amount, $tax, $total, '$dueDate'
-        )");
-        
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [$invoiceNumber, (int) $userId, (int) $planId, $desc, $amount, $tax, $total, $dueDate]);
+
         return [
             'status' => 'success',
-            'invoice_id' => $this->conn->insert_id,
+            'invoice_id' => $invoiceId,
             'invoice_number' => $invoiceNumber,
             'total' => $total
         ];
@@ -396,7 +395,7 @@ class PlanManager {
      * Pay invoice
      */
     public function payInvoice($invoiceId, $paymentMethod = 'cash', $reference = '') {
-        $invoice = $this->conn->query("SELECT * FROM hotspot_invoices WHERE id = $invoiceId")->fetch_assoc();
+        $invoice = db_one($this->conn, "SELECT * FROM hotspot_invoices WHERE id = ?", [(int) $invoiceId]);
         if (!$invoice) {
             return ['status' => 'error', 'message' => 'Invoice not found'];
         }
@@ -405,14 +404,12 @@ class PlanManager {
             return ['status' => 'error', 'message' => 'Invoice already paid'];
         }
         
-        $ref = $this->conn->real_escape_string($reference);
-        
-        $this->conn->query("UPDATE hotspot_invoices SET 
-            status = 'paid', 
+        db_exec($this->conn, "UPDATE hotspot_invoices SET
+            status = 'paid',
             paid_at = NOW(),
-            payment_method = '$paymentMethod',
-            payment_reference = '$ref'
-            WHERE id = $invoiceId");
+            payment_method = ?,
+            payment_reference = ?
+            WHERE id = ?", [(string) $paymentMethod, (string) $reference, (int) $invoiceId]);
         
         // Activate user
         $userId = $invoice['user_id'];
@@ -422,11 +419,11 @@ class PlanManager {
             $plan = $this->getPlan($planId);
             $validUntil = date('Y-m-d', strtotime('+' . $plan['validity_days'] . ' days'));
             
-            $this->conn->query("UPDATE hotspot_users SET 
+            db_exec($this->conn, "UPDATE hotspot_users SET
                 status = 'active',
-                valid_until = '$validUntil',
-                profile_id = $planId
-                WHERE id = $userId");
+                valid_until = ?,
+                profile_id = ?
+                WHERE id = ?", [$validUntil, (int) $planId, (int) $userId]);
         }
         
         return ['status' => 'success', 'message' => 'Invoice paid successfully'];
@@ -436,12 +433,7 @@ class PlanManager {
      * Get user invoices
      */
     public function getUserInvoices($userId) {
-        $result = $this->conn->query("SELECT * FROM hotspot_invoices WHERE user_id = $userId ORDER BY created_at DESC");
-        $invoices = [];
-        while ($row = $result->fetch_assoc()) {
-            $invoices[] = $row;
-        }
-        return $invoices;
+        return db_all($this->conn, "SELECT * FROM hotspot_invoices WHERE user_id = ? ORDER BY created_at DESC", [(int) $userId]);
     }
     
     // ==================== STATISTICS ====================

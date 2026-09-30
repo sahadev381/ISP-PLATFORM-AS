@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/olt_api.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/olt_api.php';
 
 header('Content-Type: application/json');
 
@@ -12,8 +12,7 @@ if (!$username) die(json_encode(['status' => 'error', 'message' => 'Username req
 
 if ($action == 'refresh') {
     // Get user OLT info
-    $u_res = $conn->query("SELECT olt, onu_mac FROM customers WHERE username = '$username'");
-    $u_data = $u_res->fetch_assoc();
+    $u_data = db_one($conn, "SELECT olt, onu_mac FROM customers WHERE username = ?", [$username]);
     
     if (!$u_data || !$u_data['onu_mac']) {
         die(json_encode(['status' => 'error', 'message' => 'ONU MAC/Serial not found for this user']));
@@ -34,8 +33,7 @@ if ($action == 'refresh') {
 }
 
 if ($action == 'get_history') {
-    $res = $conn->query("SELECT rx_power, tx_power, timestamp FROM onu_power_history WHERE username = '$username' ORDER BY timestamp DESC LIMIT 20");
-    $history = $res->fetch_all(MYSQLI_ASSOC);
+    $history = db_all($conn, "SELECT rx_power, tx_power, timestamp FROM onu_power_history WHERE username = ? ORDER BY timestamp DESC LIMIT 20", [$username]);
     echo json_encode(array_reverse($history));
 }
 ?>

@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: text/html');
-include_once '../../config.php';
+require_once __DIR__ . '/../../config.php';
 
 $id = intval($_GET['id'] ?? 0);
 
@@ -9,7 +9,7 @@ if (!$id) {
     exit;
 }
 
-$gateway = $conn->query("SELECT * FROM payment_gateways WHERE id = $id")->fetch_assoc();
+$gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE id = ?", [(int) $id]);
 
 if (!$gateway) {
     echo 'Gateway not found';

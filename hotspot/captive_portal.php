@@ -37,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     ];
     
     foreach ($settings as $key => $value) {
-        $conn->query("INSERT INTO hotspot_settings (setting_key, setting_value) VALUES ('$key', '$value') 
-            ON DUPLICATE KEY UPDATE setting_value = '$value'");
+        db_exec($conn, "INSERT INTO hotspot_settings (setting_key, setting_value) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = ?", [$key, $value, $value]);
     }
     
     $message = 'Portal customization saved successfully!';

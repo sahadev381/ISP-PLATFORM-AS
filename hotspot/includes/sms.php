@@ -116,17 +116,19 @@ class SMSGateway {
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         
         // Save to database
-        include '../../config.php';
-        
+        require_once __DIR__ . '/../../config.php';
+
         // Delete old OTPs for this phone
-        $conn->query("DELETE FROM hotspot_sms_otp WHERE phone = '$phone'");
-        
+        db_exec($conn, "DELETE FROM hotspot_sms_otp WHERE phone = ?", [$phone]);
+
         // Insert new OTP
         $expires = date('Y-m-d H:i:s', time() + 300); // 5 minutes
-        $conn->query("INSERT INTO hotspot_sms_otp (phone, otp, expires_at) VALUES ('$phone', '$otp', '$expires')");
-        
+        db_exec($conn, "INSERT INTO hotspot_sms_otp (phone, otp, expires_at) VALUES (?, ?, ?)",
+            [$phone, $otp, $expires]);
+
         // Log SMS
-        $conn->query("INSERT INTO hotspot_sms_logs (phone, message, otp, status) VALUES ('$phone', 'OTP: $otp', '$otp', 'sent')");
+        db_exec($conn, "INSERT INTO hotspot_sms_logs (phone, message, otp, status) VALUES (?, ?, ?, 'sent')",
+            [$phone, "OTP: $otp", $otp]);
         
         // Send SMS
         $result = $this->sendSMS($phone, "Your OTP is: $otp. Valid for 5 minutes.");
@@ -135,21 +137,21 @@ class SMSGateway {
     }
     
     public function verifyOTP($phone, $otp) {
-        include '../../config.php';
-        
-        $result = $conn->query("
-            SELECT * FROM hotspot_sms_otp 
-            WHERE phone = '$phone' AND otp = '$otp' 
+        require_once __DIR__ . '/../../config.php';
+
+        $row = db_one($conn, "
+            SELECT id FROM hotspot_sms_otp
+            WHERE phone = ? AND otp = ?
             AND used = 0 AND expires_at > NOW()
             LIMIT 1
-        ");
-        
-        if ($result->num_rows > 0) {
-            // Mark as used
-            $conn->query("UPDATE hotspot_sms_otp SET used = 1 WHERE phone = '$phone' AND otp = '$otp'");
+        ", [$phone, $otp]);
+
+        if ($row) {
+            // Mark as used (by id, so a replay cannot re-use a sibling row)
+            db_exec($conn, "UPDATE hotspot_sms_otp SET used = 1 WHERE id = ?", [(int) $row['id']]);
             return true;
         }
-        
+
         return false;
     }
 }

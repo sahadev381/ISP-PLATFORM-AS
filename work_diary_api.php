@@ -85,7 +85,7 @@ if ($action == 'delete_entry') {
     $id = $_POST['id'];
     // Only allow owner or superadmin to delete
     if ($_SESSION['role'] == 'superadmin') {
-        $conn->query("DELETE FROM work_diary WHERE id = $id");
+        db_exec($conn, "DELETE FROM work_diary WHERE id = ?", [(int) $id]);
         echo json_encode(['status' => 'success']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);

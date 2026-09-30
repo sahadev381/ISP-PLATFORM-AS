@@ -223,13 +223,57 @@ Week 4+ → P2 17–20, P3      (refactor + CI)         ◻ बाँकी
 
 ---
 
-## 7. ◻ अझै बाँकी (अर्को phase)
+## 7. ✅ Phase 2 — raw SQL सफाइ (यसै session मा)
 
-1. बाँकी file हरूमा raw SQL — `includes/payment_gateway.php`, `includes/notification.php`, `hotspot/admin/*`, `hotspot/includes/sms.php`, `leads.php`, `mobile_tech_api.php`, `olt_dashboard.php` (`git grep -nE '(query|exec)\("[^"]*\$'` ले देखाउँछ; CI मा warning छ)
-2. बाँकी सबै form मा `csrf_field()` (अहिले सबैभन्दा जोखिमपूर्ण मात्र भएको छ)
-3. XSS — सबै echo मा `e()` लगाउने
-4. RBAC/branch isolation query-level मा enforce
-5. Payment callback signature verification (eSewa/Khalti)
-6. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`
-7. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
-8. DB schema SQL repo मा राख्ने (अहिले कतै छैन — clone गरेर table बनाउन सकिँदैन)
+Phase 1 पछि बाँकी रहेका सबै interpolated query हरू batch मा हटाइयो। हरेक batch पछि
+`git grep -nE '(query|exec)\("[^"]*\$' -- '<glob>'` ले verify गरिएको छ।
+
+### Batch 1 — `hotspot/` (clean ✅)
+- `hotspot/admin/{roles,users,blacklist,hotel,settings,index,plans}.php`, `hotspot/captive_portal.php`, `hotspot/includes/sms.php` — सबै parameterised + POST handler भएका ठाउँमा `csrf_check()`, 8 admin file मा `csrf_field()` inject
+- `hotspot/includes/plan_manager.php` — पूरै convert (17 method)
+- `hotspot/includes/voucher.php` — `generatePins`/`validatePin`/`usePin`/`getProfile`
+
+### Batch 2 — `includes/` (clean ✅)
+- `includes/notification.php`, `includes/payment_gateway.php`, `includes/olt_api.php`
+
+### Batch 3 — API + root endpoints (clean ✅)
+- `api/olt_ont.php`, `api/snmp_monitor.php`, `api/mikrotik_olt_integration.php`, `api/payment/{esewa,khalti,get_gateway,get_details}.php`
+- `billing/{gateways,invoices,payments,subscriptions}.php`
+- `mobile_tech_api.php`, `provisioning_api.php`, `onu_power_api.php`, `report_api.php`, `system_config.php`
+- `olt_dashboard.php`, `switch_dashboard.php`, `olt_power_sync.php`, `admin.php`, `nas.php`, `plans.php`, `faults.php`, `branch_edit.php`, `ticket_detail.php`, `work_diary_api.php`
+
+### Batch 3 मा भेटिएका गम्भीर logic bug हरू
+
+| फाइल | समस्या | असर | अवस्था |
+|---|---|---|---|
+| `api/payment/khalti.php` `handleWebhook()` | webhook body मा कुनै signature check थिएन — `{"event":"payment.success","transaction_id":"..."}` POST गरे मात्रै invoice **paid** हुन्थ्यो | **जो-कोहीले नतिरी bill clear** गर्न सक्थ्यो | ✅ अब Khalti सँग token re-verify + amount match |
+| `api/payment/{esewa,khalti}.php` `initiatePayment()` | `amount` request body बाट लिइन्थ्यो | Rs 5000 को invoice `amount=1` पठाएर तिर्न सकिन्थ्यो | ✅ अब invoice बाट amount पढिन्छ |
+| `api/payment/khalti.php` `verifyPayment()` | `$result['success']` मात्र हेरिन्थ्यो, captured amount होइन | कम रकममा invoice settle | ✅ paisa comparison थपियो |
+| दुबै gateway callback | completed transaction दोहोर्‍याएर process हुन्थ्यो | replay गरेर दोहोरो credit | ✅ idempotency guard + `WHERE status <> 'completed'` |
+| `mobile_tech_api.php` `send_otp` | response मै `debug_otp` फर्काउँथ्यो | OTP verification निरर्थक — कसैले पनि ticket close | ✅ हटाइयो; `mt_rand` → `random_int` |
+| `mobile_tech_api.php` `confirm_collection` | `amount` POST बाट; `$user`/`$plan` null guard छैन | गलत billing + fatal error | ✅ plan price बाट, guard थपियो |
+| `mobile_tech_api.php` `update_status` | जुनसुकै string ticket status मा लेखिन्थ्यो | data corruption | ✅ whitelist |
+| `provisioning_api.php` `search_customer` | LIKE wildcard escape छैन | `q=%` ले सबै customer dump | ✅ `db_like()` |
+| `provisioning_api.php` reboot/delete/get_power | OLT not-found guard छैन | fatal | ✅ guard थपियो |
+| `report_api.php` | `$type` सिधै `Content-Disposition` header मा | header injection; साथै CSV formula injection | ✅ whitelist + `csv_cell()` |
+| `system_config.php` | extension मात्र हेरेर upload; CSRF छैन | web-served dir मा फाइल राख्न सकिने | ✅ `getimagesize()` + `csrf_check()` |
+| `api/payment/get_details.php` | `$transaction['full_name']` column नै छैन; सबै echo unescaped | खाली field + stored XSS | ✅ `CONCAT_WS` + `e()` |
+| `includes/olt_api.php`, 6 अन्य file | `include 'config.php'` (CWD-निर्भर) | cron/subdir बाट चलाउँदा fail | ✅ `require_once __DIR__` |
+| `hotspot/includes/plan_manager.php::updatePlan` | caller को array key सिधै column name बन्थ्यो | arbitrary column write | ✅ whitelist |
+| `hotspot/includes/voucher.php` | PIN loop भित्र हरेक iteration मा profile query | N वटा voucher = N query | ✅ loop बाहिर hoist |
+| `includes/notification.php` | customer नभेटिए fatal | notification cron crash | ✅ guard |
+
+---
+
+## 8. ◻ अझै बाँकी (अर्को phase)
+
+1. बाँकी raw SQL — `wire_lease_api.php` (6), `user_expiry.php` (5), `map_api.php` (5), `leads.php` (5), `user_edit.php` (4), `invoices.php`, `inventory.php`, `scripts/*_cron.php`, `ticket_view.php`, `kb_view.php` आदि (~25 file, `git grep -nE '(query|exec)\("[^"]*\$'`)
+2. `customer/invoices.php:8` — `WHERE username = $id` ले username column लाई numeric id सँग तुलना गर्छ (**अझै unfixed bug**)
+3. `hotspot/admin/users.php` — HTML output truncated छ, `<form>` छैन, JS ले नभएका DOM id खोज्छ
+4. `hotspot/admin/add_profile.php` — `csrf_check()` बाँकी
+5. बाँकी सबै form मा `csrf_field()`; सबै echo मा `e()` (XSS)
+6. RBAC/branch isolation query-level मा enforce
+7. Duplicate page merge: `index.php`/`login.php`, `customer/index.php`/`customer/login.php`, `report/`/`reports/`, `invoices.php`/`billing/invoices.php`
+8. `network_topology.php` (60KB), `mobile_tech.php` (44KB) लाई logic/view/JS मा split
+9. DB schema SQL repo मा राख्ने (अहिले कतै छैन)
+10. `api/payment/*` मा `Access-Control-Allow-Origin: *` छ — payment endpoint मा origin सीमित गर्ने

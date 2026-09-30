@@ -19,22 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $subscription_id = intval($_POST['subscription_id'] ?? 0);
     
     if ($_POST['action'] == 'cancel_subscription') {
-        $conn->query("UPDATE customer_subscriptions SET status = 'cancelled', updated_at = NOW() WHERE id = $subscription_id");
+        db_exec($conn, "UPDATE customer_subscriptions SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [(int) $subscription_id]);
         $message = 'Subscription cancelled successfully';
     }
     
     if ($_POST['action'] == 'suspend_subscription') {
-        $conn->query("UPDATE customer_subscriptions SET status = 'suspended', updated_at = NOW() WHERE id = $subscription_id");
+        db_exec($conn, "UPDATE customer_subscriptions SET status = 'suspended', updated_at = NOW() WHERE id = ?", [(int) $subscription_id]);
         $message = 'Subscription suspended successfully';
     }
     
     if ($_POST['action'] == 'reactivate_subscription') {
-        $conn->query("UPDATE customer_subscriptions SET status = 'active', updated_at = NOW() WHERE id = $subscription_id");
+        db_exec($conn, "UPDATE customer_subscriptions SET status = 'active', updated_at = NOW() WHERE id = ?", [(int) $subscription_id]);
         $message = 'Subscription reactivated successfully';
     }
     
     if ($_POST['action'] == 'delete_subscription') {
-        $conn->query("DELETE FROM customer_subscriptions WHERE id = $subscription_id");
+        db_exec($conn, "DELETE FROM customer_subscriptions WHERE id = ?", [(int) $subscription_id]);
         $message = 'Subscription deleted successfully';
     }
 }

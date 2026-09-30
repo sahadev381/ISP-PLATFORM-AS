@@ -80,8 +80,8 @@ include 'includes/sidebar.php';
 <div class="table-box">
     <table>
         <?php
-        $replies = $conn->query("SELECT * FROM ticket_replies WHERE ticket_id=$ticket_id ORDER BY created_at ASC");
-        while($r = $replies->fetch_assoc()) {
+        $replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY created_at ASC", [(int) $ticket_id]);
+        foreach($replies as $r) {
             echo "<tr><td>" . ($r['admin'] ? 'Admin' : 'Customer') . "</td><td>" . nl2br(htmlspecialchars($r['reply_text'])) . "</td><td>" . $r['created_at'] . "</td></tr>";
         }
         ?>

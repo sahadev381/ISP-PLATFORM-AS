@@ -30,7 +30,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');
@@ -82,8 +82,8 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID and OLT ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id AND device_type = 'olt'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'olt'", [(int) $olt_id]);
         
         if (!$mikrotik || !$olt) {
             jsonResponse(false, 'MikroTik or OLT not found');
@@ -140,7 +140,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');
@@ -175,7 +175,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');
@@ -203,7 +203,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');

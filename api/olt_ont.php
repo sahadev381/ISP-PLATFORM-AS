@@ -35,7 +35,7 @@ switch ($action) {
         }
         
         // Get OLT details
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id AND device_type = 'olt'")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'olt'", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -79,7 +79,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID and Serial required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -106,7 +106,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID and Serial required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -131,7 +131,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID and Serial required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -155,19 +155,19 @@ switch ($action) {
             jsonResponse(false, 'OLT ID required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
         }
         
         // Get ONT counts from database
-        $total = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id")->fetch_assoc()['c'] ?? 0;
-        $online = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND status = 'online'")->fetch_assoc()['c'] ?? 0;
+        $total = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ?", [(int) $olt_id], 0);
+        $online = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND status = 'online'", [(int) $olt_id], 0);
         $offline = $total - $online;
         
         // Calculate critical (signal < -28 dBm)
-        $critical = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND rx_power < -28")->fetch_assoc()['c'] ?? 0;
+        $critical = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND rx_power < -28", [(int) $olt_id], 0);
         
         $data = [
             'total' => $total,
@@ -190,7 +190,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');

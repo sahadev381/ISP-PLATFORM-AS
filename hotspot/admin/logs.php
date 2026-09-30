@@ -7,6 +7,7 @@ $base_path = '.';
 chdir(__DIR__ . '/../..');
 include_once 'config.php';
 include_once 'includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');

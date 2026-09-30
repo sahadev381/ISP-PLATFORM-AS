@@ -6,6 +6,7 @@ chdir(__DIR__ . '/../..');
 $base_path = '.';
 include_once 'config.php';
 include_once 'includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ' . $base_path . '/index.php');
@@ -15,6 +16,7 @@ if (!isset($_SESSION['user_id'])) {
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $settings = [
         'sms_api_url' => $_POST['sms_api_url'] ?? '',
         'sms_api_key' => $_POST['sms_api_key'] ?? '',
@@ -27,11 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     ];
 
     foreach ($settings as $key => $value) {
-        $conn->query("
-            INSERT INTO hotspot_settings (setting_key, setting_value) 
-            VALUES ('$key', '$value')
-            ON DUPLICATE KEY UPDATE setting_value = '$value'
-        ");
+        db_exec($conn, "
+            INSERT INTO hotspot_settings (setting_key, setting_value)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = ?
+        ", [$key, $value, $value]);
     }
 
     $message = 'Settings saved successfully!';
@@ -220,6 +222,7 @@ while ($row = $result->fetch_assoc()) {
             <?php endif; ?>
             
             <form method="POST">
+                <?= csrf_field() ?>
                 <!-- SMS Settings -->
                 <div class="content-card">
                     <div class="card-header">

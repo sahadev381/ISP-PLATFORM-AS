@@ -6,6 +6,7 @@ chdir(__DIR__ . '/../..');
 $base_path = '.';
 include_once 'config.php';
 include_once 'includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ' . $base_path . '/index.php');
@@ -15,28 +16,27 @@ if (!isset($_SESSION['user_id'])) {
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
-    
+
     if ($action == 'add') {
-        $listType = $conn->real_escape_string($_POST['list_type']);
-        $value = $conn->real_escape_string($_POST['value']);
-        $description = $conn->real_escape_string($_POST['description']);
-        $blockAction = $conn->real_escape_string($_POST['action_type']);
-        
-        $conn->query("INSERT INTO hotspot_access_lists (list_type, value, description, action, is_active) 
-            VALUES ('$listType', '$value', '$description', '$blockAction', 1)");
+        $listType    = trim($_POST['list_type'] ?? '');
+        $value       = trim($_POST['value'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $blockAction = trim($_POST['action_type'] ?? '');
+
+        db_exec($conn, "INSERT INTO hotspot_access_lists (list_type, value, description, action, is_active)
+            VALUES (?, ?, ?, ?, 1)", [$listType, $value, $description, $blockAction]);
         $message = "Entry added successfully";
     }
-    
+
     if ($action == 'toggle' && isset($_POST['id'])) {
-        $id = (int)$_POST['id'];
-        $conn->query("UPDATE hotspot_access_lists SET is_active = NOT is_active WHERE id = $id");
+        db_exec($conn, "UPDATE hotspot_access_lists SET is_active = NOT is_active WHERE id = ?", [(int)$_POST['id']]);
         $message = "Status updated";
     }
-    
+
     if ($action == 'delete' && isset($_POST['id'])) {
-        $id = (int)$_POST['id'];
-        $conn->query("DELETE FROM hotspot_access_lists WHERE id = $id");
+        db_exec($conn, "DELETE FROM hotspot_access_lists WHERE id = ?", [(int)$_POST['id']]);
         $message = "Entry deleted";
     }
 }
@@ -431,6 +431,7 @@ while ($row = $stats->fetch_assoc()) {
                 <button class="close" onclick="document.getElementById('addModal').style.display='none'">&times;</button>
             </div>
             <form method="POST" action="">
+                <?= csrf_field() ?>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add">
                     <div class="form-group">

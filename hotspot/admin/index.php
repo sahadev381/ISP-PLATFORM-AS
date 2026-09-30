@@ -7,6 +7,7 @@ $base_path = '.';
 
 include_once 'config.php';
 include_once 'includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 include_once 'hotspot/includes/voucher.php';
 
 $voucherSys = new VoucherSystem();
@@ -19,15 +20,16 @@ if (!isset($_SESSION['user_id'])) {
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+    csrf_check();
     if ($_POST['action'] == 'generate_pins') {
-        $profileId = $_POST['profile_id'] ?? 1;
-        $count = $_POST['count'] ?? 10;
+        $profileId = (int) ($_POST['profile_id'] ?? 1);
+        $count = min(1000, max(1, (int) ($_POST['count'] ?? 10)));
         $pins = $voucherSys->generatePins($profileId, $count);
         $message = "Generated " . count($pins) . " PINs: " . implode(', ', $pins);
     }
     
     if ($_POST['action'] == 'delete_profile' && isset($_POST['profile_id'])) {
-        $conn->query("DELETE FROM hotspot_profiles WHERE id = " . intval($_POST['profile_id']));
+        db_exec($conn, "DELETE FROM hotspot_profiles WHERE id = ?", [(int) $_POST['profile_id']]);
         $message = "Profile deleted";
     }
 }
@@ -303,6 +305,7 @@ $stats = $voucherSys->getStats();
                 </div>
                 <div class="card-body">
                     <form method="POST" style="display: flex; gap: 15px; align-items: flex-end;">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="generate_pins">
                         <div style="flex: 1;">
                             <label style="font-size: 13px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Select Profile</label>
@@ -443,6 +446,7 @@ $stats = $voucherSys->getStats();
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" action="add_profile.php">
+                    <?= csrf_field() ?>
                     <div class="modal-header">
                         <h5>Add Profile</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

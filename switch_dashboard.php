@@ -13,7 +13,7 @@ $switch_ports = [];
 $switch_stats = ['online' => 0, 'offline' => 0];
 
 if ($nas_id) {
-    $selected_switch = $conn->query("SELECT * FROM nas WHERE id = $nas_id")->fetch_assoc();
+    $selected_switch = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $nas_id]);
     if ($selected_switch) {
         if ($selected_switch['snmp_community'] && $selected_switch['snmp_port']) {
             $switch_ports = getSwitchPorts($selected_switch['ip_address'], $selected_switch['snmp_community'], $selected_switch['snmp_port'] ?? 161);

@@ -19,12 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $payment_id = intval($_POST['payment_id'] ?? 0);
     
     if ($_POST['action'] == 'verify_payment') {
-        $conn->query("UPDATE payment_transactions SET status = 'completed', completed_at = NOW() WHERE id = $payment_id");
+        db_exec($conn, "UPDATE payment_transactions SET status = 'completed', completed_at = NOW() WHERE id = ?", [(int) $payment_id]);
         $message = 'Payment verified successfully';
     }
     
     if ($_POST['action'] == 'reject_payment') {
-        $conn->query("UPDATE payment_transactions SET status = 'failed', notes = 'Rejected by admin' WHERE id = $payment_id");
+        db_exec($conn, "UPDATE payment_transactions SET status = 'failed', notes = 'Rejected by admin' WHERE id = ?", [(int) $payment_id]);
         $message = 'Payment rejected';
     }
 }

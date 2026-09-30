@@ -7,6 +7,7 @@ chdir(__DIR__ . '/../..');
 $base_path = '.';
 include_once 'config.php';
 include_once 'includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ' . $base_path . '/login.php');
@@ -17,14 +18,15 @@ $message = '';
 
 // Handle actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
-    
+
     // Add role
     if ($action == 'add_role') {
-        $name = $conn->real_escape_string($_POST['name']);
-        $description = $conn->real_escape_string($_POST['description']);
-        
-        $conn->query("INSERT INTO roles (name, description) VALUES ('$name', '$description')");
+        $name = trim($_POST['name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+
+        db_exec($conn, "INSERT INTO roles (name, description) VALUES (?, ?)", [$name, $description]);
         $message = "Role created successfully!";
     }
     
@@ -33,18 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $roleId = (int)$_POST['role_id'];
         
         // Clear existing permissions
-        $conn->query("DELETE FROM role_permissions WHERE role_id = $roleId");
-        
+        db_exec($conn, "DELETE FROM role_permissions WHERE role_id = ?", [$roleId]);
+
         // Add new permissions
-        if (!empty($_POST['permissions'])) {
-            $values = [];
+        if (!empty($_POST['permissions']) && is_array($_POST['permissions'])) {
+            $placeholders = [];
+            $params = [];
             foreach ($_POST['permissions'] as $perm) {
-                $perm = $conn->real_escape_string($perm);
-                $values[] = "($roleId, '$perm')";
+                $placeholders[] = '(?, ?)';
+                $params[] = $roleId;
+                $params[] = (string) $perm;
             }
-            if (!empty($values)) {
-                $sql = "INSERT INTO role_permissions (role_id, permission) VALUES " . implode(', ', $values);
-                $conn->query($sql);
+            if ($placeholders) {
+                db_exec($conn, "INSERT INTO role_permissions (role_id, permission) VALUES "
+                    . implode(', ', $placeholders), $params);
             }
         }
         $message = "Permissions updated!";
@@ -53,8 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Delete role
     if ($action == 'delete_role' && isset($_POST['role_id'])) {
         $roleId = (int)$_POST['role_id'];
-        $conn->query("DELETE FROM role_permissions WHERE role_id = $roleId");
-        $conn->query("DELETE FROM roles WHERE id = $roleId");
+        db_exec($conn, "DELETE FROM role_permissions WHERE role_id = ?", [$roleId]);
+        db_exec($conn, "DELETE FROM roles WHERE id = ?", [$roleId]);
         $message = "Role deleted!";
     }
 }
@@ -113,6 +117,7 @@ while ($p = $perms->fetch_assoc()) {
                 <div class="card-body">
                     <!-- Add Role Form -->
                     <form method="POST" class="mb-4">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="add_role">
                         <div class="input-group">
                             <input type="text" name="name" class="form-control" placeholder="New role name" required>
@@ -134,6 +139,7 @@ while ($p = $perms->fetch_assoc()) {
                                     </span>
                                     <?php if ($role['id'] > 1): ?>
                                     <form method="POST" style="display:inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_role">
                                         <input type="hidden" name="role_id" value="<?= $role['id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this role?')">
@@ -153,13 +159,14 @@ while ($p = $perms->fetch_assoc()) {
         <div class="col-md-8">
             <?php if (!empty($_GET['role_id'])): ?>
                 <?php $roleId = (int)$_GET['role_id']; ?>
-                <?php $currentRole = $conn->query("SELECT * FROM roles WHERE id = $roleId")->fetch_assoc(); ?>
+                <?php $currentRole = db_one($conn, "SELECT * FROM roles WHERE id = ?", [$roleId]); ?>
                 <div class="card">
                     <div class="card-header">
                         <h5><i class="fas fa-shield-alt"></i> Permissions for: <?= htmlspecialchars($currentRole['name']) ?></h5>
                     </div>
                     <div class="card-body">
                         <form method="POST">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="action" value="save_permissions">
                             <input type="hidden" name="role_id" value="<?= $roleId ?>">
                             

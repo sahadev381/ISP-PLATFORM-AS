@@ -34,7 +34,7 @@ if(isset($_POST['add'])){
 /* DELETE DEVICE */
 if(isset($_GET['del'])){
     $id = intval($_GET['del']);
-    $conn->query("DELETE FROM nas WHERE id=$id");
+    db_exec($conn, "DELETE FROM nas WHERE id = ?", [(int) $id]);
 }
 
 /* FETCH DEVICES */

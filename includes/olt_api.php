@@ -61,9 +61,10 @@ class DefaultOLT {
     }
     
     public function getHealth() {
-        include 'config.php';
-        $total = $conn->query("SELECT COUNT(*) as c FROM customers WHERE olt='{$this->olt['nasname']}'")->fetch_assoc()['c'] ?? 0;
-        $online = $conn->query("SELECT COUNT(DISTINCT c.id) as c FROM customers c JOIN radacct r ON c.username=r.username WHERE c.olt='{$this->olt['nasname']}' AND r.acctstoptime IS NULL")->fetch_assoc()['c'] ?? 0;
+        require_once __DIR__ . '/../config.php';
+        $nasname = $this->olt['nasname'] ?? '';
+        $total  = (int) db_value($conn, "SELECT COUNT(*) FROM customers WHERE olt = ?", [$nasname], 0);
+        $online = (int) db_value($conn, "SELECT COUNT(DISTINCT c.id) FROM customers c JOIN radacct r ON c.username = r.username WHERE c.olt = ? AND r.acctstoptime IS NULL", [$nasname], 0);
         
         return [
             'cpu' => rand(10, 40),

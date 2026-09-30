@@ -19,17 +19,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $invoice_id = intval($_POST['invoice_id'] ?? 0);
     
     if ($_POST['action'] == 'mark_paid') {
-        $conn->query("UPDATE billing_invoices SET status = 'paid', paid_at = NOW(), updated_at = NOW() WHERE id = $invoice_id");
+        db_exec($conn, "UPDATE billing_invoices SET status = 'paid', paid_at = NOW(), updated_at = NOW() WHERE id = ?", [(int) $invoice_id]);
         $message = 'Invoice marked as paid';
     }
     
     if ($_POST['action'] == 'cancel_invoice') {
-        $conn->query("UPDATE billing_invoices SET status = 'cancelled', updated_at = NOW() WHERE id = $invoice_id");
+        db_exec($conn, "UPDATE billing_invoices SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [(int) $invoice_id]);
         $message = 'Invoice cancelled';
     }
     
     if ($_POST['action'] == 'delete_invoice') {
-        $conn->query("DELETE FROM billing_invoices WHERE id = $invoice_id");
+        db_exec($conn, "DELETE FROM billing_invoices WHERE id = ?", [(int) $invoice_id]);
         $message = 'Invoice deleted';
     }
 }

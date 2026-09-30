@@ -1,28 +1,34 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/olt_api.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/olt_api.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 header('Content-Type: application/json');
 
 $action = $_GET['action'] ?? '';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
+}
+
 if ($action == 'search_customer') {
     $q = $_GET['q'] ?? '';
-    $res = $conn->query("SELECT id, username, full_name FROM customers WHERE (username LIKE '%$q%' OR full_name LIKE '%$q%') AND (onu_serial IS NULL OR onu_serial = '') LIMIT 10");
-    echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+    // Escape the LIKE wildcards so a query of "%" cannot dump every customer.
+    $like = db_like($q);
+    $rows = db_all($conn, "SELECT id, username, full_name FROM customers WHERE (username LIKE ? OR full_name LIKE ?) AND (onu_serial IS NULL OR onu_serial = '') LIMIT 10", [$like, $like]);
+    echo json_encode($rows);
 }
 
 if ($action == 'provision') {
-    $olt_id = $_POST['olt_id'];
-    $customer_id = $_POST['customer_id'];
-    $sn = $_POST['sn'];
-    $port = $_POST['port'];
-    $vlan = $_POST['vlan'] ?? 100;
-    
+    $olt_id = (int) ($_POST['olt_id'] ?? 0);
+    $customer_id = (int) ($_POST['customer_id'] ?? 0);
+    $sn = (string) ($_POST['sn'] ?? '');
+    $port = (int) ($_POST['port'] ?? 0);
+    $vlan = (int) ($_POST['vlan'] ?? 100);
+
     // Get OLT data
-    $olt_res = $conn->query("SELECT * FROM nas WHERE id = $olt_id");
-    $olt_data = $olt_res->fetch_assoc();
+    $olt_data = db_one($conn, "SELECT * FROM nas WHERE id = ?", [$olt_id]);
     
     if (!$olt_data) die(json_encode(['status' => 'error', 'message' => 'OLT not found']));
     
@@ -44,33 +50,33 @@ if ($action == 'provision') {
 }
 
 if ($action == 'reboot') {
-    $olt_id = $_POST['olt_id'];
-    $sn = $_POST['sn'];
-    $olt_res = $conn->query("SELECT * FROM nas WHERE id = $olt_id");
-    $olt_data = $olt_res->fetch_assoc();
+    $olt_id = (int) ($_POST['olt_id'] ?? 0);
+    $sn = (string) ($_POST['sn'] ?? '');
+    $olt_data = db_one($conn, "SELECT * FROM nas WHERE id = ?", [$olt_id]);
+    if (!$olt_data) die(json_encode(['status' => 'error', 'message' => 'OLT not found']));
     $driver = new OLT_Driver($olt_data);
     if($driver->rebootONT($sn)) echo json_encode(['status' => 'success']);
     else echo json_encode(['status' => 'error', 'message' => 'Reboot failed']);
 }
 
 if ($action == 'delete') {
-    $olt_id = $_POST['olt_id'];
-    $sn = $_POST['sn'];
-    $olt_res = $conn->query("SELECT * FROM nas WHERE id = $olt_id");
-    $olt_data = $olt_res->fetch_assoc();
+    $olt_id = (int) ($_POST['olt_id'] ?? 0);
+    $sn = (string) ($_POST['sn'] ?? '');
+    $olt_data = db_one($conn, "SELECT * FROM nas WHERE id = ?", [$olt_id]);
+    if (!$olt_data) die(json_encode(['status' => 'error', 'message' => 'OLT not found']));
     $driver = new OLT_Driver($olt_data);
     if($driver->deleteONT($sn)) {
-        $conn->query("UPDATE customers SET onu_serial = NULL, onu_mac = NULL, olt_port = 0 WHERE onu_serial = '$sn' OR onu_mac = '$sn'");
+        db_exec($conn, "UPDATE customers SET onu_serial = NULL, onu_mac = NULL, olt_port = 0 WHERE onu_serial = ? OR onu_mac = ?", [$sn, $sn]);
         echo json_encode(['status' => 'success']);
     }
     else echo json_encode(['status' => 'error', 'message' => 'Delete failed']);
 }
 
 if ($action == 'get_power') {
-    $olt_id = $_GET['olt_id'];
-    $sn = $_GET['sn'];
-    $olt_res = $conn->query("SELECT * FROM nas WHERE id = $olt_id");
-    $olt_data = $olt_res->fetch_assoc();
+    $olt_id = (int) ($_GET['olt_id'] ?? 0);
+    $sn = (string) ($_GET['sn'] ?? '');
+    $olt_data = db_one($conn, "SELECT * FROM nas WHERE id = ?", [$olt_id]);
+    if (!$olt_data) die(json_encode(['status' => 'error', 'message' => 'OLT not found']));
     $driver = new OLT_Driver($olt_data);
     $power = $driver->getONUPower($sn);
     echo json_encode(['status' => 'success', 'power' => $power]);

@@ -49,7 +49,7 @@ if (isset($_POST['add'])) {
 if(isset($_GET['del'])){
     $id = (int)$_GET['del'];
     if($id != $_SESSION['user_id']){
-        $conn->query("DELETE FROM admins WHERE id=$id");
+        db_exec($conn, "DELETE FROM admins WHERE id = ?", [(int) $id]);
         $msg = "Admin deleted!";
     }
 }
@@ -73,7 +73,7 @@ if(isset($_POST['change_password'])){
     $confirm_password = $_POST['confirm_password'];
 
     /* Prevent superadmin password change */
-    $check = $conn->query("SELECT role FROM admins WHERE id=$id")->fetch_assoc();
+    $check = db_one($conn, "SELECT role FROM admins WHERE id = ?", [(int) $id]);
     if($check['role'] === 'superadmin'){
         die("Action not allowed");
     }

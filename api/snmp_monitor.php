@@ -31,7 +31,7 @@ switch ($action) {
             jsonResponse(false, 'Device ID required');
         }
         
-        $device = $conn->query("SELECT * FROM nas WHERE id = $device_id")->fetch_assoc();
+        $device = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $device_id]);
         
         if (!$device) {
             jsonResponse(false, 'Device not found');
@@ -107,7 +107,7 @@ switch ($action) {
             jsonResponse(false, 'Device ID required');
         }
         
-        $device = $conn->query("SELECT * FROM nas WHERE id = $device_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $device = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $device_id]);
         
         if (!$device) {
             jsonResponse(false, 'MikroTik not found');
@@ -127,7 +127,7 @@ switch ($action) {
             jsonResponse(false, 'Device ID required');
         }
         
-        $device = $conn->query("SELECT * FROM nas WHERE id = $device_id AND device_type = 'switch'")->fetch_assoc();
+        $device = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'switch'", [(int) $device_id]);
         
         if (!$device) {
             jsonResponse(false, 'Switch not found');

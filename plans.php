@@ -108,7 +108,7 @@ if(isset($_POST['add'])){
 /* Handle Delete Plan */
 if(isset($_GET['del'])){
     $id = (int)$_GET['del'];
-    $conn->query("DELETE FROM plans WHERE id='$id'");
+    db_exec($conn, "DELETE FROM plans WHERE id = ?", [(int) $id]);
     header("Location: plans.php?msg=deleted");
     exit;
 }

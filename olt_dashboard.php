@@ -13,16 +13,16 @@ $olts = $conn->query("SELECT * FROM nas WHERE device_type = 'olt'");
 $olt_id = $_GET['id'] ?? null;
 $selected_olt = null;
 if ($olt_id) {
-    $selected_olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+    $selected_olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
 }
 
 // Get OLT stats from database
 $oltStats = [];
 if ($olt_id) {
-    $oltStats['total'] = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id")->fetch_assoc()['c'] ?? 0;
-    $oltStats['online'] = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND status = 'online'")->fetch_assoc()['c'] ?? 0;
+    $oltStats['total'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ?", [(int) $olt_id], 0);
+    $oltStats['online'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND status = 'online'", [(int) $olt_id], 0);
     $oltStats['offline'] = $oltStats['total'] - $oltStats['online'];
-    $oltStats['critical'] = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND rx_power < -28")->fetch_assoc()['c'] ?? 0;
+    $oltStats['critical'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND rx_power < -28", [(int) $olt_id], 0);
 }
 
 include 'includes/header.php';
