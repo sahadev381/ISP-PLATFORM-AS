@@ -40,19 +40,26 @@ if ($action == 'get_entries') {
     $search = $_GET['search'] ?? '';
     
     $query = "SELECT d.*, a.username FROM work_diary d LEFT JOIN admins a ON d.admin_id = a.id WHERE 1=1";
-    if ($category) $query .= " AND d.category = '$category'";
-    if ($search) $query .= " AND (d.title LIKE '%$search%' OR d.content LIKE '%$search%')";
+    $params = [];
+    if ($category) {
+        $query .= " AND d.category = ?";
+        $params[] = $category;
+    }
+    if ($search) {
+        $query .= " AND (d.title LIKE ? OR d.content LIKE ?)";
+        $like = db_like($search);
+        $params[] = $like;
+        $params[] = $like;
+    }
     $query .= " ORDER BY d.created_at DESC LIMIT 50";
-    
-    $result = $conn->query($query);
-    $entries = $result->fetch_all(MYSQLI_ASSOC);
-    
-    if (!empty($entries)) {
-        $diary_ids = array_column($entries, 'id');
-        $ids_str = implode(',', array_map('intval', $diary_ids));
 
-        $c_res = $conn->query("SELECT c.*, a.username FROM diary_comments c LEFT JOIN admins a ON c.admin_id = a.id WHERE c.diary_id IN ($ids_str) ORDER BY c.created_at ASC");
-        $all_comments = $c_res->fetch_all(MYSQLI_ASSOC);
+    $entries = db_all($conn, $query, $params);
+
+    if (!empty($entries)) {
+        $diary_ids = array_map('intval', array_column($entries, 'id'));
+        $placeholders = implode(',', array_fill(0, count($diary_ids), '?'));
+
+        $all_comments = db_all($conn, "SELECT c.*, a.username FROM diary_comments c LEFT JOIN admins a ON c.admin_id = a.id WHERE c.diary_id IN ($placeholders) ORDER BY c.created_at ASC", $diary_ids);
 
         $comments_map = [];
         foreach ($all_comments as $comment) {

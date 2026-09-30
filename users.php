@@ -42,11 +42,12 @@ $online_users  = count($online_list);
 ============================ */
 $q = $_GET['q'] ?? '';
 $status_filter = $_GET['status'] ?? '';
-$q_safe = $conn->real_escape_string($q);
-
 $where_clauses = [];
+$where_params = [];
 if ($q) {
-    $where_clauses[] = "(c.username LIKE '%$q_safe%' OR c.full_name LIKE '%$q_safe%' OR c.phone LIKE '%$q_safe%' OR c.address LIKE '%$q_safe%')";
+    $where_clauses[] = "(c.username LIKE ? OR c.full_name LIKE ? OR c.phone LIKE ? OR c.address LIKE ?)";
+    $like = db_like($q);
+    array_push($where_params, $like, $like, $like, $like);
 }
 if ($status_filter == 'active') {
     $where_clauses[] = "c.expiry >= CURDATE()";
@@ -64,7 +65,7 @@ $query = "
     $where_sql
     ORDER BY c.created_at DESC
 ";
-$users = $conn->query($query);
+$users = db_all($conn, $query, $where_params);
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -165,8 +166,8 @@ include 'includes/topbar.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if ($users && $users->num_rows > 0): ?>
-                        <?php while($u = $users->fetch_assoc()): 
+                    <?php if (count($users) > 0): ?>
+                        <?php foreach($users as $u): 
                             $initials = strtoupper(substr($u['username'], 0, 2));
                             // Optimization: O(1) lookup instead of O(N) in_array()
                             $is_online = isset($online_list[$u['username']]);
@@ -220,7 +221,7 @@ include 'includes/topbar.php';
                                 </div>
                             </td>
                         </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <tr><td colspan="6" style="text-align: center; padding: 50px; color: #94a3b8;">No customers found.</td></tr>
                     <?php endif; ?>

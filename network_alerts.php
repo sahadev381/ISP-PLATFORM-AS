@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
 
 $page_title = "Network Alerts";
 $active = "nas";
@@ -9,20 +9,24 @@ $filter = $_GET['filter'] ?? 'all';
 $severity = $_GET['severity'] ?? '';
 
 $where = "1=1";
+$params = [];
 if($filter == 'active') $where = "status = 'active'";
 if($filter == 'resolved') $where = "status = 'resolved'";
-if($severity) $where .= " AND severity = '$severity'";
+if($severity) {
+    $where .= " AND severity = ?";
+    $params[] = $severity;
+}
 
-$alerts = $conn->query("SELECT * FROM network_alerts WHERE $where ORDER BY created_at DESC LIMIT 100");
+$alerts = db_all($conn, "SELECT * FROM network_alerts WHERE $where ORDER BY created_at DESC LIMIT 100", $params);
 
-$stats = $conn->query("
-    SELECT 
+$stats = db_one($conn, "
+    SELECT
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
         SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
         SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning,
         COUNT(*) as total
     FROM network_alerts
-")->fetch_assoc();
+") ?? ['active' => 0, 'critical' => 0, 'warning' => 0, 'total' => 0];
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -87,8 +91,8 @@ include 'includes/topbar.php';
                 </tr>
             </thead>
             <tbody>
-                <?php if($alerts->num_rows > 0): ?>
-                    <?php while($alert = $alerts->fetch_assoc()): ?>
+                <?php if(count($alerts) > 0): ?>
+                    <?php foreach($alerts as $alert): ?>
                     <?php 
                         $severity_colors = [
                             'critical' => '#ef4444',
@@ -133,7 +137,7 @@ include 'includes/topbar.php';
                             <?php endif; ?>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
                         <td colspan="7" style="text-align:center; padding: 50px; color: #94a3b8;">

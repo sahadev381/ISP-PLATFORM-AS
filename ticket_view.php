@@ -1,18 +1,26 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) die("Invalid Ticket ID");
 
 /* Handle reply */
 if (isset($_POST['reply'])) {
-    $msg    = trim($_POST['message']);
-    $status = $_POST['status'];
+    csrf_check();
+
+    $msg    = trim($_POST['message'] ?? '');
+    $status = $_POST['status'] ?? '';
+
+    $allowed_status = ['Open', 'In Progress', 'Pending', 'Closed'];
+    if (!in_array($status, $allowed_status, true)) {
+        die("Invalid ticket status");
+    }
 
     if ($msg !== '') {
-        $conn->query("UPDATE tickets SET status='$status' WHERE id=$id");
+        db_exec($conn, "UPDATE tickets SET status = ? WHERE id = ?", [$status, $id]);
         $stmt = $conn->prepare("INSERT INTO ticket_replies (ticket_id, sender, message, created_at) VALUES (?, 'Admin', ?, NOW())");
         $stmt->bind_param("is", $id, $msg);
         $stmt->execute();
@@ -21,16 +29,16 @@ if (isset($_POST['reply'])) {
     }
 }
 
-$ticket = $conn->query("
+$ticket = db_one($conn, "
     SELECT t.*, c.username, c.full_name, c.phone
-    FROM tickets t 
-    LEFT JOIN customers c ON t.customer_id = c.id 
-    WHERE t.id=$id
-")->fetch_assoc();
+    FROM tickets t
+    LEFT JOIN customers c ON t.customer_id = c.id
+    WHERE t.id = ?
+", [$id]);
 
 if (!$ticket) die("Ticket not found");
 
-$replies = $conn->query("SELECT * FROM ticket_replies WHERE ticket_id=$id ORDER BY created_at ASC");
+$replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY created_at ASC", [$id]);
 
 $page_title = "Ticket #" . $id . ": " . $ticket['subject'];
 include $base_path . 'includes/header.php';
@@ -98,7 +106,7 @@ include $base_path . 'includes/topbar.php';
             </div>
 
             <!-- Replies -->
-            <?php while($r = $replies->fetch_assoc()): ?>
+            <?php foreach($replies as $r): ?>
                 <div class="reply-item <?= $r['sender'] == 'Admin' ? 'admin-reply' : 'user-reply' ?>">
                     <div class="reply-bubble">
                         <strong><?= htmlspecialchars($r['sender']) ?>:</strong><br>
@@ -106,7 +114,7 @@ include $base_path . 'includes/topbar.php';
                     </div>
                     <div class="reply-meta"><?= date('M d, h:i A', strtotime($r['created_at'])) ?></div>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     </div>
 
@@ -114,6 +122,7 @@ include $base_path . 'includes/topbar.php';
     <div class="reply-form-card">
         <h4 style="margin-bottom: 15px; color: #1e293b;">Post a Reply</h4>
         <form method="POST">
+            <?= csrf_field() ?>
             <textarea name="message" class="form-control" rows="4" placeholder="Type your reply here..." required></textarea>
             
             <div style="display: flex; justify-content: space-between; align-items: center;">

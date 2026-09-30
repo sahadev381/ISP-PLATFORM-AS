@@ -24,7 +24,7 @@ if (isset($_POST['add'])) {
 // Delete article
 if (isset($_GET['del'])) {
     $id = intval($_GET['del']);
-    $conn->query("DELETE FROM knowledge_base WHERE id=$id");
+    db_exec($conn, "DELETE FROM knowledge_base WHERE id = ?", [(int) $id]);
     header("Location: knowledge_base.php");
     exit;
 }

@@ -20,36 +20,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $gateway_id = intval($_POST['gateway_id'] ?? 0);
     
     if ($_POST['action'] == 'add_gateway') {
-        $gateway_name = $conn->real_escape_string($_POST['gateway_name']);
-        $display_name = $conn->real_escape_string($_POST['display_name']);
-        $api_key = $conn->real_escape_string($_POST['api_key']);
-        $api_secret = $conn->real_escape_string($_POST['api_secret']);
-        $merchant_id = $conn->real_escape_string($_POST['merchant_id']);
-        $public_key = $conn->real_escape_string($_POST['public_key']);
         $is_active = intval($_POST['is_active'] ?? 1);
         $is_test_mode = intval($_POST['is_test_mode'] ?? 0);
-        
-        $conn->query("INSERT INTO payment_gateways (gateway_name, display_name, api_key, api_secret, merchant_id, public_key, is_active, is_test_mode, created_at) 
-                      VALUES ('$gateway_name', '$display_name', '$api_key', '$api_secret', '$merchant_id', '$public_key', $is_active, $is_test_mode, NOW())");
+
+        db_exec($conn, "INSERT INTO payment_gateways (gateway_name, display_name, api_key, api_secret, merchant_id, public_key, is_active, is_test_mode, created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())", [
+            $_POST['gateway_name'] ?? '',
+            $_POST['display_name'] ?? '',
+            $_POST['api_key'] ?? '',
+            $_POST['api_secret'] ?? '',
+            $_POST['merchant_id'] ?? '',
+            $_POST['public_key'] ?? '',
+            $is_active,
+            $is_test_mode,
+        ]);
         $message = 'Gateway added successfully';
     }
     
     if ($_POST['action'] == 'update_gateway') {
-        $gateway_name = $conn->real_escape_string($_POST['gateway_name']);
-        $display_name = $conn->real_escape_string($_POST['display_name']);
-        $api_key = $conn->real_escape_string($_POST['api_key']);
-        $api_secret = $conn->real_escape_string($_POST['api_secret']);
-        $merchant_id = $conn->real_escape_string($_POST['merchant_id']);
-        $public_key = $conn->real_escape_string($_POST['public_key']);
         $is_active = intval($_POST['is_active'] ?? 1);
         $is_test_mode = intval($_POST['is_test_mode'] ?? 0);
-        
-        $conn->query("UPDATE payment_gateways SET 
-                      gateway_name = '$gateway_name', display_name = '$display_name',
-                      api_key = '$api_key', api_secret = '$api_secret',
-                      merchant_id = '$merchant_id', public_key = '$public_key',
-                      is_active = $is_active, is_test_mode = $is_test_mode,
-                      updated_at = NOW() WHERE id = $gateway_id");
+
+        db_exec($conn, "UPDATE payment_gateways SET
+                      gateway_name = ?, display_name = ?,
+                      api_key = ?, api_secret = ?,
+                      merchant_id = ?, public_key = ?,
+                      is_active = ?, is_test_mode = ?,
+                      updated_at = NOW() WHERE id = ?", [
+            $_POST['gateway_name'] ?? '',
+            $_POST['display_name'] ?? '',
+            $_POST['api_key'] ?? '',
+            $_POST['api_secret'] ?? '',
+            $_POST['merchant_id'] ?? '',
+            $_POST['public_key'] ?? '',
+            $is_active,
+            $is_test_mode,
+            $gateway_id,
+        ]);
         $message = 'Gateway updated successfully';
     }
     

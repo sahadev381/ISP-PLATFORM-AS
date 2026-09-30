@@ -84,23 +84,23 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
 
 /* Handle Add Plan */
 if(isset($_POST['add'])){
-    $name       = $conn->real_escape_string($_POST['name']);
-    $speed      = $conn->real_escape_string($_POST['speed']);
-    $price      = $conn->real_escape_string($_POST['price']);
-    $validity   = $conn->real_escape_string($_POST['validity']);
+    $name       = (string) ($_POST['name'] ?? '');
+    $speed      = (string) ($_POST['speed'] ?? '');
+    $price      = (float) ($_POST['price'] ?? 0);
+    $validity   = (int) ($_POST['validity'] ?? 0);
     $data_limit = (float)$_POST['data_limit'] * 1073741824;
-    
-    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
-    $fup1_speed = $conn->real_escape_string($_POST['fup1_speed']);
-    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
-    $fup2_speed = $conn->real_escape_string($_POST['fup2_speed']);
-    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
-    $fup3_speed = $conn->real_escape_string($_POST['fup3_speed']??'');
 
-    $conn->query("
+    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
+    $fup1_speed = (string) ($_POST['fup1_speed'] ?? '');
+    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
+    $fup2_speed = (string) ($_POST['fup2_speed'] ?? '');
+    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
+    $fup3_speed = (string) ($_POST['fup3_speed'] ?? '');
+
+    db_exec($conn, "
         INSERT INTO plans (name, speed, price, validity, data_limit, fup1_limit, fup1_speed, fup2_limit, fup2_speed, fup3_limit, fup3_speed)
-        VALUES ('$name', '$speed', '$price', '$validity', '$data_limit', '$fup1_limit', '$fup1_speed', '$fup2_limit', '$fup2_speed', '$fup3_limit', '$fup3_speed')
-    ");
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ", [$name, $speed, $price, $validity, $data_limit, $fup1_limit, $fup1_speed, $fup2_limit, $fup2_speed, $fup3_limit, $fup3_speed]);
     header("Location: plans.php?msg=added");
     exit;
 }
@@ -116,27 +116,27 @@ if(isset($_GET['del'])){
 /* Handle Edit Plan */
 if(isset($_POST['edit'])){
     $id         = (int)$_POST['id'];
-    $name       = $conn->real_escape_string($_POST['name']);
-    $speed      = $conn->real_escape_string($_POST['speed']);
-    $price      = $conn->real_escape_string($_POST['price']);
-    $validity   = $conn->real_escape_string($_POST['validity']);
+    $name       = (string) ($_POST['name'] ?? '');
+    $speed      = (string) ($_POST['speed'] ?? '');
+    $price      = (float) ($_POST['price'] ?? 0);
+    $validity   = (int) ($_POST['validity'] ?? 0);
     $data_limit = (float)$_POST['data_limit'] * 1073741824;
-    
-    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
-    $fup1_speed = $conn->real_escape_string($_POST['fup1_speed']);
-    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
-    $fup2_speed = $conn->real_escape_string($_POST['fup2_speed']);
-    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
-    $fup3_speed = $conn->real_escape_string($_POST['fup3_speed']??'');
 
-    $conn->query("
+    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
+    $fup1_speed = (string) ($_POST['fup1_speed'] ?? '');
+    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
+    $fup2_speed = (string) ($_POST['fup2_speed'] ?? '');
+    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
+    $fup3_speed = (string) ($_POST['fup3_speed'] ?? '');
+
+    db_exec($conn, "
         UPDATE plans
-        SET name='$name', speed='$speed', price='$price', validity='$validity', data_limit='$data_limit',
-            fup1_limit='$fup1_limit', fup1_speed='$fup1_speed',
-            fup2_limit='$fup2_limit', fup2_speed='$fup2_speed',
-            fup3_limit='$fup3_limit', fup3_speed='$fup3_speed'
-        WHERE id='$id'
-    ");
+        SET name = ?, speed = ?, price = ?, validity = ?, data_limit = ?,
+            fup1_limit = ?, fup1_speed = ?,
+            fup2_limit = ?, fup2_speed = ?,
+            fup3_limit = ?, fup3_speed = ?
+        WHERE id = ?
+    ", [$name, $speed, $price, $validity, $data_limit, $fup1_limit, $fup1_speed, $fup2_limit, $fup2_speed, $fup3_limit, $fup3_speed, $id]);
     header("Location: plans.php?msg=updated");
     exit;
 }

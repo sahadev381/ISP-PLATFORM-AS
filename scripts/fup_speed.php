@@ -52,14 +52,17 @@ function setRadiusSpeed($username, $download_bps, $upload_bps) {
     $download_kbps = $download_bps / 1000;
     $upload_kbps = $upload_bps / 1000;
     
-    $conn->query("DELETE FROM radreply WHERE username='$username' AND attribute LIKE 'Mikrotik-%'");
-    
-    $conn->query("
+    db_exec($conn, "DELETE FROM radreply WHERE username = ? AND attribute LIKE 'Mikrotik-%'", [$username]);
+
+    db_exec($conn, "
         INSERT INTO radreply (username, attribute, op, value)
-        VALUES 
-        ('$username', 'Mikrotik-Rate-Limit', ':=', '${download_kbps}k/${upload_kbps}k'),
-        ('$username', 'Ascend-Data-Rate', ':=', '${download_kbps}000 ${upload_kbps}000')
-    ");
+        VALUES
+        (?, 'Mikrotik-Rate-Limit', ':=', ?),
+        (?, 'Ascend-Data-Rate', ':=', ?)
+    ", [
+        $username, $download_kbps . 'k/' . $upload_kbps . 'k',
+        $username, $download_kbps . '000 ' . $upload_kbps . '000',
+    ]);
 }
 
 if (isset($_GET['username'])) {

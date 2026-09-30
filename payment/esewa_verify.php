@@ -1,9 +1,9 @@
 <?php
-include '../config.php';
-include '../includes/auth.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/auth.php';
 
-$esewa_merchant = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='esewa_merchant_id'")->fetch_assoc()['setting_value'] ?? 'EPAYTEST';
-$esewa_mode = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='esewa_mode'")->fetch_assoc()['setting_value'] ?? 'test';
+$esewa_merchant = db_value($conn, "SELECT setting_value FROM system_settings WHERE setting_key = 'esewa_merchant_id'", [], 'EPAYTEST');
+$esewa_mode = db_value($conn, "SELECT setting_value FROM system_settings WHERE setting_key = 'esewa_mode'", [], 'test');
 
 $oid = $_GET['oid'] ?? '';
 $amt = $_GET['amt'] ?? '';
@@ -27,24 +27,36 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 $response = curl_exec($ch);
 curl_close($ch);
 
-$username = $_SESSION['username'];
+$username = $_SESSION['username'] ?? '';
+$amt = (float) $amt;
 
-if (strpos($response, "Success") !== false) {
+if ($amt <= 0) die("Invalid amount");
+
+if (strpos((string) $response, "Success") !== false) {
     // Payment verified!
     $conn->begin_transaction();
     try {
-        // 1. Update wallet
-        $conn->query("UPDATE customers SET wallet = wallet + $amt WHERE username = '$username'");
-        
-        // 2. Log transaction
-        $stmt = $conn->prepare("INSERT INTO wallet_transactions (username, amount, gateway, status, txn_id) VALUES (?, ?, 'eSewa', 'completed', ?)");
-        $stmt->bind_param("sds", $username, $amt, $refId);
-        $stmt->execute();
-        
-        $conn->commit();
-        $success = true;
-    } catch (Exception $e) {
+        // eSewa can redirect here more than once (browser refresh, back button),
+        // and nothing stopped the same refId from topping the wallet up again.
+        $already = db_value($conn, "SELECT COUNT(*) FROM wallet_transactions WHERE txn_id = ? AND gateway = 'eSewa'", [$refId], 0);
+        if ($already > 0) {
+            $conn->rollback();
+            $success = true;
+            $duplicate = true;
+        } else {
+            // 1. Update wallet
+            db_exec($conn, "UPDATE customers SET wallet = wallet + ? WHERE username = ?", [$amt, $username]);
+
+            // 2. Log transaction
+            db_exec($conn, "INSERT INTO wallet_transactions (username, amount, gateway, status, txn_id) VALUES (?, ?, 'eSewa', 'completed', ?)",
+                [$username, $amt, $refId]);
+
+            $conn->commit();
+            $success = true;
+        }
+    } catch (Throwable $e) {
         $conn->rollback();
+        error_log('esewa_verify failed: ' . $e->getMessage());
         $success = false;
     }
 } else {

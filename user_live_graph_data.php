@@ -12,26 +12,24 @@ if (!$username) {
     exit;
 }
 
-$username = $conn->real_escape_string($username);
-
 $cacheFile = sys_get_temp_dir() . '/radacct_' . md5($username) . '.json';
 $now = time();
 
-$q = $conn->query("
+$session = db_one($conn, "
     SELECT radacctid, acctinputoctets, acctoutputoctets, acctsessiontime, acctstoptime
     FROM radacct
-    WHERE username='$username'
+    WHERE username = ?
       AND acctstoptime IS NULL
     ORDER BY radacctid DESC
     LIMIT 1
-");
+", [$username]);
 
-if (!$q || $q->num_rows === 0) {
+if (!$session) {
     echo json_encode(['offline' => true]);
     exit;
 }
 
-$r = $q->fetch_assoc();
+$r = $session;
 
 $currIn = (int)$r['acctinputoctets'];
 $currOut = (int)$r['acctoutputoctets'];

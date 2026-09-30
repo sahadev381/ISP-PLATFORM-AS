@@ -34,14 +34,13 @@ if ($result->num_rows === 0) die("User not found.");
 $user = $result->fetch_assoc();
 
 // Fetch current cleartext password from radcheck
-$rad_pass_res = $conn->query("SELECT value FROM radcheck WHERE username='$username' AND attribute='Cleartext-Password' LIMIT 1");
-$current_rad_pass = ($rad_pass_res->num_rows > 0) ? $rad_pass_res->fetch_assoc()['value'] : 'N/A';
+$current_rad_pass = db_value($conn, "SELECT value FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password' LIMIT 1", [$username], 'N/A');
 
 /* =========================
    FETCH PLANS & BRANCHES
 ========================= */
-$plans_list = $conn->query("SELECT * FROM plans")->fetch_all(MYSQLI_ASSOC);
-$branches_list = $conn->query("SELECT * FROM branches WHERE status='active'")->fetch_all(MYSQLI_ASSOC);
+$plans_list = db_all($conn, "SELECT * FROM plans");
+$branches_list = db_all($conn, "SELECT * FROM branches WHERE status = 'active'");
 
 /* =========================
    HANDLE FORM SUBMIT
@@ -119,18 +118,21 @@ if (isset($_POST['save_user'])) {
         $stmt->execute();
 
         /* ===== Update RADIUS (PPP) ===== */
-        if (!empty($password)) {
-            $conn->query("
-                INSERT INTO radcheck (username, attribute, op, value) 
-                VALUES ('$username_new', 'Cleartext-Password', ':=', '$password')
-                ON DUPLICATE KEY UPDATE value='$password', username='$username_new'
-            ");
+        // Rename first, then write the password, otherwise the INSERT below
+        // creates a row under the new name while the rename still targets the
+        // old one and the account ends up with two Cleartext-Password rows.
+        if ($username !== $username_new) {
+            db_exec($conn, "UPDATE radcheck SET username = ? WHERE username = ?", [$username_new, $username]);
+            db_exec($conn, "UPDATE radreply SET username = ? WHERE username = ?", [$username_new, $username]);
+            db_exec($conn, "UPDATE radusergroup SET username = ? WHERE username = ?", [$username_new, $username]);
         }
 
-        if ($username !== $username_new) {
-            $conn->query("UPDATE radcheck SET username='$username_new' WHERE username='$username'");
-            $conn->query("UPDATE radreply SET username='$username_new' WHERE username='$username'");
-            $conn->query("UPDATE radusergroup SET username='$username_new' WHERE username='$username'");
+        if (!empty($password)) {
+            db_exec($conn, "
+                INSERT INTO radcheck (username, attribute, op, value)
+                VALUES (?, 'Cleartext-Password', ':=', ?)
+                ON DUPLICATE KEY UPDATE value = VALUES(value)
+            ", [$username_new, $password]);
         }
 
         /* ===== TR-069 DEVICE UPDATE ===== */

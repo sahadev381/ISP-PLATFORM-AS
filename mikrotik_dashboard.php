@@ -19,7 +19,7 @@ $gpon_status = [];
 $olt_devices = [];
 
 if ($nas_id) {
-    $selected_nas = $conn->query("SELECT * FROM nas WHERE id = $nas_id")->fetch_assoc();
+    $selected_nas = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $nas_id]);
     if ($selected_nas) {
         $api = new RouterosAPI();
         $api->debug = false;

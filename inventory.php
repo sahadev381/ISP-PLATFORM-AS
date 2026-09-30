@@ -23,13 +23,13 @@ if (isset($_POST['issue_stock'])) {
     $stmt = $conn->prepare("UPDATE inventory_items SET status='issued', issued_to_user=? WHERE id=?");
     $stmt->bind_param("si", $user, $id);
     $stmt->execute();
-    $conn->query("UPDATE customers SET onu_mac = (SELECT mac_address FROM inventory_items WHERE id=$id) WHERE username='$user'");
+    db_exec($conn, "UPDATE customers SET onu_mac = (SELECT mac_address FROM inventory_items WHERE id = ?) WHERE username = ?", [(int) $id, $user]);
 }
 
 // 3. Handle Item Return
 if (isset($_GET['return'])) {
     $id = intval($_GET['return']);
-    $conn->query("UPDATE inventory_items SET status='in_stock', issued_to_user=NULL WHERE id=$id");
+    db_exec($conn, "UPDATE inventory_items SET status = 'in_stock', issued_to_user = NULL WHERE id = ?", [(int) $id]);
     header("Location: inventory.php?msg=returned");
     exit;
 }
@@ -37,7 +37,7 @@ if (isset($_GET['return'])) {
 // 4. Handle Mark Faulty
 if (isset($_GET['faulty'])) {
     $id = intval($_GET['faulty']);
-    $conn->query("UPDATE inventory_items SET status='faulty' WHERE id=$id");
+    db_exec($conn, "UPDATE inventory_items SET status = 'faulty' WHERE id = ?", [(int) $id]);
     header("Location: inventory.php?msg=faulty");
     exit;
 }

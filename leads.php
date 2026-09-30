@@ -3,8 +3,9 @@ session_start();
 $page_title = "Leads Management";
 $base_path = '';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -13,59 +14,87 @@ if (!isset($_SESSION['user_id'])) {
 
 $message = '';
 
+$lead_statuses = ['new', 'contacted', 'qualified', 'converted', 'lost'];
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+    csrf_check();
+
     $lead_id = intval($_POST['lead_id'] ?? 0);
-    
+
     if ($_POST['action'] == 'add_lead') {
-        $name = $conn->real_escape_string($_POST['name']);
-        $phone = $conn->real_escape_string($_POST['phone']);
-        $email = $conn->real_escape_string($_POST['email']);
-        $company = $conn->real_escape_string($_POST['company']);
-        $address = $conn->real_escape_string($_POST['address']);
-        $plan_interested = $conn->real_escape_string($_POST['plan_interested']);
-        $source = $conn->real_escape_string($_POST['source']);
-        $notes = $conn->real_escape_string($_POST['notes']);
-        
-        $conn->query("INSERT INTO leads (name, phone, email, company, address, plan_interested, source, status, created_by) 
-                      VALUES ('$name', '$phone', '$email', '$company', '$address', '$plan_interested', '$source', 'new', {$_SESSION['user_id']})");
+        db_exec($conn, "INSERT INTO leads (name, phone, email, company, address, plan_interested, source, status, created_by)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)", [
+            $_POST['name'] ?? '',
+            $_POST['phone'] ?? '',
+            $_POST['email'] ?? '',
+            $_POST['company'] ?? '',
+            $_POST['address'] ?? '',
+            $_POST['plan_interested'] ?? '',
+            $_POST['source'] ?? '',
+            (int) $_SESSION['user_id'],
+        ]);
         $message = 'Lead added successfully';
     }
-    
+
     if ($_POST['action'] == 'update_status') {
-        $status = $conn->real_escape_string($_POST['status']);
-        $conn->query("UPDATE leads SET status = '$status', updated_at = NOW() WHERE id = $lead_id");
-        $message = 'Lead status updated';
+        $status = $_POST['status'] ?? '';
+        if (!in_array($status, $lead_statuses, true)) {
+            $message = 'Invalid status';
+        } else {
+            db_exec($conn, "UPDATE leads SET status = ?, updated_at = NOW() WHERE id = ?", [$status, $lead_id]);
+            $message = 'Lead status updated';
+        }
     }
-    
+
     if ($_POST['action'] == 'delete_lead') {
-        $conn->query("DELETE FROM leads WHERE id = $lead_id");
+        db_exec($conn, "DELETE FROM leads WHERE id = ?", [$lead_id]);
         $message = 'Lead deleted';
     }
-    
+
     if ($_POST['action'] == 'convert_lead') {
-        $lead = $conn->query("SELECT * FROM leads WHERE id = $lead_id")->fetch_assoc();
-        if ($lead) {
-            $conn->query("INSERT INTO customers (username, full_name, phone, email, address, created_at) 
-                          VALUES ('" . strtolower(str_replace(' ', '', $lead['name'])) . "', '{$lead['name']}', '{$lead['phone']}', '{$lead['email']}', '{$lead['address']}', NOW())");
-            $conn->query("UPDATE leads SET status = 'converted', updated_at = NOW() WHERE id = $lead_id");
-            $message = 'Lead converted to customer!';
+        $lead = db_one($conn, "SELECT * FROM leads WHERE id = ?", [$lead_id]);
+        if (!$lead) {
+            $message = 'Lead not found';
+        } elseif ($lead['status'] === 'converted') {
+            // Without this check, converting twice creates a duplicate customer.
+            $message = 'Lead has already been converted';
+        } else {
+            // The username was derived from the name with no uniqueness check,
+            // so two leads named the same silently collided on insert.
+            $base = preg_replace('/[^a-z0-9]/', '', strtolower($lead['name'])) ?: 'customer';
+            $username = $base;
+            $suffix = 1;
+            while (db_value($conn, "SELECT COUNT(*) FROM customers WHERE username = ?", [$username], 0) > 0) {
+                $username = $base . (++$suffix);
+            }
+
+            db_exec($conn, "INSERT INTO customers (username, full_name, phone, email, address, created_at)
+                          VALUES (?, ?, ?, ?, ?, NOW())",
+                [$username, $lead['name'], $lead['phone'], $lead['email'], $lead['address']]);
+            db_exec($conn, "UPDATE leads SET status = 'converted', updated_at = NOW() WHERE id = ?", [$lead_id]);
+            $message = 'Lead converted to customer: ' . $username;
         }
     }
 }
 
 $filter_status = $_GET['status'] ?? '';
-$where = $filter_status ? "WHERE status = '$filter_status'" : "";
+$where = '';
+$where_params = [];
+if ($filter_status !== '' && in_array($filter_status, $lead_statuses, true)) {
+    $where = "WHERE status = ?";
+    $where_params[] = $filter_status;
+}
 
-$leads = $conn->query("SELECT * FROM leads $where ORDER BY created_at DESC");
+$leads = db_all($conn, "SELECT * FROM leads $where ORDER BY created_at DESC", $where_params);
 
 $stats = [
-    'total' => $conn->query("SELECT COUNT(*) as c FROM leads")->fetch_assoc()['c'],
-    'new' => $conn->query("SELECT COUNT(*) as c FROM leads WHERE status = 'new'")->fetch_assoc()['c'],
-    'qualified' => $conn->query("SELECT COUNT(*) as c FROM leads WHERE status = 'qualified'")->fetch_assoc()['c'],
-    'converted' => $conn->query("SELECT COUNT(*) as c FROM leads WHERE status = 'converted'")->fetch_assoc()['c'],
+    'total' => db_value($conn, "SELECT COUNT(*) FROM leads", [], 0),
+    'new' => db_value($conn, "SELECT COUNT(*) FROM leads WHERE status = 'new'", [], 0),
+    'qualified' => db_value($conn, "SELECT COUNT(*) FROM leads WHERE status = 'qualified'", [], 0),
+    'converted' => db_value($conn, "SELECT COUNT(*) FROM leads WHERE status = 'converted'", [], 0),
 ];
 
-$plans = $conn->query("SELECT * FROM plans ORDER BY name");
+$plans = db_all($conn, "SELECT * FROM plans ORDER BY name");
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -218,7 +247,7 @@ include 'includes/topbar.php';
                 </tr>
             </thead>
             <tbody>
-                <?php while ($lead = $leads->fetch_assoc()): ?>
+                <?php foreach ($leads as $lead): ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 12px;">#<?= $lead['id'] ?></td>
                     <td style="padding: 12px;"><strong><?= htmlspecialchars($lead['name']) ?></strong></td>
@@ -242,7 +271,7 @@ include 'includes/topbar.php';
                         </div>
                     </td>
                 </tr>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
@@ -253,6 +282,7 @@ include 'includes/topbar.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5>Add New Lead</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -283,9 +313,9 @@ include 'includes/topbar.php';
                         <label>Plan Interested</label>
                         <select name="plan_interested" class="form-select">
                             <option value="">Select Plan</option>
-                            <?php while ($p = $plans->fetch_assoc()): ?>
+                            <?php foreach ($plans as $p): ?>
                                 <option value="<?= $p['name'] ?>"><?= $p['name'] ?> - Rs.<?= $p['price'] ?></option>
-                            <?php endwhile; ?>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -330,7 +360,11 @@ include 'includes/topbar.php';
     function submitAction(action, id) {
         let form = document.createElement('form');
         form.method = 'POST';
-        form.innerHTML = `<input type="hidden" name="action" value="${action}"><input type="hidden" name="lead_id" value="${id}">`;
+        // These dynamically built forms bypass the normal csrf_field() markup,
+        // so the token has to be attached explicitly.
+        form.innerHTML = `<input type="hidden" name="action" value="${action}">`
+            + `<input type="hidden" name="lead_id" value="${id}">`
+            + `<input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES) ?>">`;
         document.body.appendChild(form);
         form.submit();
     }

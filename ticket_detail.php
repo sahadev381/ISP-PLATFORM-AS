@@ -1,7 +1,7 @@
 <?php
 
-include 'config.php';
-include 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
 
 $page_title = "Ticket Details";
 $active = "tickets";
@@ -12,29 +12,23 @@ $active = "tickets";
 
 // Get ticket ID from URL
 $ticket_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$username  = isset($_GET['username']) ? $conn->real_escape_string($_GET['username']) : '';
+$username  = isset($_GET['username']) ? (string) $_GET['username'] : '';
 
 if ($ticket_id <= 0 && empty($username)) {
     die("Ticket ID or username missing!");
-}
-
-if ($ticket_id > 0) {
-    $stmt = $conn->prepare("SELECT t.*, c.full_name, c.username FROM tickets t LEFT JOIN customers c ON t.username = c.username WHERE t.id = ?");
-    $stmt->bind_param("i", $ticket_id);
-} else {
-    $stmt = $conn->prepare("SELECT t.*, c.full_name, c.username FROM tickets t LEFT JOIN customers c ON t.username = c.username WHERE t.username = ?");
-    $stmt->bind_param("s", $username);
 }
 
 /* ===========================
    FETCH TICKET DETAILS
 =========================== */
 
-$stmt = $conn->prepare("SELECT t.*, c.full_name, c.username FROM tickets t LEFT JOIN customers c ON t.username = c.username WHERE t.id = ?");
-$stmt->bind_param("i", $ticket_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$ticket = $result->fetch_assoc();
+// The statement built above used to be thrown away and replaced with an
+// id-only lookup, so ?username=... always reported "Ticket not found".
+if ($ticket_id > 0) {
+    $ticket = db_one($conn, "SELECT t.*, c.full_name, c.username FROM tickets t LEFT JOIN customers c ON t.username = c.username WHERE t.id = ?", [$ticket_id]);
+} else {
+    $ticket = db_one($conn, "SELECT t.*, c.full_name, c.username FROM tickets t LEFT JOIN customers c ON t.username = c.username WHERE t.username = ? ORDER BY t.id DESC LIMIT 1", [$username]);
+}
 
 if (!$ticket) {
     die("Ticket not found!");

@@ -1,37 +1,51 @@
 <?php
-include '../user-config.php';
-include '../includes/customer.php';
-include '../includes/user-header.php';
+require_once __DIR__ . '/../user-config.php';
+require_once __DIR__ . '/../includes/customer.php';
+require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/user-header.php';
 /*include '../includes/sidebar.php';
 include '../includes/topbar.php';
 */
 
-$id = (int)$_GET['id'];
+$id = (int) ($_GET['id'] ?? 0);
+$customer_id = (int) $_SESSION['customer_id'];
 
+// Load the ticket first and confirm it belongs to the logged-in customer.
+// The reply handler used to insert against any ticket id supplied in the URL
+// without checking ownership, so one customer could post into another's ticket.
+$ticket = db_one($conn, "SELECT * FROM tickets WHERE id = ? AND customer_id = ?", [$id, $customer_id]);
 
-if(isset($_POST['reply'])){
-$msg = $_POST['message'];
-$stmt = $conn->prepare("INSERT INTO ticket_replies (ticket_id, sender, message) VALUES (?, 'Customer', ?)");
-$stmt->bind_param("is", $id, $msg);
-$stmt->execute();
+if (!$ticket) {
+    http_response_code(404);
+    exit('Ticket not found.');
 }
 
+if (isset($_POST['reply'])) {
+    csrf_check();
 
-$ticket = $conn->query("SELECT * FROM tickets WHERE id=$id AND customer_id='".$_SESSION['customer_id']."'")->fetch_assoc();
-$replies = $conn->query("SELECT * FROM ticket_replies WHERE ticket_id=$id ORDER BY id ASC");
+    $msg = trim($_POST['message'] ?? '');
+    if ($msg !== '') {
+        db_exec($conn, "INSERT INTO ticket_replies (ticket_id, sender, message) VALUES (?, 'Customer', ?)", [$id, $msg]);
+        header('Location: ticket_view.php?id=' . $id);
+        exit;
+    }
+}
+
+$replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY id ASC", [$id]);
 ?>
 
 
-<h3><?= $ticket['subject'] ?></h3>
-<p>Status: <?= $ticket['status'] ?></p>
+<h3><?= e($ticket['subject']) ?></h3>
+<p>Status: <?= e($ticket['status']) ?></p>
 
 
-<?php while($r=$replies->fetch_assoc()){ ?>
-<div><b><?= $r['sender'] ?>:</b> <?= nl2br($r['message']) ?></div>
+<?php foreach($replies as $r){ ?>
+<div><b><?= e($r['sender']) ?>:</b> <?= nl2br(e($r['message'])) ?></div>
 <?php } ?>
 
 
 <form method="post">
+<?= csrf_field() ?>
 <textarea name="message" required></textarea>
 <button name="reply">Reply</button>
 </form>

@@ -21,8 +21,10 @@ $log_type = $_GET['type'] ?? 'activity';
 // Filter handling
 $filter_date = $_GET['date'] ?? '';
 $where = "";
+$where_params = [];
 if ($filter_date) {
-    $where = "WHERE DATE(created_at) = '$filter_date'";
+    $where = "WHERE DATE(created_at) = ?";
+    $where_params[] = $filter_date;
 }
 
 $message = '';
@@ -176,8 +178,8 @@ $message = '';
                         <tbody>
                             <?php
                             if ($log_type == 'activity') {
-                                $logs = $conn->query("SELECT * FROM activity_log $where ORDER BY created_at DESC LIMIT 500");
-                                while ($l = $logs->fetch_assoc()): ?>
+                                $logs = db_all($conn, "SELECT * FROM activity_log $where ORDER BY created_at DESC LIMIT 500", $where_params);
+                                foreach ($logs as $l): ?>
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['created_at'])) ?></td>
                                         <td><strong><?= htmlspecialchars($l['username']) ?></strong></td>
@@ -185,11 +187,11 @@ $message = '';
                                         <td><?= htmlspecialchars($l['description']) ?></td>
                                         <td><code><?= $l['ip_address'] ?></code></td>
                                     </tr>
-                                <?php endwhile;
+                                <?php endforeach;
                                 
                             } elseif ($log_type == 'login') {
-                                $logs = $conn->query("SELECT * FROM login_attempts ORDER BY attempt_time DESC LIMIT 500");
-                                while ($l = $logs->fetch_assoc()): ?>
+                                $logs = db_all($conn, "SELECT * FROM login_attempts ORDER BY attempt_time DESC LIMIT 500");
+                                foreach ($logs as $l): ?>
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['attempt_time'])) ?></td>
                                         <td><strong><?= htmlspecialchars($l['username']) ?></strong></td>
@@ -203,11 +205,11 @@ $message = '';
                                         <td><code><?= $l['ip_address'] ?? '-' ?></code></td>
                                         <td><?= htmlspecialchars($l['message'] ?? '-') ?></td>
                                     </tr>
-                                <?php endwhile;
+                                <?php endforeach;
                                 
                             } elseif ($log_type == 'sms') {
-                                $logs = $conn->query("SELECT * FROM sms_logs ORDER BY sent_at DESC LIMIT 500");
-                                while ($l = $logs->fetch_assoc()): ?>
+                                $logs = db_all($conn, "SELECT * FROM sms_logs ORDER BY sent_at DESC LIMIT 500");
+                                foreach ($logs as $l): ?>
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['sent_at'])) ?></td>
                                         <td><?= htmlspecialchars($l['phone_number']) ?></td>
@@ -221,11 +223,11 @@ $message = '';
                                         </td>
                                         <td><?= $l['gateway'] ?? '-' ?></td>
                                     </tr>
-                                <?php endwhile;
+                                <?php endforeach;
                                 
                             } elseif ($log_type == 'uptime') {
-                                $logs = $conn->query("SELECT * FROM uptime_logs ORDER BY checked_at DESC LIMIT 500");
-                                while ($l = $logs->fetch_assoc()): ?>
+                                $logs = db_all($conn, "SELECT * FROM uptime_logs ORDER BY checked_at DESC LIMIT 500");
+                                foreach ($logs as $l): ?>
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['checked_at'])) ?></td>
                                         <td><strong><?= htmlspecialchars($l['target_type']) ?></strong></td>
@@ -239,17 +241,17 @@ $message = '';
                                         </td>
                                         <td><?= $l['latency_ms'] ?? '-' ?></td>
                                     </tr>
-                                <?php endwhile;
+                                <?php endforeach;
                                 
                             } elseif ($log_type == 'auto_invoice') {
-                                $logs = $conn->query("SELECT * FROM auto_invoice_log ORDER BY generated_at DESC LIMIT 500");
-                                while ($l = $logs->fetch_assoc()): ?>
+                                $logs = db_all($conn, "SELECT * FROM auto_invoice_log ORDER BY generated_at DESC LIMIT 500");
+                                foreach ($logs as $l): ?>
                                     <tr>
                                         <td><?= date('M d, H:i', strtotime($l['generated_at'])) ?></td>
                                         <td><?= $l['month_year'] ?></td>
                                         <td><?= $l['total_invoices'] ?? '-' ?></td>
                                     </tr>
-                                <?php endwhile;
+                                <?php endforeach;
                             }
                             ?>
                         </tbody>

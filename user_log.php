@@ -1,7 +1,7 @@
 <?php
 
-include 'config.php';
-include 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
 
 $username = isset($_GET['user']) ? trim($_GET['user']) : '';
 
@@ -10,22 +10,18 @@ if ($username === '') {
     exit;
 }
 
-$username_safe = $conn->real_escape_string($username);
-
 /* Run query safely */
-$sql = "
-    SELECT 
+$login_attempts = db_all($conn, "
+    SELECT
         username,
         pass,
         reply,
         authdate
     FROM radpostauth
-    WHERE username='$username_safe'
+    WHERE username = ?
     ORDER BY authdate DESC
     LIMIT 50
-";
-
-$login_attempts = $conn->query($sql);
+", [$username]);
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -51,14 +47,14 @@ function radius_reason($reply, $pass) {
 
 <div class="main">
 
-<?php if ($login_attempts === false) { ?>
+<?php if (false) { ?>
 
     <div class="table-box">
         <h2 style="color:red;">Database Error</h2>
         <pre style="color:#fff;"><?= htmlspecialchars($conn->error) ?></pre>
     </div>
 
-<?php } elseif ($login_attempts->num_rows > 0) { ?>
+<?php } elseif (count($login_attempts) > 0) { ?>
 
 <div class="table-box">
     <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -83,7 +79,7 @@ function radius_reason($reply, $pass) {
     <tbody>
     <?php
     $sn = 1;
-    while ($row = $login_attempts->fetch_assoc()) {
+    foreach ($login_attempts as $row) {
         $success = ($row['reply'] === 'Access-Accept');
         $reason  = radius_reason($row['reply'], $row['pass']);
     ?>

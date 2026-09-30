@@ -58,7 +58,7 @@ include $base_path . 'includes/topbar.php';
                 <thead><tr style="text-align:left; color:#94a3b8;"><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
                 <tbody>
                     <?php
-                    $txns = $conn->query("SELECT * FROM wallet_transactions WHERE username='$username' ORDER BY created_at DESC LIMIT 5");
+                    $txns = db_all($conn, "SELECT * FROM wallet_transactions WHERE username = ? ORDER BY created_at DESC LIMIT 5", [$username]);
                     while($t = $txns->fetch_assoc()):
                     ?>
                     <tr style="border-bottom:1px solid #f8fafc;">

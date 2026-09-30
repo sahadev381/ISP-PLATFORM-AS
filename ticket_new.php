@@ -8,9 +8,11 @@ $active = "tickets";
 
 if(isset($_POST['submit'])){
     $customer_id = (int)$_POST['customer_id'];
-    $subject     = $conn->real_escape_string($_POST['subject']);
-    $message     = $conn->real_escape_string($_POST['message']);
-    $priority    = $conn->real_escape_string($_POST['priority']);
+    // These go into a prepared statement below, so escaping them here just
+    // stored literal backslashes in the ticket text.
+    $subject     = (string) ($_POST['subject'] ?? '');
+    $message     = (string) ($_POST['message'] ?? '');
+    $priority    = (string) ($_POST['priority'] ?? '');
     $branch_id   = $_SESSION['branch_id'] ?? 1;
 
     $stmt = $conn->prepare("

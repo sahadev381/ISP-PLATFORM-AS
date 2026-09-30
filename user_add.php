@@ -62,7 +62,7 @@ if (isset($_POST['add'])) {
         $conn->begin_transaction();
         try {
             // RADIUS CONFIG
-            $conn->query("INSERT INTO radreply (username, attribute, op, value) VALUES ('$username','Mikrotik-Rate-Limit',':=','$speed')");
+            db_exec($conn, "INSERT INTO radreply (username, attribute, op, value) VALUES (?, 'Mikrotik-Rate-Limit', ':=', ?)", [$username, $speed]);
             
             $stmt1 = $conn->prepare("INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Cleartext-Password', ':=', ?)");
             $stmt1->bind_param("ss", $username, $password);

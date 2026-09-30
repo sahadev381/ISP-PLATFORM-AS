@@ -12,7 +12,7 @@ if (!$nas_id || !$interface) {
     die(json_encode(['error' => 'Missing parameters']));
 }
 
-$nas = $conn->query("SELECT * FROM nas WHERE id = $nas_id")->fetch_assoc();
+$nas = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $nas_id]);
 if (!$nas) die(json_encode(['error' => 'NAS not found']));
 
 $api = new RouterosAPI();

@@ -49,26 +49,25 @@ while ($user = $result->fetch_assoc()) {
     $usage_sql = "
         SELECT COALESCE(SUM(acctinputoctets + acctoutputoctets), 0) as total_usage
         FROM radacct
-        WHERE username = '$username'
-        AND acctstarttime >= '$start_date'
+        WHERE username = ?
+        AND acctstarttime >= ?
     ";
-    $usage_res = $conn->query($usage_sql)->fetch_assoc();
-    $current_usage = (float)$usage_res['total_usage'];
+    $current_usage = (float) db_value($conn, $usage_sql, [$username, $start_date], 0);
 
     // 3. Update Cache Table (Preserve fup_reset)
     // If fup_reset is set, clear used_quota (monthly reset)
     if ($fup_reset === 1) {
-        $conn->query("UPDATE data_usage SET used_quota = 0, fup_reset = 0, updated_at = NOW() WHERE username = '$username'");
+        db_exec($conn, "UPDATE data_usage SET used_quota = 0, fup_reset = 0, updated_at = NOW() WHERE username = ?", [$username]);
         $current_usage = 0;
     } else {
-        $conn->query("
-            INSERT INTO data_usage (username, plan_id, used_quota) 
-            VALUES ('$username', $plan_id, $current_usage)
-            ON DUPLICATE KEY UPDATE 
-                plan_id = $plan_id,
-                used_quota = $current_usage,
+        db_exec($conn, "
+            INSERT INTO data_usage (username, plan_id, used_quota)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                plan_id = VALUES(plan_id),
+                used_quota = VALUES(used_quota),
                 updated_at = NOW()
-        ");
+        ", [$username, $plan_id, $current_usage]);
     }
 
     // 4. Determine Target Speed
@@ -102,10 +101,10 @@ while ($user = $result->fetch_assoc()) {
     }
 
     // 5. Update Radreply if changed
-    $check = $conn->query("SELECT value FROM radreply WHERE username='$username' AND attribute='Mikrotik-Rate-Limit'")->fetch_assoc();
-    
-    if (!$check || $check['value'] !== $target_speed) {
-        $conn->query("DELETE FROM radreply WHERE username='$username' AND attribute='Mikrotik-Rate-Limit'");
+    $check = db_value($conn, "SELECT value FROM radreply WHERE username = ? AND attribute = 'Mikrotik-Rate-Limit'", [$username]);
+
+    if ($check === null || $check !== $target_speed) {
+        db_exec($conn, "DELETE FROM radreply WHERE username = ? AND attribute = 'Mikrotik-Rate-Limit'", [$username]);
         $stmt = $conn->prepare("INSERT INTO radreply (username, attribute, op, value) VALUES (?, 'Mikrotik-Rate-Limit', ':=', ?)");
         $stmt->bind_param("ss", $username, $target_speed);
         $stmt->execute();

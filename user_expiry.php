@@ -1,7 +1,8 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $active = "users";
 
@@ -12,18 +13,17 @@ if (!isset($_GET['user']) || empty($_GET['user'])) {
     die("No customer username provided");
 }
 
-$username = $conn->real_escape_string($_GET['user']);
+$username = (string) $_GET['user'];
 
 /* =========================
    FETCH CURRENT DATA
 ========================= */
-$res = $conn->query("
-    SELECT u.*, p.name as plan_name 
-    FROM customers u 
-    LEFT JOIN plans p ON u.plan_id = p.id 
-    WHERE u.username='$username'
-");
-$row = $res->fetch_assoc();
+$row = db_one($conn, "
+    SELECT u.*, p.name as plan_name
+    FROM customers u
+    LEFT JOIN plans p ON u.plan_id = p.id
+    WHERE u.username = ?
+", [$username]);
 
 if (!$row) {
     die("User not found");
@@ -36,31 +36,45 @@ $page_title = "Update Expiry: " . $username;
 ========================= */
 $msg = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
+
     if (empty($_POST['expiry'])) {
         $msg = "<div class='alert error'>Please select an expiry date.</div>";
     } else {
-        $expiry = $conn->real_escape_string($_POST['expiry']); 
-        
+        $expiry = (string) $_POST['expiry'];
+
         // Convert for RADIUS (Expiration attribute)
         $timestamp = strtotime($expiry . ' 23:59:59');
-        $radius_expiry = date('d M Y H:i:s', $timestamp);
-
-        // 1. Update customers table
-        $conn->query("UPDATE customers SET expiry='$expiry', status='active' WHERE username='$username'");
-
-        // 2. Update radcheck (Expiration)
-        $check = $conn->query("SELECT id FROM radcheck WHERE username='$username' AND attribute='Expiration'");
-        if ($check->num_rows > 0) {
-            $conn->query("UPDATE radcheck SET value='$radius_expiry' WHERE username='$username' AND attribute='Expiration'");
+        if ($timestamp === false) {
+            $msg = "<div class='alert error'>Invalid expiry date.</div>";
         } else {
-            $conn->query("INSERT INTO radcheck (username, attribute, op, value) VALUES ('$username', 'Expiration', ':=', '$radius_expiry')");
+            $radius_expiry = date('d M Y H:i:s', $timestamp);
+
+            // The customers table and radcheck must not diverge, so both
+            // updates go in one transaction.
+            $conn->begin_transaction();
+            try {
+                // 1. Update customers table
+                db_exec($conn, "UPDATE customers SET expiry = ?, status = 'active' WHERE username = ?", [$expiry, $username]);
+
+                // 2. Update radcheck (Expiration)
+                $has_attr = db_value($conn, "SELECT COUNT(*) FROM radcheck WHERE username = ? AND attribute = 'Expiration'", [$username], 0);
+                if ($has_attr > 0) {
+                    db_exec($conn, "UPDATE radcheck SET value = ? WHERE username = ? AND attribute = 'Expiration'", [$radius_expiry, $username]);
+                } else {
+                    db_exec($conn, "INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Expiration', ':=', ?)", [$username, $radius_expiry]);
+                }
+
+                $conn->commit();
+            } catch (Throwable $e) {
+                $conn->rollback();
+                error_log('user_expiry update failed: ' . $e->getMessage());
+                die("Could not update expiry. Please try again.");
+            }
+
+            header('Location: user_view.php?username=' . urlencode($username));
+            exit;
         }
-
-        // 3. Optional: Add to recharge log if you have one
-        // $conn->query("INSERT INTO recharge (username, amount, created_at) VALUES ('$username', '0', NOW())");
-
-        echo "<script>alert('Expiry updated successfully for $username'); window.location='user_view.php?username=$username';</script>";
-        exit;
     }
 }
 
@@ -120,6 +134,7 @@ include $base_path . 'includes/topbar.php';
             </div>
 
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label for="expiry">New Expiry Date</label>
                     <input type="date" name="expiry" id="expiry" class="date-input" required value="<?= htmlspecialchars($row['expiry']); ?>">
