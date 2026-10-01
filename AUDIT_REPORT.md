@@ -1859,3 +1859,114 @@ and the one where row counts should *not* decide it.
 
 **233 files, 0 parse errors · 323 assertions, 323 passed · secrets
 clean · 20 CLI scripts · handler budget 189.**
+
+---
+
+## §30 — Phase 24: the pages finally ran
+
+Every previous phase shared one weakness, stated plainly in
+`RELEASE_READINESS.md` §1: nothing in this repository had ever loaded
+a page. Lint, scanners, unit tests over pure helpers — all static. A
+file parses perfectly and still dies on the first request.
+
+CI has had a MySQL 8 service since phase 5. It was already loading
+the schema and the seed. The missing step was small: run the
+application, log in, and ask for every page.
+
+### What the first run found
+
+The login form returned **HTTP 500**.
+
+```
+ValueError: setcookie(): option "lifetime" is invalid
+  includes/session.php:129
+```
+
+`session_repair_cookie()` passed `session_cookie_params()` straight
+to `setcookie()`. The two functions take almost the same array and
+disagree about exactly one key: `session_set_cookie_params()` says
+`lifetime`, meaning seconds from now; `setcookie()` says `expires`,
+meaning an absolute timestamp. PHP 8 throws.
+
+`session_kill()`, ten lines further down the same file, builds the
+array correctly. Both were written in phase 15, in the same sitting,
+and only one of them was right.
+
+**So the session hardening broke login, and it stayed broken for five
+phases.** The unit tests covered the contents of the array; nothing
+covered the call that consumes it. That distinction is the whole
+lesson.
+
+### What was behind it
+
+With login working the crawl reached everything, in three rounds:
+
+| page | fault |
+|---|---|
+| `knowledge_base.php` | `ORDER BY kb_categories.sort_order` — no such column |
+| `hotspot/admin/plans.php` | `WHERE hotspot_voucher_types.status` — no such column |
+| `hotspot/index.php` | required `./includes/csrf.php`; it is one level up |
+| `hotspot/success.php` | `$conn` was null — see below |
+| `payment/khalti_pay.php` | `KHALTI_PUBLIC_KEY` is not defined anywhere |
+| `payment/recharge_wallet.php` | `->fetch_assoc()` on what `db_all()` returns |
+| `reports/accounting.php` | `GROUP BY month ORDER BY created_at` under `only_full_group_by` |
+
+Two of these deserve a note.
+
+**`HotspotAuth::__construct()`** did `require_once config.php` and
+then read `$conn` from local scope. `require_once` returns `true`
+without re-executing when the file is already loaded — and it always
+was, because every caller includes `config.php` first. So `$conn` was
+never created in that scope and was silently null. The fix is
+`global $conn`, plus an explicit failure if it is still not a
+connection, because a null database handle should not travel.
+
+**The two missing columns** are a structural finding, not two typos.
+`database/schema.sql` was reconstructed by reading the application's
+`INSERT` and `UPDATE` statements. That finds every column the code
+*writes* and no column it only *reads* — so a column used solely in a
+`SELECT`, a `WHERE` or an `ORDER BY` was invisible to the
+reconstruction, and is equally invisible to
+`scripts/check_schema.php`, which works the same way. Only running
+the queries finds those. Migration `003` adds both.
+
+### Teaching the crawler what is not a fault
+
+Half the work in this phase was making the report trustworthy.
+
+- **400, 403, 405** from an endpoint that only accepts POST is the
+  endpoint working. The crawler sends bare GETs; refusing one is the
+  correct answer.
+- **404** is never a missing file here — every page was discovered on
+  disk moments earlier. It is `rbac_deny(404)` answering a page that
+  needs `?id=` with no id, which is precisely the behaviour we want:
+  an IDOR becomes a 404 rather than a 403 that confirms the record
+  exists.
+- **204** has no body by definition. `csp_report.php` always answers
+  204, and counting that as an empty response made a correct endpoint
+  look broken.
+- `monitoring/monitor.php` **polls every device and sends an SMS for
+  each that does not answer.** Loading it over HTTP would page the
+  on-call engineer, on every crawl. Denylisted, with the reason
+  recorded next to it — the same hazard as `expire.php`, which runs a
+  `DELETE` on load.
+
+A report with false entries in it teaches people to skim past the
+real ones, which is worse than no report.
+
+### The shape of the lesson
+
+Three of the eight faults were introduced *by this audit*. The
+hardening that broke login shipped alongside the tests that were
+supposed to catch it, and the tests asserted the values in a config
+array rather than whether the function using it could be called.
+
+Every static check in this repository was green across all eight.
+That is not a failure of any one check; it is the ceiling of static
+checking. **The only thing that finds a runtime error is a run.**
+
+### Verification
+
+**137 pages render against MySQL 8, on every push** · 346 assertions
+· schema parity, migrations, integration tests, secrets, CSRF,
+inline-handler budget and CLI scripts all green.

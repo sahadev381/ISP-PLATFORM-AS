@@ -10,30 +10,48 @@ Written 2026-10-01, after security phases 1–15 (`b39e4e2` … `4a4aa41`).
 
 ## 1. The most important caveat
 
-**Not one page of this application has been loaded in a browser during
-this work, and not one query has been run against a real MySQL
-server.**
+**This is now largely closed, and the closing of it is the most
+useful thing in this document.**
 
-The sandbox used for the audit has no MySQL, no Docker and no system
-PHP. Everything was verified with:
+For twenty phases the caveat read: every check in this repository is
+static, no page has ever been rendered, and a file can parse
+perfectly while being fatally broken. That is no longer true. CI now
+runs the real application under `php -S` against MySQL 8, logs in
+through the actual login form, and requests every page.
 
-- a real PHP parser (PHP-WASM 8.2) over all 210 files — syntax only
-- `node --check` over every JavaScript block
-- 159 unit assertions, almost all against pure helper functions
-  (`e()`, `csrf_*`, `branch_scope()`, `cors_*`, session/CSP config)
-- static scanners for SQL interpolation, CSRF ordering, include paths,
-  schema/column agreement
+**137 pages render. On every push.**
 
-That is enough to prove *absence* of a whole class of defects. It is
-**not** enough to prove the application works. A page can parse
-perfectly, pass every static check, and still fail on the first
-request because a column was renamed or an include is missing at
-runtime.
+The first run of that job found a 500 on the login form itself. Seven
+more pages were fatal behind it. All eight had been shipped, green,
+through a lint step, 300-odd unit tests and five static scanners:
 
-So the honest statement is: *the code has been audited and hardened; it
-has not been tested running.* Nobody should put a "production grade"
-label on it until it has run on a staging server against a copy of
-real data.
+| page | what was wrong | since |
+|---|---|---|
+| `index.php` (login POST) | `setcookie()` rejects the `lifetime` key | phase 15 |
+| `hotspot/index.php` | required a `csrf.php` that is one level up | phase 8 |
+| `hotspot/success.php` | `require_once` returns true, so `$conn` was null | original |
+| `knowledge_base.php` | `ORDER BY` a column that does not exist | original |
+| `hotspot/admin/plans.php` | `WHERE` a column that does not exist | original |
+| `payment/khalti_pay.php` | an undefined constant | phase 2 |
+| `payment/recharge_wallet.php` | `->fetch_assoc()` on an array | phase 6 |
+| `reports/accounting.php` | `only_full_group_by` | original |
+
+Three of those were introduced *by the audit itself*. The session
+hardening in phase 15 broke login, and nothing noticed for five
+phases, because the tests covered the contents of the cookie options
+array rather than the call that consumes it.
+
+### What the caveat has shrunk to
+
+The seed data is small and clean; production data is neither. A page
+that renders against twelve seeded rows can still fall over on a
+customer with a null branch, a ten-year-old invoice or a name with
+an apostrophe in it. Running `scripts/smoke_test.php` against a
+restored copy of production remains worth doing, and is the only
+thing that closes the gap entirely.
+
+But "it renders" is now a fact, checked continuously, rather than an
+assumption nobody had tested.
 
 ---
 
@@ -112,12 +130,13 @@ next 2am debugging session.
 
 Ordered by what I would do first.
 
-1. **Staging deploy and a smoke test.** Every page loaded once against
-   a copy of production data, by a human or a script. This is the gap
-   that matters most, because it is the one the audit structurally
-   could not close. Expect it to surface runtime errors; phases 6 and
-   11 each found pages that had been broken for a long time without
-   anyone noticing.
+1. ~~**Staging deploy and a smoke test.**~~ Mostly done, and it did
+   exactly what was predicted: it surfaced eight runtime errors,
+   three of them introduced by this audit. CI runs the application
+   for real on every push and 137 pages render. What is left is to
+   point `scripts/smoke_test.php` at a restored copy of production,
+   because the CI seed is small and clean and production data is
+   neither.
 2. **Database migrations.** There is `database/schema.sql` and no way
    to move an existing database from one version to the next. Right
    now upgrading a live install means hand-written ALTERs. This blocks
