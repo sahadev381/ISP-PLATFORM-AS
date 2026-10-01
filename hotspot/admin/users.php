@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
                 db_exec($conn, "UPDATE hotspot_users SET password = ? WHERE id = ?", [$password, $userId]);
             }
-            $message = json_encode(['type' => 'success', 'msg' => 'User updated successfully!']);
+            $message = 'User updated successfully!';
         } else {
             $password = password_hash($_POST['password'] ?? '', PASSWORD_DEFAULT);
             db_exec($conn, "INSERT INTO hotspot_users (username, password, phone, plan_type, auth_method, mac_address, ip_address, max_devices, single_session, hos_enabled, hos_start, hos_end, data_limit_mb, fup_speed_kbps, valid_until, status)
@@ -66,13 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $maxDevices, $singleSession, $hosEnabled, $hosStart, $hosEnd,
                 $dataLimit, $speed, $validUntil,
             ]);
-            $message = json_encode(['type' => 'success', 'msg' => 'User created successfully!']);
+            $message = 'User created successfully!';
         }
     }
     
     if ($action == 'delete_user' && isset($_POST['user_id'])) {
         db_exec($conn, "DELETE FROM hotspot_users WHERE id = ?", [(int)$_POST['user_id']]);
-        $message = json_encode(['type' => 'success', 'msg' => 'User deleted successfully!']);
+        $message = 'User deleted successfully!';
     }
     
     if ($action == 'toggle_status' && isset($_POST['user_id'])) {
@@ -80,14 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $user = db_one($conn, "SELECT status FROM hotspot_users WHERE id = ?", [$userId]);
         $newStatus = ($user['status'] ?? '') == 'active' ? 'blocked' : 'active';
         db_exec($conn, "UPDATE hotspot_users SET status = ? WHERE id = ?", [$newStatus, $userId]);
-        $message = json_encode(['type' => 'success', 'msg' => "User $newStatus successfully!"]);
+        $message = "User $newStatus successfully!";
     }
     
     if ($action == 'topup' && isset($_POST['user_id'])) {
         $userId = (int)$_POST['user_id'];
         $mb = (int)$_POST['topup_mb'];
         db_exec($conn, "UPDATE hotspot_users SET data_limit_mb = data_limit_mb + ? WHERE id = ?", [$mb, $userId]);
-        $message = json_encode(['type' => 'success', 'msg' => "Added {$mb}MB to user account"]);
+        $message = "Added {$mb}MB to user account";
     }
     
     if ($action == 'recharge' && isset($_POST['user_id'])) {
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $amount = (float)$_POST['recharge_amount'];
         db_exec($conn, "UPDATE hotspot_users SET current_balance = current_balance + ? WHERE id = ?", [$amount, $userId]);
         db_exec($conn, "INSERT INTO hotspot_invoices (user_id, description, amount, total, status, paid_at) VALUES (?, 'Manual Recharge', ?, ?, 'paid', NOW())", [$userId, $amount, $amount]);
-        $message = json_encode(['type' => 'success', 'msg' => "Added Rs.{$amount} to balance"]);
+        $message = "Added Rs.{$amount} to balance";
     }
     
     if ($action == 'bulk_action' && !empty($_POST['user_ids'])) {
@@ -107,12 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($bulkAction == 'delete') {
                 db_exec($conn, "DELETE FROM hotspot_users WHERE id IN ($in)", $userIds);
-                $message = json_encode(['type' => 'success', 'msg' => count($userIds) . ' users deleted']);
+                $message = count($userIds) . ' users deleted';
             } elseif ($bulkAction == 'active' || $bulkAction == 'blocked') {
                 db_exec($conn, "UPDATE hotspot_users SET status = ? WHERE id IN ($in)",
                     array_merge([$bulkAction], $userIds));
-                $message = json_encode(['type' => 'success', 'msg' => count($userIds) . ' users '
-                    . ($bulkAction == 'active' ? 'activated' : 'blocked')]);
+                $message = count($userIds) . ' users '
+                    . ($bulkAction == 'active' ? 'activated' : 'blocked');
             }
         }
     }
@@ -293,14 +293,6 @@ body { background: #f3f4f6; }
 </style>
 
 <div class="container-fluid p-4">
-    <?php if($message): ?>
-    <?php $msg = json_decode($message, true); ?>
-    <div class="alert alert-<?= e($msg['type']) ?> alert-dismissible fade show" role="alert">
-        <i class="fas fa-<?= $msg['type'] == 'success' ? 'check-circle' : 'info-circle' ?>"></i> <?= e($msg['msg']) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
-
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -323,19 +315,397 @@ body { background: #f3f4f6; }
                             <h2 class="mb-0"><?= e($stats['total'] ?? 0) ?></h2>
                         </div>
                         <div style="opacity: 0.5;"><i class="fas fa-users fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card text-white" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="opacity-75 mb-1">Active</p>
+                            <h2 class="mb-0"><?= (int) ($stats['active'] ?? 0) ?></h2>
+                        </div>
+                        <div style="opacity: 0.5;"><i class="fas fa-user-check fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card text-white" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="opacity-75 mb-1">Blocked</p>
+                            <h2 class="mb-0"><?= (int) ($stats['blocked'] ?? 0) ?></h2>
+                        </div>
+                        <div style="opacity: 0.5;"><i class="fas fa-user-slash fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card text-white" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="opacity-75 mb-1">Showing</p>
+                            <h2 class="mb-0"><?= count($users) ?></h2>
+                        </div>
+                        <div style="opacity: 0.5;"><i class="fas fa-list fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <input type="text" name="search" class="form-control search-modern"
+                           placeholder="Search by username or phone" value="<?= e($search) ?>">
+                </div>
+                <div class="col-md-4">
+                    <?php foreach (['all' => 'All', 'active' => 'Active', 'blocked' => 'Blocked'] as $key => $label): ?>
+                        <a href="?filter=<?= e_url($key) ?><?= $search ? '&search=' . e_url($search) : '' ?>"
+                           class="filter-chip <?= $filter === $key ? 'active' : '' ?>"><?= e($label) ?></a>
+                    <?php endforeach; ?>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i> Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk actions + user table.
+         The checkboxes live inside this form so bulkAction() can append
+         the selected ids to it and submit. -->
+    <form id="bulkForm" method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="bulk_action">
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex gap-2 mb-3">
+                    <select name="bulk_action" class="form-select" style="max-width: 220px;">
+                        <option value="">Bulk action...</option>
+                        <option value="active">Activate</option>
+                        <option value="blocked">Block</option>
+                        <option value="delete">Delete</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-primary" onclick="bulkAction()">Apply</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="usersTable" class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">
+                                    <label class="checkbox-wrapper">
+                                        <input type="checkbox" onclick="toggleAll(this)">
+                                        <span class="checkmark"></span>
+                                    </label>
+                                </th>
+                                <th>User</th>
+                                <th>Phone</th>
+                                <th>Plan</th>
+                                <th>Data</th>
+                                <th>Balance</th>
+                                <th>Valid until</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($users as $i => $u): ?>
+                            <tr>
+                                <td>
+                                    <label class="checkbox-wrapper">
+                                        <input type="checkbox" class="user-checkbox" value="<?= (int) $u['id'] ?>">
+                                        <span class="checkmark"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="user-avatar avatar-<?= ($i % 5) + 1 ?>">
+                                            <?= e(strtoupper(substr($u['username'], 0, 2))) ?>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold"><?= e($u['username']) ?></div>
+                                            <div class="text-muted small"><?= e($u['profile_name'] ?? '-') ?></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><?= e($u['phone'] ?? '-') ?></td>
+                                <td><?= e($u['plan_type'] ?? '-') ?></td>
+                                <td><?= (int) $u['data_limit_mb'] ?> MB</td>
+                                <td>Rs. <?= number_format((float) $u['current_balance'], 2) ?></td>
+                                <td><?= e($u['valid_until'] ?? '-') ?></td>
+                                <td>
+                                    <span class="badge bg-<?= $u['status'] === 'active' ? 'success' : ($u['status'] === 'blocked' ? 'danger' : 'secondary') ?>">
+                                        <?= e($u['status']) ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="dropdown action-dropdown">
+                                        <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                                                        data-bs-target="#userModal"
+                                                        data-user="<?= e(json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT)) ?>">
+                                                    <i class="fas fa-edit me-2"></i> Edit
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                                                        data-bs-target="#topupModal"
+                                                        data-user-id="<?= (int) $u['id'] ?>"
+                                                        data-username="<?= e($u['username']) ?>">
+                                                    <i class="fas fa-database me-2"></i> Top up data
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                                                        data-bs-target="#rechargeModal"
+                                                        data-user-id="<?= (int) $u['id'] ?>"
+                                                        data-username="<?= e($u['username']) ?>">
+                                                    <i class="fas fa-wallet me-2"></i> Recharge
+                                                </button>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="submit" form="toggleForm<?= (int) $u['id'] ?>" class="dropdown-item">
+                                                    <i class="fas fa-power-off me-2"></i>
+                                                    <?= $u['status'] === 'active' ? 'Block' : 'Activate' ?>
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal"
+                                                        data-bs-target="#deleteModal"
+                                                        data-user-id="<?= (int) $u['id'] ?>"
+                                                        data-username="<?= e($u['username']) ?>">
+                                                    <i class="fas fa-trash me-2"></i> Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <?php /* Status toggles are separate forms: a form cannot be nested
+             inside the bulk form, so they are declared here and the
+             buttons above reference them with form="...". */ ?>
+    <?php foreach ($users as $u): ?>
+        <form id="toggleForm<?= (int) $u['id'] ?>" method="post" class="d-none">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="toggle_status">
+            <input type="hidden" name="user_id" value="<?= (int) $u['id'] ?>">
+        </form>
+    <?php endforeach; ?>
+</div>
+
+<!-- Add / edit user -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="save_user">
+                <input type="hidden" name="user_id" id="user_id">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="username" id="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password</label>
+                            <!-- Never pre-filled: the stored value is a hash and
+                                 blank means "keep the current password". -->
+                            <input type="password" name="password" id="password" class="form-control"
+                                   autocomplete="new-password" placeholder="Leave blank to keep current">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" id="phone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Plan type</label>
+                            <select name="plan_type" id="plan_type" class="form-select">
+                                <option value="prepaid">Prepaid</option>
+                                <option value="postpaid">Postpaid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Auth method</label>
+                            <select name="auth_method" id="auth_method" class="form-select">
+                                <option value="password">Password</option>
+                                <option value="otp">OTP</option>
+                                <option value="mac">MAC</option>
+                                <option value="voucher">Voucher</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MAC address</label>
+                            <input type="text" name="mac_address" id="mac_address" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">IP address</label>
+                            <input type="text" name="ip_address" id="ip_address" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Max devices</label>
+                            <input type="number" name="max_devices" id="max_devices" class="form-control" value="1" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data limit (MB, 0 = unlimited)</label>
+                            <input type="number" name="data_limit_mb" id="data_limit_mb" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Speed (kbps)</label>
+                            <input type="number" name="speed_kbps" id="speed_kbps" class="form-control" value="1024" min="0">
+                            <div class="mt-2 d-flex gap-1">
+                                <button type="button" class="quick-btn" onclick="setValue('speed_kbps', 1024)">1M</button>
+                                <button type="button" class="quick-btn" onclick="setValue('speed_kbps', 5120)">5M</button>
+                                <button type="button" class="quick-btn" onclick="setValue('speed_kbps', 10240)">10M</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valid until</label>
+                            <input type="datetime-local" name="valid_until" id="valid_until" class="form-control">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="single_session" id="single_session" value="1" checked>
+                                <label class="form-check-label" for="single_session">Single session only</label>
+                            </div>
+                        </div>
+                        <div class="col-12"><hr class="my-1"></div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="hos_enabled" id="hos_enabled" value="1">
+                                <label class="form-check-label" for="hos_enabled">Restrict to hours</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">From</label>
+                            <input type="time" name="hos_start" id="hos_start" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">To</label>
+                            <input type="time" name="hos_end" id="hos_end" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save user</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
+<!-- Top up data -->
+<div class="modal fade" id="topupModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="topup">
+                <input type="hidden" name="user_id" id="topup_user_id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Top up <span id="topup_username"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Data to add (MB)</label>
+                    <input type="number" name="topup_mb" class="form-control" value="1024" min="1" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Recharge balance -->
+<div class="modal fade" id="rechargeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="recharge">
+                <input type="hidden" name="user_id" id="recharge_user_id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Recharge <span id="recharge_username"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Amount (Rs.)</label>
+                    <input type="number" step="0.01" name="recharge_amount" class="form-control" min="0.01" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Recharge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="delete_user">
+                <input type="hidden" name="user_id" id="delete_user_id">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Delete user</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Permanently delete <strong id="delete_username"></strong>? This cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-</body>
-</html>
-
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 
 <script>
 $(document).ready(function() {
@@ -437,3 +807,7 @@ document.getElementById('deleteModal').addEventListener('show.bs.modal', functio
     document.getElementById('delete_username').textContent = btn.getAttribute('data-username');
 });
 </script>
+
+</div><!-- /.main-content -->
+</body>
+</html>

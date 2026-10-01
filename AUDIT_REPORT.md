@@ -812,3 +812,64 @@ anywhere in a PHP file. Checked against the current tree: clean.
 Nothing in the application now depends on the working directory it is
 started from, so the cron scripts behave the same from `/` as from the
 document root.
+
+---
+
+## §17 — Phase 11: the truncated hotspot user page
+
+`hotspot/admin/users.php` was listed in §8 as "truncated". It is worse
+than it sounds.
+
+### What was missing
+
+The file stops mid-way through the first stat card:
+
+```html
+            <div style="opacity: 0.5;"><i class="fas fa-users fa-2x"></i></div>
+    </div>
+</div>
+```
+
+and then jumps straight to the script tags, `</body></html>`, and a
+*second* copy of some of those script tags after the closing html.
+
+Gone with it: three stat cards, the search and filter bar, the entire
+user table, the bulk-action controls, and **all four modals**.
+
+The JavaScript at the bottom survived intact, and it addresses
+`#userModal`, `#topupModal`, `#rechargeModal`, `#deleteModal` and
+`#bulkForm` — none of which existed in the document. Every one of those
+`addEventListener` calls threw on page load.
+
+Meanwhile the PHP at the top handles six POST actions — `save_user`,
+`delete_user`, `toggle_status`, `topup`, `recharge`, `bulk_action` —
+and **not one of them had a form that could submit it**. The page
+rendered a nav bar, one broken card, and a console full of errors.
+Hotspot user management did not exist.
+
+### Rebuilt
+
+The markup was reconstructed against two fixed points: the element ids
+the surviving JavaScript expects, and the real `hotspot_users` columns
+from the schema (verified: every column the new table reads exists).
+Every form carries `csrf_field()`.
+
+One structural note: the status toggle cannot be a form nested inside
+the bulk-action form, so those are declared separately and the buttons
+reference them with `form="toggleForm<id>"`.
+
+### A second bug found in passing
+
+`$message` was being set with `json_encode(['type' => …, 'msg' => …])`.
+But `header_hotspot.php` — included by this page — renders `$message`
+with `e($message)`, so the raw JSON string was printed into the alert
+box. The page then decoded and rendered it a *second* time further
+down. Both the encoding and the duplicate block are gone; `$message` is
+a plain string, rendered once by the header, which is what every other
+page in that directory does.
+
+### Verification
+
+**207 files, 0 parse errors · CSRF coverage clean · 133 assertions,
+133 passed.** HTML tag balance checked: the page closes exactly the one
+`<div>` that `header_hotspot.php` leaves open.
