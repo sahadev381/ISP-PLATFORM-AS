@@ -130,6 +130,19 @@ $denylist = [
     'config.php',
     'config.php.example',
     'user-config.php',
+
+    // monitoring/ is a mixed directory: dashboard.php and the device
+    // CRUD screens are pages, these five are not.
+    //
+    // monitor.php is the one that matters. It polls every device and
+    // sends an SMS alert for each one that does not answer. Loading
+    // it over HTTP would page the on-call engineer, and it would do
+    // it again on every crawl. Same class of hazard as expire.php.
+    'monitoring/monitor.php',
+    'monitoring/check.php',      // the polling loop monitor.php includes
+    'monitoring/db.php',         // a connection, no output
+    'monitoring/twilio.php',     // an SMS client class, no output
+    'monitoring/viber_webhook.php', // a webhook; reads php://input, not a page
 ];
 
 /** Directories that are never directly requested. */
