@@ -1490,3 +1490,68 @@ it should not be the first thing to notice.
 This is a straightforward case of the local toolchain being weaker than
 CI and me treating "my checks pass" as "CI will pass". The fix is to
 make the local checks the same checks.
+
+---
+
+## §25 — Phase 19: a backup you can prove
+
+`scripts/db_backup.php` existed. It ran `mysqldump db > file`, checked
+the exit code, gzipped the result and deleted anything older than seven
+days. Three things were wrong with it, and the third is the one that
+would have hurt.
+
+### No consistent snapshot
+
+There was no `--single-transaction`, so mysqldump locked each table in
+turn. On a live RADIUS system that stalls authentication while the
+backup runs. Worse, the dump was not a snapshot: each table was read at
+a different moment, so a restored `customers` row could reference a
+`plans` row that did not exist yet, and `radacct` sessions could point
+at customers who had not been dumped.
+
+Also missing: `--routines`, `--triggers`, `--events`. Those are not
+included by default, so they were silently not backed up.
+
+### No verification
+
+A dump cut short by a full disk or a dropped connection still leaves a
+file on disk. The old script checked only the exit code, then gzipped
+the truncated file, then **deleted the older backups that were still
+good**. A failing backup actively destroyed the working ones.
+
+Verification now happens before anything is pruned: the file must be
+larger than a plausible minimum, and it must end with mysqldump's
+`Dump completed` trailer, which is the cheapest way to tell a finished
+dump from a truncated one. A `.sha256` is written alongside so a later
+restore can prove the file did not rot on disk.
+
+### Nobody had ever restored one
+
+That is the part that matters. `RELEASE_READINESS.md` said it plainly
+and it was still true.
+
+- `scripts/db_restore.php` restores a dump into a named database,
+  checks the recorded checksum first, and refuses to restore into the
+  configured live database — or anything named `radius`, `production`,
+  `live` — without `--i-understand-this-overwrites`. The guard is crude
+  deliberately: the failure it prevents is catastrophic and the cost of
+  a false positive is typing one more flag.
+- `scripts/backup_drill.php` takes a backup, restores it into a scratch
+  `drill_<timestamp>` schema, compares every table and every row count
+  against the source, drops the scratch schema and exits non-zero if
+  anything differs. It never writes to the live database.
+
+Row counts are counted with `COUNT(*)`, not read from
+`information_schema.TABLE_ROWS`, which is an estimate for InnoDB and
+useless for verifying a restore.
+
+The drill is meant to run from cron. A backup job that reports success
+and a drill that is never run is the same situation as before.
+
+### Verification
+
+**224 files, 0 parse errors · CSRF and schema checks clean · 245
+assertions, 245 passed** (27 new, covering truncated-dump detection,
+the live-database guard, the row-count comparison, and that the
+mysqldump command takes a consistent snapshot and never puts the
+password on the command line where `ps` can read it).
