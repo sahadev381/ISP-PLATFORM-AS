@@ -461,7 +461,7 @@ jobs:
           # the only readable output.
           pattern='PHP (Fatal|Parse) error|Uncaught|"level":"(fatal|exception|error)"'
           if grep -qE "$pattern" /tmp/server.log; then
-            grep -hoE "$pattern.*" /tmp/server.log | cut -c1-400 | head -20 \
+            grep -hE "$pattern" /tmp/server.log | cut -c1-600 | head -20 \
               | sed 's/^/::error::/'
             exit 1
           fi

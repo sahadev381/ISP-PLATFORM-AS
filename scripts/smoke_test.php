@@ -135,8 +135,15 @@ $denylist = [
 /** Directories that are never directly requested. */
 $skipDirs = ['includes/', 'scripts/', 'tests/', 'vendor/', 'database/', 'config/'];
 
+/* The same directory names appear below the root - hotspot/includes/,
+   for example. Matching only the prefix meant hotspot/includes/auth.php
+   was requested directly, which returns an empty 200 because the file
+   defines a class and prints nothing. That is not a broken page; it is
+   a file that was never a page. */
+$skipSegments = ['/includes/', '/scripts/', '/tests/', '/vendor/', '/database/', '/config/'];
+
 /** Collect candidate pages from the working tree. */
-function discover_pages(string $root, array $denylist, array $skipDirs): array
+function discover_pages(string $root, array $denylist, array $skipDirs, array $skipSegments = []): array
 {
     $pages = [];
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
@@ -157,6 +164,11 @@ function discover_pages(string $root, array $denylist, array $skipDirs): array
                 continue 2;
             }
         }
+        foreach ($skipSegments as $segment) {
+            if (strpos('/' . $rel, $segment) !== false) {
+                continue 2;
+            }
+        }
         if (in_array($rel, $denylist, true)) {
             continue;
         }
@@ -174,7 +186,7 @@ function discover_pages(string $root, array $denylist, array $skipDirs): array
     return $pages;
 }
 
-$pages = discover_pages($root, $denylist, $skipDirs);
+$pages = discover_pages($root, $denylist, $skipDirs, $skipSegments);
 
 if ($listOnly) {
     echo "Would visit " . count($pages) . " pages:\n";
@@ -377,7 +389,10 @@ foreach ($pages as $page) {
         continue;
     }
 
-    if (strlen(trim($r['body'])) === 0) {
+    /* 204 and 304 are defined as having no body. csp_report.php
+       always answers 204 - a browser does not read the response, so
+       anything else would be waste. */
+    if (strlen(trim($r['body'])) === 0 && !in_array($r['status'], [204, 205, 304], true)) {
         $results['empty'][] = [$page, $r['status'], 'empty response'];
         continue;
     }
