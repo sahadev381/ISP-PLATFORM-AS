@@ -571,8 +571,12 @@ CREATE TABLE IF NOT EXISTS job_otps (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS kb_categories (
-    id   INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    name VARCHAR(80) NOT NULL,
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name       VARCHAR(80) NOT NULL,
+    -- knowledge_base.php orders by this. It was missing because the
+    -- schema was reconstructed from INSERT and UPDATE statements, and
+    -- nothing ever writes to it.
+    sort_order INT NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uq_kb_category_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -971,7 +975,13 @@ CREATE TABLE IF NOT EXISTS hotspot_voucher_types (
     unit          VARCHAR(20)  DEFAULT NULL COMMENT 'hours, MB, ...',
     price         DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     validity_days INT UNSIGNED DEFAULT NULL,
-    PRIMARY KEY (id)
+    -- HotspotPlanManager::getAllVoucherTypes() filters on this and
+    -- hotspot/admin/plans.php renders it. Same omission as
+    -- kb_categories.sort_order: read-only columns were invisible to a
+    -- schema reconstructed from writes.
+    status        ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    PRIMARY KEY (id),
+    KEY idx_hotspot_voucher_types_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS hotspot_vouchers (

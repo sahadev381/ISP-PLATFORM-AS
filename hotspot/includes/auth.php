@@ -9,8 +9,18 @@ class HotspotAuth {
     private $session_timeout = 3600;
     
     public function __construct() {
+        /* require_once returns true without re-executing when the file
+           has already been included, so $conn is never created in this
+           scope - every caller that had already loaded config.php got
+           null here. Take it from the global scope instead, where
+           config.php actually put it. */
         require_once __DIR__ . '/../../config.php';
+        global $conn;
         $this->conn = $conn;
+
+        if (!$this->conn instanceof mysqli) {
+            throw new RuntimeException('HotspotAuth needs a database connection.');
+        }
 
         // Load settings
         $value = db_value(

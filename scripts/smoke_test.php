@@ -117,6 +117,15 @@ $denylist = [
     // billing cycle or a backup.
     'cron_block_expired.php',
 
+    // These poll live network hardware - MikroTik over the API port,
+    // OLTs over SNMP - and block until the socket times out. Against
+    // a lab database with no devices behind it they simply hang, and
+    // one 30-second stall per endpoint dominates the run. They need
+    // a device to be tested meaningfully, not a crawler.
+    'api_status.php',
+    'api_network_status.php',
+    'api_mikrotik_snmp.php',
+
     // Not pages.
     'config.php',
     'config.php.example',
@@ -299,7 +308,7 @@ $errorSignatures = [
     'No such file or directory' => 'fatal',
 ];
 
-$results = ['ok' => [], 'fatal' => [], 'warning' => [], 'http' => [], 'empty' => [], 'redirect' => []];
+$results = ['ok' => [], 'fatal' => [], 'warning' => [], 'http' => [], 'empty' => [], 'redirect' => [], 'rejected' => []];
 
 $total = count($pages);
 $i = 0;
@@ -325,6 +334,20 @@ foreach ($pages as $page) {
         // Being bounced to the login page means the session was lost, or
         // the page's own auth check is wrong.
         $results['redirect'][] = [$page, $r['status'], ''];
+        continue;
+    }
+
+    /* 405 and 400 from an endpoint that only accepts POST, or that
+       requires parameters, is the endpoint working. The crawler only
+       issues bare GETs, so refusing one is the correct answer and
+       counting it as a failure would train people to ignore this
+       report. A 403 is also correct: it means an authorisation check
+       fired.
+
+       404 and 5xx are still failures - those mean the page is missing
+       or broken. */
+    if (in_array($r['status'], [400, 403, 405, 501], true)) {
+        $results['rejected'][] = [$page, $r['status'], 'declined a bare GET, as it should'];
         continue;
     }
 
@@ -409,20 +432,22 @@ section('HTTP errors', $results['http']);
 section('Empty responses', $results['empty']);
 section('Warnings and notices leaked into the page', $results['warning']);
 section('Redirected (session lost, or auth check wrong)', $results['redirect'], false);
+section('Declined a bare GET (correct behaviour, listed for review)', $results['rejected']);
 
 annotate('page did not render', $results['fatal']);
 annotate('HTTP error', $results['http']);
 annotate('empty response', $results['empty']);
 
 printf(
-    "\n%d pages: %d ok, %d fatal, %d http errors, %d empty, %d with warnings, %d redirected\n",
+    "\n%d pages: %d ok, %d fatal, %d http errors, %d empty, %d with warnings, %d redirected, %d declined a GET\n",
     $total,
     count($results['ok']),
     count($results['fatal']),
     count($results['http']),
     count($results['empty']),
     count($results['warning']),
-    count($results['redirect'])
+    count($results['redirect']),
+    count($results['rejected'])
 );
 
 if ($verbose && $results['ok']) {
