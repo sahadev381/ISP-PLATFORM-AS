@@ -363,6 +363,16 @@ foreach ($pages as $page) {
         continue;
     }
 
+    /* A 404 here is never a missing file: every page requested was
+       discovered on disk a moment ago. It is the application's own
+       answer - rbac_deny(404) when a page that needs ?id= is asked
+       for a record that does not exist, or that belongs to another
+       branch. Turning an IDOR into a 404 is the behaviour we want. */
+    if ($r['status'] === 404) {
+        $results['rejected'][] = [$page, 404, 'needs a record id; refused without one'];
+        continue;
+    }
+
     if ($r['status'] >= 400) {
         $results['http'][] = [$page, $r['status'], 'client error'];
         continue;
@@ -393,6 +403,15 @@ foreach ($pages as $page) {
        always answers 204 - a browser does not read the response, so
        anything else would be waste. */
     if (strlen(trim($r['body'])) === 0 && !in_array($r['status'], [204, 205, 304], true)) {
+        /* An API endpoint dispatches on ?action=, and the crawler
+           sends none. Returning nothing is unhelpful - a 400 with a
+           JSON body would be better - but it is not a broken page,
+           and reporting it as one buries the pages that are. */
+        if (preg_match('#(^|/)api/|_api\.php$#i', $page)) {
+            $results['rejected'][] = [$page, $r['status'], 'no ?action= given; returned nothing'];
+            continue;
+        }
+
         $results['empty'][] = [$page, $r['status'], 'empty response'];
         continue;
     }

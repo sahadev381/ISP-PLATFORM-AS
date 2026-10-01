@@ -387,6 +387,12 @@ jobs:
           php-version: '8.2'
           extensions: mysqli, curl, json
 
+      # monitoring/twilio.php requires vendor/autoload.php. Without the
+      # dependencies installed the page is a fatal error, which says
+      # nothing about the code and hides the failures that do.
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
       - name: Load schema and seed
         run: |
           set -e
