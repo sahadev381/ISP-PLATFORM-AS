@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../includes/cors.php';
 cors_apply(['POST', 'GET']);
 
 require_once __DIR__ . '/../../includes/api_auth.php';
+require_once __DIR__ . '/../../includes/billing.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -46,7 +47,7 @@ function initiatePayment($data) {
 
     // The amount must come from the invoice, not from the request body —
     // otherwise a caller can settle a Rs 5000 invoice by posting amount=1.
-    $invoice = db_one($conn, "SELECT id, customer_id, total_amount, status FROM billing_invoices WHERE id = ?", [$invoice_id]);
+    $invoice = invoice_find($conn, $invoice_id);
     if (!$invoice) {
         echo json_encode(['success' => false, 'error' => 'Invoice not found']);
         return;
@@ -64,7 +65,10 @@ function initiatePayment($data) {
         echo json_encode(['success' => false, 'error' => 'Invoice is already paid']);
         return;
     }
-    $amount = (float) $invoice['total_amount'];
+    // `invoices` calls this column `amount`; billing_invoices called it
+    // total_amount. Reading the old name here would have silently
+    // produced an amount of 0.00 on every payment.
+    $amount = (float) $invoice['amount'];
     $customer_id = (int) $invoice['customer_id'];
 
     $gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE type = 'esewa' AND status = 'active' LIMIT 1");
@@ -161,8 +165,14 @@ function handleCallback($data) {
                 [$response, $ref_id, (int) $transaction['id']]);
 
             if ($transaction['invoice_id']) {
-                db_exec($conn, "UPDATE billing_invoices SET status = 'paid', paid_at = NOW() WHERE id = ?",
-                    [(int) $transaction['invoice_id']]);
+                // Settles `invoices` - the table the business actually
+                // uses - and extends the customer's service. See
+                // includes/billing.php.
+                $settled = invoice_settle($conn, (int) $transaction['invoice_id'], (string) $ref_id);
+                if (!$settled['ok']) {
+                    error_log('esewa callback: payment verified but settlement failed for invoice '
+                        . $transaction['invoice_id']);
+                }
             }
 
             echo json_encode(['success' => true, 'message' => 'Payment verified successfully']);

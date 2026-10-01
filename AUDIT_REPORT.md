@@ -1228,3 +1228,94 @@ handlers. Also added: `nosniff`, `Referrer-Policy`,
 hand-rolled `session_start()`, and the policy contents — including a
 test that fails if `'unsafe-inline'` ever appears in the report-only
 policy).
+
+---
+
+## §22 — Phase 16: the invoice decision, and migrations
+
+The owner confirmed **`invoices` is the table the business trusts**.
+
+### What online payments were actually doing
+
+eSewa and Khalti marked `billing_invoices` paid. The invoice the
+customer receives lives in `invoices`. So a customer could pay online
+and the invoice they were looking at stayed "pending" — and because
+neither gateway touched `customers.expiry` or the RADIUS `Expiration`
+attribute, **they could pay and still be disconnected.**
+
+Settlement now goes through one function, `invoice_settle()` in
+`includes/billing.php`, used by all three settlement points (the eSewa
+callback, the Khalti verify, the Khalti webhook). It marks the invoice
+paid, extends the customer's expiry, refreshes the RADIUS entries, and
+does it inside a transaction that is safe to run twice — a gateway
+that retries its callback must not renew a customer twice.
+
+The expiry arithmetic is copied deliberately from `recharge.php`
+rather than reinvented: renewing early adds to the time remaining,
+renewing late starts from today. Two code paths that renew a customer
+differently is how this class of bug appears in the first place. It is
+extracted as the pure function `invoice_new_expiry()` and pinned by 11
+assertions, because this is the arithmetic that decides what a
+customer got for their money.
+
+### A column rename that would have made every payment zero
+
+`billing_invoices` calls the amount `total_amount`; `invoices` calls it
+`amount`. Both gateways did:
+
+```php
+$amount = (float) $invoice['total_amount'];
+```
+
+Repointing the lookup without noticing would have read a missing key,
+produced `0.00`, and sent every customer to the gateway to pay nothing.
+Caught before it shipped, and the reason the comment is now in the code.
+
+### A third invoice path writing an impossible value
+
+`scripts/billing_cron.php` inserts `status = 'unpaid'`. The ENUM is
+`('paid','pending','cancelled')`. Under strict mode that INSERT fails
+and no invoice is created at all; otherwise MySQL stores `''` and the
+row matches neither `'paid'` nor `'pending'`, so it is invisible to
+every report and to the customer portal. Fixed to `'pending'`, with
+migration 002 recovering any rows already written that way.
+
+### A migration I wrote that was dangerous
+
+The first draft of migration 002 changed `invoices.status` to default
+to `'pending'`, which looks obviously right for a freshly raised
+invoice. It is not: `recharge.php` and `mobile_tech_api.php` insert
+without naming the column and rely on the `'paid'` default, so the
+change would have silently turned **every admin-performed renewal into
+an unpaid invoice**. Reverted, with the reasoning left in the migration
+so nobody "fixes" it again without making those two INSERTs explicit
+first.
+
+### Migrations
+
+`database/schema.sql` said what a new database should look like and
+there was no way to move an existing one forward; upgrading a live
+install meant hand-written ALTERs with no record of what had run.
+
+- `scripts/migrate.php` — `status` / `up` / `up --dry`, recording each
+  file in `schema_migrations` so it runs once. No down-migrations: an
+  untested rollback on a live database is a trap, not a safety net.
+- `database/migrations/` with `001_baseline.sql`,
+  `002_invoice_settlement.sql` and a README of the rules.
+- `scripts/check_invoice_migration.php` — read-only. `invoice_id` in
+  `payment_transactions` used to mean a `billing_invoices` row and now
+  means an `invoices` row; the two tables share no key, so **no
+  automatic remapping is attempted** — guessing is not acceptable for
+  payment records. The script reports how much history is affected so
+  the owner can decide.
+- 18 assertions over the statement splitter and the migration files,
+  plus a CI step rejecting duplicate numbers and bad filenames.
+
+`billing/` still reads and writes `billing_invoices`. It was left
+alone: it is self-contained and deleting a working admin screen is not
+something to do as a side effect of a payments fix.
+
+### Verification
+
+**215 files, 0 parse errors · CSRF coverage clean · 201 assertions,
+201 passed · migrations and schema parse under sqlglot.**

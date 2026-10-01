@@ -16,11 +16,13 @@ $transaction = db_one($conn, "
     SELECT t.*, c.username, c.first_name, c.last_name, c.email, c.phone, c.address,
            CONCAT_WS(' ', c.first_name, c.last_name) AS full_name,
            g.name as gateway_name, g.type as gateway_type,
-           i.invoice_number
+           -- invoice_id now points at `invoices`, which has no
+           -- invoice_number column; its id is the reference.
+           i.id AS invoice_number
     FROM payment_transactions t
     LEFT JOIN customers c ON t.customer_id = c.id
     LEFT JOIN payment_gateways g ON t.gateway_id = g.id
-    LEFT JOIN billing_invoices i ON t.invoice_id = i.id
+    LEFT JOIN invoices i ON t.invoice_id = i.id
     WHERE t.transaction_id = ?
 ", [$transaction_id]);
 

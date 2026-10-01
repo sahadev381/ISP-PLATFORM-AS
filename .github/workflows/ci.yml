@@ -52,6 +52,29 @@ jobs:
       - name: CSRF coverage
         run: php scripts/check_csrf.php
 
+      - name: Migration files are well formed
+        run: |
+          set -e
+          # A migration that has been applied anywhere must never be
+          # edited - the runner records filenames, so an edited file does
+          # not re-run and two databases silently diverge. Duplicate
+          # numbers have the same effect, because apply order then
+          # depends on the rest of the name.
+          dupes=$(ls database/migrations/*.sql 2>/dev/null \
+                  | xargs -r -n1 basename | cut -c1-3 | sort | uniq -d || true)
+          if [ -n "$dupes" ]; then
+            echo "::error::duplicate migration numbers: $dupes"
+            exit 1
+          fi
+          for f in database/migrations/*.sql; do
+            [ -e "$f" ] || continue
+            case "$(basename "$f")" in
+              [0-9][0-9][0-9]_*.sql) ;;
+              *) echo "::error::$f must be named NNN_description.sql"; exit 1 ;;
+            esac
+          done
+          echo "Migration files are well formed."
+
       - name: Block hand-rolled session_start()
         run: |
           set -e

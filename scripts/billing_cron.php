@@ -31,7 +31,11 @@ if ($today_day == $auto_inv_day) {
         $count = 0;
         foreach ($customers as $u) {
             // Insert Invoice
-            db_exec($conn, "INSERT INTO invoices (username, amount, months, expiry_date, status) VALUES (?, ?, 1, ?, 'unpaid')",
+            // 'unpaid' is not one of the values invoices.status accepts
+            // ('paid','pending','cancelled'). Under strict mode this
+            // INSERT failed outright; otherwise MySQL stored '' and the
+            // invoice matched no report. The intended state is 'pending'.
+            db_exec($conn, "INSERT INTO invoices (username, amount, months, expiry_date, status) VALUES (?, ?, 1, ?, 'pending')",
                 [$u['username'], $u['price'], $u['expiry']]);
             $count++;
         }

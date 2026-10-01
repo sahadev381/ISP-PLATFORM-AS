@@ -356,6 +356,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     months      SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     expiry_date DATE          DEFAULT NULL,
     status      ENUM('paid','pending','cancelled') NOT NULL DEFAULT 'paid',
+    paid_at     DATETIME      DEFAULT NULL,
+    payment_reference VARCHAR(120) DEFAULT NULL COMMENT 'gateway reference that settled it',
     admin       VARCHAR(80)   DEFAULT NULL COMMENT 'username of the staff member',
     created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
