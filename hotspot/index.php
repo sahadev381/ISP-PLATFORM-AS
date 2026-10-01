@@ -4,7 +4,6 @@ $page_title = "Hotspot Login";
 $error = '';
 $success = '';
 
-chdir(__DIR__ . '/..');
 include_once __DIR__ . '/../config.php';
 include_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
@@ -650,7 +649,7 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
     <!-- Navbar -->
     <nav class="navbar-custom">
         <a href="#" class="navbar-brand">
-            <?php if (!empty($portalLogo) && file_exists('../uploads/' . $portalLogo)): ?>
+            <?php if (!empty($portalLogo) && file_exists(dirname(__DIR__) . '/uploads/' . $portalLogo)): ?>
                 <img src="../uploads/<?= e($portalLogo) ?>" alt="Logo">
             <?php else: ?>
                 <i class="fas fa-wifi" style="font-size: 2rem;"></i>
@@ -706,7 +705,7 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
     <div class="main-container">
         <div class="login-card">
             <div class="login-header">
-                <?php if (!empty($portalLogo) && file_exists('../uploads/' . $portalLogo)): ?>
+                <?php if (!empty($portalLogo) && file_exists(dirname(__DIR__) . '/uploads/' . $portalLogo)): ?>
                     <img src="../uploads/<?= e($portalLogo) ?>" alt="Logo">
                 <?php else: ?>
                     <i class="fas fa-wifi" style="font-size: 3rem; margin-bottom: 10px;"></i>

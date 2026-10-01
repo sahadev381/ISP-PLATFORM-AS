@@ -44,9 +44,9 @@ require_branch_access($ticket);
 $replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY created_at ASC", [$id]);
 
 $page_title = "Ticket #" . $id . ": " . $ticket['subject'];
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -150,4 +150,4 @@ include $base_path . 'includes/topbar.php';
     <?php endif; ?>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

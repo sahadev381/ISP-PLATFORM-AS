@@ -14,7 +14,7 @@
 
 <div class="sidebar">
     <div class="sidebar-logo">
-        <?php if(!empty($logo) && file_exists($base_path.'uploads/'.$logo)): ?>
+        <?php if(!empty($logo) && file_exists(dirname(__DIR__) . '/uploads/' . $logo)): ?>
             <img src="<?= e($base_path) ?>uploads/<?= htmlspecialchars($logo) ?>" alt="ISP SYSTEM">
         <?php else: ?>
             <h2>ISP SYSTEM</h2>

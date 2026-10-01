@@ -759,3 +759,56 @@ Phase 8 converted literal relative includes to `__DIR__`. A further
 **70 sites use `include $base_path . 'config.php'`**, which is the same
 CWD dependency wearing a variable, and the new CI guard does not catch
 it. Worth a follow-up.
+
+---
+
+## §16 — Phase 10: the rest of the working-directory dependency
+
+Phase 8 left a note: 70 includes still went through `$base_path`.
+Pulling that thread found the whole mechanism, and two more bugs.
+
+### `$base_path` was doing two incompatible jobs
+
+It is set per page (`''`, `'./'`, `'../'`, `'.'`) and used in 93 places
+as a **URL** prefix — `<a href="<?= e($base_path) ?>dashboard.php">`,
+stylesheet links, redirects. That use is fine and stays.
+
+It was *also* used to build **filesystem** paths, which is a different
+question with a different answer. 71 includes went through it, plus:
+
+- `includes/sidebar.php` — `file_exists($base_path.'uploads/'.$logo)`,
+  a disk check driven by a URL prefix.
+- `cron_block_expired.php` — `file_put_contents('logs/block_expired.log', …)`.
+  A cron script logging to a path relative to wherever cron started it,
+  which under the usual `cd / && php /var/www/…` is `/logs/`. It has
+  never written that log.
+
+All filesystem uses are now `__DIR__`-relative. `$base_path` is a URL
+prefix and nothing else.
+
+### `chdir()` was the workaround, and it had its own victim
+
+20 files opened with `chdir(__DIR__ . '/..')` — someone's fix for the
+CWD-relative includes, moving the mountain to the path. With the
+includes made absolute in Phases 8 and 10, every one of them was dead
+weight, and they have been removed.
+
+One of them was actively harmful. `hotspot/index.php` calls
+`chdir(__DIR__ . '/..')`, putting the CWD at the repo root, and then
+asks `file_exists('../uploads/' . $portalLogo)` — which resolves
+*outside* the application directory. The captive portal logo could
+never have displayed. Same class of bug in `index.php`,
+`system_config.php` and `monitoring/viber_webhook.php`.
+
+### Verification
+
+The CI step from Phase 8 now also fails on `include $base_path . …`,
+on `$base_path` appearing in any filesystem call, and on `chdir()`
+anywhere in a PHP file. Checked against the current tree: clean.
+
+**207 files, 0 parse errors · CSRF coverage clean · 133 assertions,
+133 passed.**
+
+Nothing in the application now depends on the working directory it is
+started from, so the cron scripts behave the same from `/` as from the
+document root.

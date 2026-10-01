@@ -2,7 +2,6 @@
 session_start();
 $page_title = "Subscription Management";
 
-chdir(__DIR__ . '/..');
 $base_path = '.';
 
 include_once __DIR__ . '/../config.php';

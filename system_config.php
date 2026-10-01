@@ -119,7 +119,7 @@ require_once __DIR__ . '/includes/sidebar.php';
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div class="form-group">
                     <label class="form-label">Company Logo</label>
-                    <?php if(!empty($logo) && file_exists('uploads/'.$logo)): ?>
+                    <?php if(!empty($logo) && file_exists(__DIR__ . '/uploads/' . $logo)): ?>
                         <div style="margin-bottom: 10px;">
                             <img src="uploads/<?= htmlspecialchars($logo) ?>" alt="Logo" style="max-height:60px; border-radius: 8px;">
                         </div>
@@ -130,7 +130,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                 
                 <div class="form-group">
                     <label class="form-label">Favicon</label>
-                    <?php if(!empty($favicon) && file_exists('uploads/'.$favicon)): ?>
+                    <?php if(!empty($favicon) && file_exists(__DIR__ . '/uploads/' . $favicon)): ?>
                         <div style="margin-bottom: 10px;">
                             <img src="uploads/<?= htmlspecialchars($favicon) ?>" alt="Favicon" style="max-height:40px; border-radius: 8px;">
                         </div>

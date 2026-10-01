@@ -1,7 +1,7 @@
 <?php
 $base_path = '../';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "Financial Analytics";
 $active = "reports";
@@ -63,9 +63,9 @@ $top_cust_query = "
 ";
 $top_cust_res = $conn->query($top_cust_query);
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -204,4 +204,4 @@ include $base_path . 'includes/topbar.php';
     });
 </script>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

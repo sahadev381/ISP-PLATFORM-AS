@@ -2,7 +2,6 @@
 session_start();
 $page_title = "Access Control - Blacklist";
 
-chdir(__DIR__ . '/../..');
 $base_path = '.';
 include_once __DIR__ . '/../../config.php';
 include_once __DIR__ . '/../../includes/auth.php';

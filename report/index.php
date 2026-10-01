@@ -1,7 +1,7 @@
 <?php
 $base_path = '../';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "Reports Dashboard";
 $active = "reports";
@@ -32,9 +32,9 @@ $expired_users = getStat($conn, "SELECT COUNT(*) AS total FROM customers WHERE e
 // 5. Active Online Users (PPPoE)
 $active_users = getStat($conn, "SELECT COUNT(DISTINCT username) AS total FROM radacct WHERE acctstoptime IS NULL");
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -194,4 +194,4 @@ include $base_path . 'includes/topbar.php';
     </a>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

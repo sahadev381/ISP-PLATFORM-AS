@@ -2,7 +2,6 @@
 session_start();
 $page_title = "Captive Portal Customization";
 
-chdir(__DIR__ . '/..');
 include_once __DIR__ . '/../config.php';
 include_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/../includes/csrf.php';

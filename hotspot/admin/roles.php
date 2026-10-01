@@ -3,7 +3,6 @@ session_start();
 $page_title = "Roles & Permissions";
 $base_path = '../..';
 
-chdir(__DIR__ . '/../..');
 $base_path = '.';
 include_once __DIR__ . '/../../config.php';
 include_once __DIR__ . '/../../includes/auth.php';
@@ -97,8 +96,8 @@ while ($p = $perms->fetch_assoc()) {
     $rolePermissions[$p['role_id']][] = $p['permission'];
 }
 ?>
-<?php include $base_path . '/includes/header.php'; ?>
-<?php include $base_path . '/includes/sidebar.php'; ?>
+<?php include __DIR__ . '/../../includes/header.php'; ?>
+<?php include __DIR__ . '/../../includes/sidebar.php'; ?>
 
 <div class="container-fluid p-4">
     <h2><i class="fas fa-user-shield"></i> Roles & Permissions</h2>
@@ -209,4 +208,4 @@ while ($p = $perms->fetch_assoc()) {
 </div>
 </div>
 </div>
-<?php include $base_path . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>

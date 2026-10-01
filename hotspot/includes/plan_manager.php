@@ -9,7 +9,6 @@ class PlanManager {
     private $conn;
     
     public function __construct() {
-        chdir(__DIR__ . '/../..');
         include __DIR__ . '/../../config.php';
         $this->conn = $conn;
     }

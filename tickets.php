@@ -1,8 +1,8 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
-require_once $base_path . 'includes/csrf.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Support Tickets";
 $active = "tickets";
@@ -53,9 +53,9 @@ $tickets = db_all($conn, "
     ORDER BY t.created_at DESC
 ", $branch_params);
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -185,4 +185,4 @@ include $base_path . 'includes/topbar.php';
     </div>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

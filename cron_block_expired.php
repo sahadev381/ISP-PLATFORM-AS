@@ -29,7 +29,7 @@ $sql = "
 $conn->query($sql);
 
 // Optional: log action
-file_put_contents('logs/block_expired.log', date('Y-m-d H:i:s') . " - Blocked expired users\n", FILE_APPEND);
+file_put_contents(__DIR__ . '/logs/block_expired.log', date('Y-m-d H:i:s') . " - Blocked expired users\n", FILE_APPEND);
 
 echo "Expired users blocked successfully at $block_time\n";
 

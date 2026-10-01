@@ -52,7 +52,24 @@ jobs:
             echo "::error::relative include found - use __DIR__ . '/...' instead"
             exit 1
           fi
-          echo "All includes are __DIR__-relative."
+
+          # Same bug wearing a variable: $base_path is a URL prefix and
+          # must never be used to build a filesystem path.
+          if git grep -nE "(include|require)(_once)?[[:space:]]+\\$base_path" -- '*.php'; then
+            echo "::error::include via \$base_path - use __DIR__ . '/...' instead"
+            exit 1
+          fi
+          if git grep -nE "(file_exists|file_get_contents|file_put_contents|fopen|is_readable|unlink)[^;]*\\$base_path" -- '*.php'; then
+            echo "::error::\$base_path used as a filesystem path - it is a URL prefix"
+            exit 1
+          fi
+
+          # chdir() in a request handler papers over exactly these bugs.
+          if git grep -n "chdir(" -- '*.php'; then
+            echo "::error::chdir() found - make the path absolute instead"
+            exit 1
+          fi
+          echo "All includes and filesystem paths are __DIR__-relative."
 
       - name: Block committed secrets
         run: |

@@ -1,7 +1,7 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 // Rejects a POST that did not come from one of our own forms.
 csrf_check();
@@ -33,9 +33,9 @@ if(isset($_POST['submit'])){
 
 $customers = $conn->query("SELECT id, full_name, username FROM customers ORDER BY username ASC");
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -114,4 +114,4 @@ include $base_path . 'includes/topbar.php';
     </div>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

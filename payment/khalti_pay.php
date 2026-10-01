@@ -2,14 +2,14 @@
 
 $base_path = '../';
 
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 $page_title = "Payment - Khalti";
 
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/header.php';
 
 $username = $_SESSION['username'] ?? '';
 $public_key = KHALTI_PUBLIC_KEY;
@@ -154,4 +154,4 @@ payButton.addEventListener('click', function() {
 });
 </script>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

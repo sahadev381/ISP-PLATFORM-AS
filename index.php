@@ -326,7 +326,7 @@ if ($config) {
     <div class="login-wrapper">
         <div class="login-left">
             <div class="login-logo">
-                <?php if(!empty($logo) && file_exists('uploads/'.$logo)): ?>
+                <?php if(!empty($logo) && file_exists(__DIR__ . '/uploads/' . $logo)): ?>
                     <img src="uploads/<?= htmlspecialchars($logo) ?>" alt="ISP SYSTEM">
                 <?php else: ?>
                     <i class="fa fa-wifi" style="font-size: 48px; color: var(--primary);"></i>
