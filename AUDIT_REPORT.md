@@ -1814,3 +1814,48 @@ rotation only makes it look harmless.
 **232 files, 0 parse errors · 323 assertions, 323 passed ·
 244 files scanned for secrets, clean · 19 CLI scripts checked ·
 inline-handler budget 189.**
+
+---
+
+## §29 — Phase 23: evidence for the decision nobody can make for you
+
+`RELEASE_READINESS.md` §3.1 has been the most serious open item since
+the first audit, and it has stayed open because it is not an
+engineering question. Two invoice tables exist; the gateways settle
+one and the customer holds the other. Choosing which survives depends
+on which table the business's accounts were filed from, and that is
+not written down anywhere in the repository.
+
+What *is* answerable from the database: which table is real.
+
+`scripts/compare_invoice_tables.php` writes nothing and prints:
+
+- row counts, date ranges, value and status breakdown for both
+  tables;
+- whether anything has written to each one in the last 30 days — a
+  table nobody has inserted into for a year is not the one to migrate
+  towards, whatever the code suggests;
+- a count of rows with no amount, because `invoices.amount` and
+  `billing_invoices.total_amount` are differently named and a query
+  against the wrong one reads `null` and sums to zero (the mistake
+  §-earlier recorded as self-correction 1);
+- how many completed `payment_transactions` resolve against each
+  table, which is the clearest available evidence of the mismatch,
+  since `payment_transactions.invoice_id` means `invoices.id`;
+- **how many customers paid and still have an unsettled invoice**,
+  with the ten most recent listed by transaction id and username.
+
+That last figure is the one that matters. It is not a statistic about
+schema design — it is a list of people who sent money and may never
+have been renewed, and it can be acted on today regardless of which
+table eventually wins.
+
+The script is deliberately opinionated at the end: it reads the
+numbers back and says which direction they point, including the case
+where both tables are actively written, which is the worst outcome
+and the one where row counts should *not* decide it.
+
+### Verification
+
+**233 files, 0 parse errors · 323 assertions, 323 passed · secrets
+clean · 20 CLI scripts · handler budget 189.**

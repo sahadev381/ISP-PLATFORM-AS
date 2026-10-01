@@ -75,6 +75,17 @@ into `billing_invoices` and rewrite `scripts/auto_invoice.php`. Either
 is a few hours' work once decided. Deciding requires knowing which
 table your accounting actually trusts.
 
+**Run `php scripts/compare_invoice_tables.php` to decide from data
+rather than memory.** It is read-only. It prints volumes, date ranges
+and money for both tables, which of them anything has written to in
+the last 30 days, and - the useful part - how many completed rows in
+`payment_transactions` point at an `invoices` row that is still not
+marked paid. Each of those is a customer who paid and was probably
+never renewed.
+
+Write the answer into this section once you have it, so the next
+person does not have to ask the question again.
+
 ### 3.2 Credential rotation
 
 These are in the git history and must be considered compromised:
