@@ -1555,3 +1555,86 @@ assertions, 245 passed** (27 new, covering truncated-dump detection,
 the live-database guard, the row-count comparison, and that the
 mysqldump command takes a consistent snapshot and never puts the
 password on the command line where `ps` can read it).
+
+---
+
+## §26 — Phase 20: an error nobody sees
+
+`grep -rn 'set_error_handler\|set_exception_handler\|register_shutdown_function'`
+over the whole codebase returned nothing. Errors went to the PHP error
+log and nowhere else, which has three consequences:
+
+- a 500 on a customer page stayed invisible until somebody phoned;
+- when they did phone, there was no way to connect "it broke this
+  morning" to a line in a log shared with every other vhost;
+- **fatals were not recorded by the application at all.** An
+  out-of-memory, a call to an undefined function, a parse error in an
+  included file — the request dies before any application code can
+  react. Only `register_shutdown_function` sees those, and there
+  wasn't one.
+
+`includes/errors.php` installs all three handlers from
+`config.php.example`, before the database connects, so a failure to
+connect is captured too.
+
+### What a record looks like
+
+One JSON object per line — greppable, and concurrent requests cannot
+interleave into each other's records the way multi-line traces do:
+
+```
+{"ts":"2026-10-01T18:22:04+05:45","ref":"a4f91c2e","level":"exception",
+ "message":"mysqli_sql_exception: Unknown column 'total_amount'",
+ "uri":"/billing/invoices.php","method":"POST","admin":"sahadev",
+ "file":"/var/www/includes/db.php","line":47,"trace":"#0 ..."}
+```
+
+### The reference
+
+`a4f91c2e` is shown on the error page, returned as the `X-Request-Id`
+header, and returned in the JSON body for AJAX callers. "I got an
+error, it said a4f91c2e" now locates one record exactly. It is random
+rather than sequential so it cannot be used to probe whether an error
+occurred.
+
+AJAX callers get JSON, not an HTML page. Returning an error page to
+`fetch()` surfaces in the browser as a JSON parse error and hides the
+real failure — which is how a backend exception gets misdiagnosed as a
+frontend bug.
+
+### Secrets are redacted on the way in
+
+Error messages quote the code that failed, and the code that fails is
+often the code handling a password: a connection error names the user,
+a dumped request body contains the login form. The log is frequently
+easier to read than the database it protects. `error_redact()` strips
+`password=`, `api_key:`, `'DB_PASS' => '...'`, `Bearer <token>`, and
+credentials embedded in a URL.
+
+One of the new tests caught a real flaw in that redaction: the generic
+`key: value` pattern matched `Authorization: Bearer` and redacted the
+word *Bearer*, leaving the token itself in the log. The value
+alternation now tries `Bearer <token>` first.
+
+### What it deliberately does not do
+
+The visitor gets an apology and a reference. Never a stack trace —
+`display_errors` on in production is how database credentials end up
+in a screenshot attached to a support ticket. Detail appears only when
+`APP_DEBUG` is set.
+
+The handler returns `false` to PHP's own logging rather than
+swallowing the error, so existing log-watching setups keep working.
+`@`-suppression and the configured `error_reporting()` level are
+respected, otherwise every silenced filesystem probe in the codebase
+fills the log and the signal is lost again.
+
+### Still a deployment decision
+
+This is capture, not alerting. Set `ERROR_LOG_FILE` to somewhere
+outside the web root and point something at it. A log nobody reads is
+the same situation this phase set out to fix.
+
+### Verification
+
+**226 files, 0 parse errors · 286 assertions, 286 passed** (41 new).

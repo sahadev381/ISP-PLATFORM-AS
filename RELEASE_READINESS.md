@@ -101,15 +101,22 @@ Ordered by what I would do first.
    to move an existing database from one version to the next. Right
    now upgrading a live install means hand-written ALTERs. This blocks
    safe releases more than any remaining bug.
-3. **A verified backup and restore.** `scripts/db_backup.php` exists;
-   a backup nobody has restored is not a backup. Do one restore drill.
-4. **Error monitoring.** Errors go to the PHP error log and nowhere
-   else, so a 500 on a customer page is invisible until someone calls.
-5. **Tests against a database.** The 159 assertions cover helpers. The
-   billing maths, expiry calculation, FUP logic and RADIUS writes —
-   the things that cost money when wrong — have no tests, because
-   testing them needs a MySQL service. CI already has a `schema` job
-   with MySQL 8; the fixtures can hang off that.
+3. ~~**A verified backup and restore.**~~ Done. `db_backup.php` now
+   takes a consistent snapshot and verifies the dump before pruning;
+   `db_restore.php` restores it; `backup_drill.php` proves a restore
+   by comparing every table and row count against the source. What
+   remains is for the owner to *run* it, and put it in cron.
+4. ~~**Error monitoring.**~~ Done in code. `includes/errors.php`
+   records every warning, exception and fatal as one JSON line with a
+   short reference that is also shown to the user and returned as
+   `X-Request-Id`, so a phone call maps to a log record. Secrets are
+   redacted on the way in. Set `ERROR_LOG_FILE` and point whatever you
+   use for alerting at that file - the capture exists, the *alerting*
+   is still a deployment decision nobody has made.
+5. ~~**Tests against a database.**~~ Done. 24 assertions run against
+   real MySQL 8 in CI. They earned their keep immediately: on their
+   first real run they caught a settlement bug that had made the
+   entire phase-16 invoice fix a no-op.
 6. **Remove the 188 inline `on*` handlers** so the strict CSP can be
    enforced rather than report-only. Large, mechanical, low risk, and
    the report-only header already produces the work list.
@@ -118,22 +125,25 @@ Ordered by what I would do first.
 
 ## 5. Smaller things found while writing this
 
-Not yet fixed, low severity, listed so they are not lost:
+All four are now fixed; kept here as a record of what they were.
 
-- `user_add.php:63` — the WiFi password is
-  `substr(md5($username . time()), 0, 10)`. Username is known and
-  `time()` is guessable within a narrow window, so the password is
-  reconstructible. Should be `bin2hex(random_bytes(n))`.
-- `work_diary_api.php:25` — uploads to `'uploads/' . $filename`, a
-  working-directory-relative path. Phase 10 removed these everywhere
-  else because they resolve differently under cron and FPM.
-- `work_diary_api.php:38` — returns `$conn->error` to the client,
-  which leaks schema details in the response.
-- `includes/security.php` — `getClientIP()` trusts `HTTP_CLIENT_IP`
-  and `HTTP_X_FORWARDED_FOR` without checking a trusted proxy, so the
-  IP recorded in `login_attempts` and `activity_log` can be forged by
-  the client. Lockout is keyed on username, not IP, so this weakens
-  the audit trail rather than the lockout itself.
+- ~~`user_add.php:63`~~ — the WiFi password was
+  `substr(md5($username . time()), 0, 10)`. The username is known and
+  `time()` is guessable within a narrow window, so every generated
+  password was reconstructible by anyone who knew roughly when the
+  account was created. Now `generate_wifi_password()`, which draws
+  from `random_int()`.
+- ~~`work_diary_api.php:25`~~ — uploaded to a working-directory
+  relative path, which resolves differently under cron and FPM. Now
+  `__DIR__`-anchored, with a random filename and a `getimagesize()`
+  check so an uploaded `.php` cannot masquerade as an image.
+- ~~`work_diary_api.php:38`~~ — returned `$conn->error` to the client,
+  naming tables and columns. Now logged, not shipped.
+- ~~`includes/security.php`~~ — `getClientIP()` trusted
+  `HTTP_X_FORWARDED_FOR` unconditionally, so the IP written to
+  `login_attempts` and `activity_log` could be set by the client. Now
+  the header is only believed when the request actually arrived from
+  a proxy listed in `TRUSTED_PROXIES`.
 
 ---
 

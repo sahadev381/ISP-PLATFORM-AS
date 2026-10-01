@@ -27,6 +27,12 @@ ini_set('display_errors', $APP_DEBUG ? '1' : '0');
 ini_set('display_startup_errors', $APP_DEBUG ? '1' : '0');
 ini_set('log_errors', '1');
 
+/* Capture every warning, exception and fatal as a searchable record
+   with a reference the user can quote. Installed before the database
+   connection so that a failure to connect is captured too. */
+require_once __DIR__ . '/includes/errors.php';
+error_boot($APP_DEBUG);
+
 /* ---------------------------------------------------------------
  | Session (hardened cookie flags)
  |--------------------------------------------------------------- */
