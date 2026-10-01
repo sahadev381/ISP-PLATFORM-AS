@@ -43,7 +43,11 @@ logs/
 # Database dumps & backups. The versioned schema under database/ is the
 # one exception - it is source, not a dump.
 *.sql
+# `!database/*.sql` matches one level only, so database/migrations/*.sql
+# stayed ignored and a commit shipped the migration runner with no
+# migrations in it. Un-ignore the directory at any depth.
 !database/*.sql
+!database/**/*.sql
 *.sql.gz
 *.db
 backups/

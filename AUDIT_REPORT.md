@@ -1319,3 +1319,76 @@ something to do as a side effect of a payments fix.
 
 **215 files, 0 parse errors · CSRF coverage clean · 201 assertions,
 201 passed · migrations and schema parse under sqlglot.**
+
+---
+
+## §23 — Phase 17: the smoke test, and a commit that shipped nothing
+
+### A migration system with no migrations in it
+
+Commit `c60d982` added `scripts/migrate.php`, two migration files and a
+README. Only the README arrived.
+
+`.gitignore` has a blanket `*.sql`, with `!database/*.sql` to un-ignore
+the versioned schema. That negation matches **one level only**, so
+`database/migrations/*.sql` stayed ignored, `git add -A` skipped them
+without a word, and the commit shipped a migration runner with nothing
+to run.
+
+This is the second time the blanket `*.sql` rule has caused a problem
+in this repository. Fixed with `!database/**/*.sql`, and CI now
+compares the migration files on disk against `git ls-files` so a
+migration that is not committed fails the build instead of being
+silently absent.
+
+Worth stating plainly: `git add -A` reporting success is not evidence
+that a file was added.
+
+### The smoke test
+
+`scripts/smoke_test.php` logs in as an administrator and requests every
+page once, reporting fatals, HTTP errors, empty responses, leaked
+warnings and unexpected redirects.
+
+This is the gap the whole audit structurally could not close. Every
+other check in this repository is static — a parser, a JS syntax check,
+unit tests over pure helpers, scanners. None of them load a page. A
+file can parse perfectly and fail on the first request because a column
+was renamed. Phases 6 and 11 each found pages that had been broken for
+a long time without anyone noticing.
+
+**The denylist is the important part of this script**, because this
+application does destructive things on GET:
+
+| page | why it is denied |
+|---|---|
+| `expire.php` | runs `DELETE FROM radreply` at the top of the file, on load, with no guard |
+| `logout.php`, `customer/logout.php`, `hotspot/logout.php` | would end the crawl's own session, making every later page look like a redirect |
+| `monitoring/delete_device.php`, `branch_delete.php` | delete from a plain GET |
+| `onu_power_api.php`, `payment/*_verify.php`, `olt_power_sync.php` | write on load |
+| `cron_block_expired.php` | runs a billing operation |
+
+The crawler issues GET only, never with query parameters, and refuses
+to run against a host that does not look like staging unless given
+`--i-know-this-is-not-production`. Sixteen assertions cover the
+denylist — including one that fails if a denylisted file stops
+existing, since a stale entry is false confidence rather than
+protection.
+
+Run it with:
+
+```
+php scripts/smoke_test.php --url=https://staging.example.com \
+                           --user=admin --pass=secret
+php scripts/smoke_test.php --url=... --list    # dry run: what it would visit
+```
+
+It exits non-zero when any page fails to render. Warnings and notices
+are reported but do not fail the run — `display_errors` should be off
+in any case, and a notice is not a broken page.
+
+### Verification
+
+**217 files, 0 parse errors · CSRF coverage clean · 218 assertions,
+218 passed · both migrations parse under sqlglot and are tracked by
+git.**

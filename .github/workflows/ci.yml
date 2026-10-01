@@ -60,8 +60,20 @@ jobs:
           # not re-run and two databases silently diverge. Duplicate
           # numbers have the same effect, because apply order then
           # depends on the rest of the name.
-          dupes=$(ls database/migrations/*.sql 2>/dev/null \
-                  | xargs -r -n1 basename | cut -c1-3 | sort | uniq -d || true)
+          # A migration that is not committed does not exist for anyone
+          # else. .gitignore has a blanket *.sql rule, and the negation
+          # that un-ignores database/ only matched one level deep, so a
+          # commit once shipped the migration runner with no migrations
+          # in it. Compare what is on disk against what git tracks.
+          on_disk=$(ls database/migrations/*.sql 2>/dev/null | sort || true)
+          tracked=$(git ls-files 'database/migrations/*.sql' | sort)
+          if [ "$on_disk" != "$tracked" ]; then
+            echo "::error::migration files on disk are not all tracked by git"
+            diff <(echo "$on_disk") <(echo "$tracked") || true
+            exit 1
+          fi
+
+          dupes=$(echo "$tracked" | xargs -r -n1 basename | cut -c1-3 | sort | uniq -d || true)
           if [ -n "$dupes" ]; then
             echo "::error::duplicate migration numbers: $dupes"
             exit 1
