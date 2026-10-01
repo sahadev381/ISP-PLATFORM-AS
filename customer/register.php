@@ -290,7 +290,7 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
                 <div class="alert alert-success">
                     <i class="fa fa-check-circle"></i> <?= htmlspecialchars($success) ?>
                     <br><br>
-                    <a href="login.php" class="btn-register" style="display: inline-block; width: auto; padding: 12px 24px;">Go to Login</a>
+                    <a href="index.php" class="btn-register" style="display: inline-block; width: auto; padding: 12px 24px;">Go to Login</a>
                 </div>
             <?php else: ?>
             
@@ -362,7 +362,7 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
             <?php endif; ?>
             
             <div class="footer-links">
-                <a href="login.php">
+                <a href="index.php">
                     <i class="fa fa-sign-in-alt"></i> Already have an account? Login
                 </a>
             </div>
