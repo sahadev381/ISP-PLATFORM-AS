@@ -139,20 +139,43 @@ Not yet fixed, low severity, listed so they are not lost:
 
 ## 6. Versioning
 
-There are currently **no git tags at all**, so there is no "current
-version" to increment.
+**Correction.** An earlier draft of this document said the repository
+had no tags. That was wrong — `git tag` was empty locally only because
+tags had not been fetched. There is one tag on the remote:
+
+```
+v1.0.0 -> 0f0544e  "Initial commit - ISP System v1.0 (without secrets)"
+```
+
+It sits on the initial commit, on a different line of history from this
+branch, and predates every fix in this document. So a `v1.0.0` already
+exists and points at the version of the code that had the wildcard CORS,
+the unprotected `admin_edit.php`, the interpolated SQL and the session
+cookie with no flags.
+
+That is worth saying plainly: **the thing currently labelled 1.0.0 is
+the least safe version of this codebase**, and anyone pulling by tag
+gets it. Re-pointing an existing tag is bad practice, so the sensible
+move is to leave it and release forward.
 
 Suggested scheme — semantic versioning, with the first number held
 back until section 3 is resolved:
 
 | Tag | Meaning | Gate |
 |---|---|---|
-| `v0.9.0` | audited and hardened, not yet verified running | can be tagged today |
+| `v0.9.0` | audited and hardened, not yet verified running | **tagged 2026-10-01** |
 | `v0.9.x` | runtime fixes found during staging | after the smoke test |
-| `v1.0.0` | production grade | sections 3 and 4.1–4.4 all closed |
+| `v1.1.0` | production grade | sections 3 and 4.1–4.4 all closed |
 
-Tagging `v1.0.0` now would mean the number was a wish rather than a
-statement, and the next person reading the repo would believe it.
+`0.9.0` is lower than the existing `1.0.0`, which is awkward but
+honest: it says this code is not yet proven in the way a 1.0 claims.
+The first release that has actually run against a real database should
+be `1.1.0`, which both supersedes the old tag and does not pretend the
+gap never existed.
+
+Tagging this work `1.0.0` instead would have meant the number was a
+wish rather than a statement, and the next person reading the repo
+would have believed it.
 
 ---
 
