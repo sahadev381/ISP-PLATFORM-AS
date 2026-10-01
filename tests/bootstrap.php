@@ -88,6 +88,14 @@ final class TestRunner
     {
         $this->failures[] = "{$this->group}: {$label}";
         echo "  FAIL {$label}\n       {$detail}\n";
+
+        // Also emit a GitHub Actions annotation. Annotations show up in
+        // the run summary, which is readable without downloading the
+        // job log - and the log is not always reachable.
+        if (getenv('GITHUB_ACTIONS') === 'true') {
+            $oneLine = str_replace(["\r", "\n"], ' ', "{$this->group}: {$label} - {$detail}");
+            echo "::error::{$oneLine}\n";
+        }
     }
 
     private function show(mixed $value): string

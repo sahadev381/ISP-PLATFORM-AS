@@ -77,8 +77,10 @@ function fixture(mysqli $conn, array $o = []): array
     $expiry = $o['expiry'] ?? null;
     $expirySql = $expiry === null ? 'NULL' : "'" . $conn->real_escape_string($expiry) . "'";
 
-    $conn->query("INSERT INTO customers (username, password, full_name, plan_id, expiry, status, branch_id)
-                  VALUES ('$username', 'x', 'Test $suffix', $planId, $expirySql, 'expired', 1)");
+    // branch_id is left NULL on purpose: it carries a foreign key to
+    // branches, and the fixture should not depend on seed data.
+    $conn->query("INSERT INTO customers (username, password, full_name, plan_id, expiry, status)
+                  VALUES ('$username', 'x', 'Test $suffix', $planId, $expirySql, 'expired')");
 
     $status = $o['status'] ?? 'pending';
     $months = $o['months'] ?? 1;

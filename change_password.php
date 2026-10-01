@@ -27,10 +27,12 @@ if (isset($_POST['change'])) {
         if ($admin_id <= 0) {
             $msg = "Your session has expired. Please sign in again.";
         } else {
-            db_exec($conn, "UPDATE admins SET password = ? WHERE id = ?", [$hash, $admin_id]);
+            // Report on rows actually changed, not on "the query ran" -
+            // and read that count from db_exec()'s return value, because
+            // it closes the statement before $conn->affected_rows is read.
+            $changed = db_exec($conn, "UPDATE admins SET password = ? WHERE id = ?", [$hash, $admin_id]);
 
-            // Report on rows actually changed, not on "the query ran".
-            if ($conn->affected_rows === 1) {
+            if ($changed === 1) {
                 $msg = "Password updated successfully!";
             } else {
                 $msg = "Failed to update password!";

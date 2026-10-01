@@ -95,13 +95,16 @@ if (!function_exists('invoice_find')) {
         try {
             // Only move it out of 'pending'. If a concurrent callback got
             // here first, this matches zero rows and we stop.
-            db_exec($conn, "
+            // Use the value db_exec() returns. It closes the statement
+            // before returning, so $conn->affected_rows afterwards is not
+            // dependable.
+            $claimed = db_exec($conn, "
                 UPDATE invoices
                 SET status = 'paid', paid_at = NOW(), payment_reference = ?
                 WHERE id = ? AND status = 'pending'
             ", [$reference !== '' ? $reference : null, $invoiceId]);
 
-            if ($conn->affected_rows !== 1) {
+            if ($claimed !== 1) {
                 $conn->rollback();
                 return ['ok' => true, 'message' => 'Invoice already settled', 'already' => true];
             }
