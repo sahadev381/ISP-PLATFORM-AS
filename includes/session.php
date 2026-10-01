@@ -112,6 +112,34 @@ if (!function_exists('session_boot')) {
     }
 
     /**
+     * The same flags, in the shape setcookie() wants.
+     *
+     * These two functions take almost the same array and disagree about
+     * one key: session_set_cookie_params() says 'lifetime', meaning
+     * seconds from now, and setcookie() says 'expires', meaning an
+     * absolute timestamp. Passing the session version straight to
+     * setcookie() raises ValueError: option "lifetime" is invalid.
+     *
+     * A lifetime of 0 means "until the browser closes", and the
+     * setcookie() spelling of that is also 0 - not time() + 0, which
+     * would be a cookie that expired the moment it was set.
+     */
+    function session_setcookie_options(): array
+    {
+        $params = session_cookie_params();
+        $lifetime = (int) ($params['lifetime'] ?? 0);
+
+        return [
+            'expires'  => $lifetime > 0 ? time() + $lifetime : 0,
+            'path'     => $params['path'] ?? '/',
+            'domain'   => $params['domain'] ?? '',
+            'secure'   => (bool) ($params['secure'] ?? false),
+            'httponly' => (bool) ($params['httponly'] ?? true),
+            'samesite' => $params['samesite'] ?? 'Lax',
+        ];
+    }
+
+    /**
      * Re-send the session cookie with the right flags when the session was
      * already started by someone else.
      */
@@ -126,7 +154,7 @@ if (!function_exists('session_boot')) {
             return;
         }
 
-        setcookie($name, session_id(), session_cookie_params());
+        setcookie($name, session_id(), session_setcookie_options());
     }
 
     /**

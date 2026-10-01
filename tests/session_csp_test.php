@@ -147,3 +147,38 @@ $t->is('garbage entries are skipped', $probe->getClientIP(), '9.9.9.9');
 unset($_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['HTTP_CLIENT_IP'], $_SERVER['REMOTE_ADDR']);
 putenv('TRUSTED_PROXIES=');
 $_ENV['TRUSTED_PROXIES'] = '';
+
+$t->group('the session cookie options setcookie() will accept');
+
+/* session_set_cookie_params() and setcookie() take almost the same
+   array and disagree about one key. Passing the session version to
+   setcookie() raises ValueError: option "lifetime" is invalid - which
+   is what session_repair_cookie() did, on the login path, from the
+   moment the session hardening was written. Nothing caught it until
+   a browser-less CI job actually posted the login form. */
+$opts = session_setcookie_options();
+
+$t->false('there is no lifetime key', array_key_exists('lifetime', $opts));
+$t->true('there is an expires key', array_key_exists('expires', $opts));
+
+/* A session cookie is expires=0. time()+0 would be a cookie that
+   expired the instant it was set - an immediate logout. */
+$t->is('a zero lifetime stays zero, not time()', $opts['expires'], 0);
+
+$t->is('the path survives', $opts['path'], '/');
+$t->true('httponly survives', $opts['httponly']);
+$t->is('samesite survives', $opts['samesite'], 'Lax');
+$t->true('secure is a boolean', is_bool($opts['secure']));
+
+/* Every key must be one setcookie() recognises, or it throws. */
+$allowed = ['expires', 'path', 'domain', 'secure', 'httponly', 'samesite'];
+foreach (array_keys($opts) as $key) {
+    $t->true("setcookie() accepts the '$key' option", in_array($key, $allowed, true));
+}
+
+/* The session_* spelling must stay as it is: session_set_cookie_params()
+   rejects 'expires' just as firmly as setcookie() rejects 'lifetime'. */
+$sessionParams = session_cookie_params();
+$t->true('the session version still uses lifetime',
+    array_key_exists('lifetime', $sessionParams));
+$t->false('and not expires', array_key_exists('expires', $sessionParams));
