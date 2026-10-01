@@ -136,7 +136,7 @@ $message = '';
                         ?>
                     </h5>
                     <div>
-                        <button class="btn btn-sm btn-primary" onclick="exportLogs()">
+                        <button class="btn btn-sm btn-primary" data-action="exportLogs">
                             <i class="fa fa-download"></i> Export
                         </button>
                     </div>

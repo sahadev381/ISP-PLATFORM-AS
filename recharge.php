@@ -217,7 +217,7 @@ include __DIR__ . '/includes/topbar.php';
                 <i class="fa fa-arrow-left"></i> Back to Users
 	    </a>
 		  <!-- Toggle Button -->
-        <button class="btn" onclick="toggleAddAdmin()" type="button">
+        <button class="btn" data-action="toggleAddAdmin" type="button">
             <i class="fa fa-plus"></i> Add
         </button>
        </div>

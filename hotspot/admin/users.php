@@ -398,7 +398,7 @@ body { background: #f3f4f6; }
                         <option value="blocked">Block</option>
                         <option value="delete">Delete</option>
                     </select>
-                    <button type="button" class="btn btn-outline-primary" onclick="bulkAction()">Apply</button>
+                    <button type="button" class="btn btn-outline-primary" data-action="bulkAction">Apply</button>
                 </div>
 
                 <div class="table-responsive">

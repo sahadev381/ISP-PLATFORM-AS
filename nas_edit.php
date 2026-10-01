@@ -214,7 +214,7 @@ include __DIR__ . '/includes/topbar.php';
                             <label>Longitude</label>
                             <input type="text" name="lng" id="lng" class="form-control" value="<?= htmlspecialchars($nas['lng'] ?? '') ?>" placeholder="e.g. 85.3240">
                         </div>
-                        <button type="button" onclick="getLocation()" class="btn-save" style="background:#64748b; padding: 10px 15px;">
+                        <button type="button" data-action="getLocation" class="btn-save" style="background:#64748b; padding: 10px 15px;">
                             <i class="fa fa-crosshairs"></i> Get Current
                         </button>
                     </div>

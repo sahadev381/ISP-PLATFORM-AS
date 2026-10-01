@@ -55,11 +55,11 @@ include __DIR__ . '/includes/topbar.php';
         <button class="tool-btn" data-type="ENCLOSURE" onclick="setMode('add_node', this)"><i class="fa fa-shield-halved" style="color:#8b5cf6;"></i> Enclosure</button>
         <button class="tool-btn" data-type="JOINT" onclick="setMode('add_node', this)"><i class="fa fa-link" style="color:#10b981;"></i> Joint / Tiffin</button>
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-        <button class="tool-btn" onclick="openFaultTool()"><i class="fa fa-magnifying-glass-location" style="color:#ef4444;"></i> Fault Localizer</button>
-        <button class="tool-btn" id="fiberBtn" onclick="toggleFiberDrawing()"><i class="fa fa-pen-nib"></i> Trace Fiber</button>
-        <button class="tool-btn" onclick="openLeaseManager()"><i class="fa fa-handshake" style="color:#8b5cf6;"></i> Wire Leases</button>
+        <button class="tool-btn" data-action="openFaultTool"><i class="fa fa-magnifying-glass-location" style="color:#ef4444;"></i> Fault Localizer</button>
+        <button class="tool-btn" id="fiberBtn" data-action="toggleFiberDrawing"><i class="fa fa-pen-nib"></i> Trace Fiber</button>
+        <button class="tool-btn" data-action="openLeaseManager"><i class="fa fa-handshake" style="color:#8b5cf6;"></i> Wire Leases</button>
         <a href="map_export.php" class="tool-btn" style="text-decoration:none;"><i class="fa fa-file-export" style="color:#10b981;"></i> Export KML</a>
-        <button class="tool-btn" onclick="refreshData()" style="background:#fff;"><i class="fa fa-sync"></i> Refresh Data</button>
+        <button class="tool-btn" data-action="refreshData" style="background:#fff;"><i class="fa fa-sync"></i> Refresh Data</button>
     </div>
 </div>
 
@@ -71,7 +71,7 @@ include __DIR__ . '/includes/topbar.php';
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                 <div><label>Asset Name / ID</label><input type="text" id="nodeName"></div>
-                <div><label>Capacity</label><select id="nodeCapacity" onchange="handleCapacityChange()"></select></div>
+                <div><label>Capacity</label><select id="nodeCapacity" data-action="handleCapacityChange" data-action-on="change"></select></div>
             </div>
 
             <div style="margin-top:10px; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
@@ -92,7 +92,7 @@ include __DIR__ . '/includes/topbar.php';
                 </div>
             </div>
 
-            <button class="btn btn-primary" onclick="saveNode()" style="width:100%; padding:12px; font-weight:700; margin-top:20px;"><i class="fa fa-save"></i> Save Infrastructure</button>
+            <button class="btn btn-primary" data-action="saveNode" style="width:100%; padding:12px; font-weight:700; margin-top:20px;"><i class="fa fa-save"></i> Save Infrastructure</button>
         </div>
     </div>
 </div>
@@ -109,7 +109,7 @@ include __DIR__ . '/includes/topbar.php';
             </select>
             <label>Distance from Source (Meters)</label>
             <input type="number" id="faultDistance" class="form-control" placeholder="e.g. 450">
-            <button class="btn btn-primary" onclick="predictBreak()" style="width:100%; padding:12px;">Predict Break Point</button>
+            <button class="btn btn-primary" data-action="predictBreak" style="width:100%; padding:12px;">Predict Break Point</button>
         </div>
     </div>
 </div>

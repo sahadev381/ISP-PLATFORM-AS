@@ -537,7 +537,7 @@ function showTab(tabId, btn) {
                 <hr style="margin:20px 0; border:0; border-top:1px solid #f1f5f9;">
                 <div class="detail-row"><label>TX Power</label><span id="currentTx">-- dBm</span></div>
                 <div class="detail-row"><label>Last Update</label><span id="lastPowerUpdate">Never</span></div>
-                <button onclick="refreshPower()" id="refreshBtn" class="btn-action btn-primary" style="width:100%; justify-content:center; margin-top:20px;">
+                <button data-action="refreshPower" id="refreshBtn" class="btn-action btn-primary" style="width:100%; justify-content:center; margin-top:20px;">
                     <i class="fa fa-sync"></i> Refresh Power
                 </button>
             </div>

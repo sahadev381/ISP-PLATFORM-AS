@@ -227,7 +227,7 @@ include __DIR__ . '/includes/topbar.php';
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="modalTitle">Set Wi-Fi Details</h3>
-            <span style="cursor:pointer; font-size: 24px; color: #94a3b8;" onclick="closeWifiModal()">&times;</span>
+            <span style="cursor:pointer; font-size: 24px; color: #94a3b8;" data-action="closeWifiModal">&times;</span>
         </div>
         <div class="modal-body">
             <form method="POST">

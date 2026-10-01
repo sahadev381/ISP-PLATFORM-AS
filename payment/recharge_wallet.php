@@ -34,19 +34,19 @@ include __DIR__ . '/../includes/topbar.php';
 
         <div class="gateway-grid">
             <!-- Khalti -->
-            <div class="gateway-card" onclick="payWithKhalti()">
+            <div class="gateway-card" data-action="payWithKhalti">
                 <img src="https://khalti.s3.ap-south-1.amazonaws.com/KPG/dist/resources/img/khalti-logo.png">
                 <span>Khalti</span>
             </div>
             
             <!-- eSewa -->
-            <div class="gateway-card" onclick="payWithEsewa()">
+            <div class="gateway-card" data-action="payWithEsewa">
                 <img src="https://blog.esewa.com.np/wp-content/uploads/2021/12/esewa_logo.png">
                 <span>eSewa</span>
             </div>
 
             <!-- connectIPS -->
-            <div class="gateway-card" onclick="payWithConnectIPS()">
+            <div class="gateway-card" data-action="payWithConnectIPS">
                 <img src="https://www.connectips.com/wp-content/uploads/2020/07/connectips-logo.png">
                 <span>connectIPS</span>
             </div>

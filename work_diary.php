@@ -39,7 +39,7 @@ include __DIR__ . '/includes/topbar.php';
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h2 style="margin:0;"><i class="fa fa-book-open"></i> Work Diary</h2>
         <div style="display: flex; gap: 10px;">
-            <select id="filterCategory" class="form-control" onchange="loadDiary()" style="border-radius:8px; padding:8px;">
+            <select id="filterCategory" class="form-control" data-action="loadDiary" data-action-on="change" style="border-radius:8px; padding:8px;">
                 <option value="">All Categories</option>
                 <option value="Installation">Installation</option>
                 <option value="Maintenance">Maintenance</option>

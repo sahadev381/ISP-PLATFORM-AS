@@ -209,7 +209,7 @@ include __DIR__ . '/includes/topbar.php';
                                     <i class="fa fa-map-pin"></i>
                                     <input type="text" name="lng" id="lng" class="form-control" placeholder="Longitude (e.g. 85.3240)">
                                 </div>
-                                <button type="button" onclick="getLocation()" class="btn-submit" style="width: auto; margin-top: 0; padding: 10px 15px;">
+                                <button type="button" data-action="getLocation" class="btn-submit" style="width: auto; margin-top: 0; padding: 10px 15px;">
                                     <i class="fa fa-crosshairs"></i> Get Location
                                 </button>
                             </div>

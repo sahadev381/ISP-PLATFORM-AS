@@ -223,7 +223,7 @@ include __DIR__ . '/includes/topbar.php';
     <div class="ftth-modal-content" style="background:#fff; margin:5% auto; padding:30px; border-radius:20px; width:95%; max-width:800px; box-shadow:0 25px 60px rgba(0,0,0,0.4);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h3 style="margin:0;"><i class="fa fa-chart-line"></i> Real-time Traffic: <span id="monitorIfaceName" style="color:#3b82f6;"></span></h3>
-            <span onclick="closeMonitor()" style="cursor:pointer; font-size:24px;">&times;</span>
+            <span data-action="closeMonitor" style="cursor:pointer; font-size:24px;">&times;</span>
         </div>
         <div style="height:400px; width:100%;">
             <canvas id="trafficChart"></canvas>

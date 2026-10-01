@@ -445,7 +445,7 @@ include __DIR__ . '/includes/topbar.php';
                     <?php endwhile; ?>
                 </select>
             </form>
-            <button class="btn btn-primary" onclick="loadOLTData()">
+            <button class="btn btn-primary" data-action="loadOLTData">
                 <i class="fa fa-sync"></i> Refresh
             </button>
         </div>
@@ -506,7 +506,7 @@ include __DIR__ . '/includes/topbar.php';
             <h3><i class="fa fa-list"></i> ONT List</h3>
             <div class="ont-filters">
                 <input type="text" id="ontSearch" placeholder="Search by Serial, Port..." onkeyup="filterONTs()">
-                <select id="ontStatusFilter" onchange="filterONTs()">
+                <select id="ontStatusFilter" data-action="filterONTs" data-action-on="change">
                     <option value="">All Status</option>
                     <option value="online">Online</option>
                     <option value="offline">Offline</option>
@@ -554,7 +554,7 @@ include __DIR__ . '/includes/topbar.php';
     <div class="modal-content">
         <div class="modal-header">
             <h4><i class="fa fa-cog"></i> ONT Actions</h4>
-            <span class="close" onclick="closeModal()">&times;</span>
+            <span class="close" data-action="closeModal">&times;</span>
         </div>
         <div class="modal-body">
             <p id="ontSerialDisplay" style="font-size: 16px; font-weight: 600; margin-bottom: 20px;"></p>

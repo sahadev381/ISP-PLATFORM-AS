@@ -157,7 +157,7 @@ include __DIR__ . '/includes/sidebar.php';
 <div class="table-box">
  <h3 style="margin-bottom:15px;">Existing Admin Users</h3>
         <!-- Toggle Button -->
-        <button class="btn" onclick="toggleAddAdmin()" type="button">
+        <button class="btn" data-action="toggleAddAdmin" type="button">
             <i class="fa fa-user-plus"></i> Add
         </button>
 <table>

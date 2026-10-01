@@ -76,6 +76,10 @@ send_security_headers();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= e($base_path) ?>assets/css/theme.css">
+    <!-- Delegated event handling, so markup need not carry script.
+         defer: it only needs the DOM, and blocking the parse for it
+         would slow every page down for no reason. -->
+    <script src="<?= e(app_base_path()) ?>assets/js/actions.js" defer></script>
 <script>
 /*
  * jQuery is loaded later on some pages, so its hook cannot live in the
@@ -115,7 +119,7 @@ function toggleHotspotMenu() {
     var submenu = document.getElementById('hotspot-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleHotspotMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleHotspotMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -129,7 +133,7 @@ function toggleNetworkMenu() {
     var submenu = document.getElementById('network-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleNetworkMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleNetworkMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -143,7 +147,7 @@ function toggleCustomerMenu() {
     var submenu = document.getElementById('customer-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleCustomerMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleCustomerMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -157,7 +161,7 @@ function toggleTicketMenu() {
     var submenu = document.getElementById('ticket-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleTicketMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleTicketMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -171,7 +175,7 @@ function toggleReportMenu() {
     var submenu = document.getElementById('report-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleReportMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleReportMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -185,7 +189,7 @@ function toggleLeadMenu() {
     var submenu = document.getElementById('lead-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleLeadMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleLeadMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -199,7 +203,7 @@ function toggleOperationMenu() {
     var submenu = document.getElementById('operation-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleOperationMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleOperationMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -213,7 +217,7 @@ function toggleSettingsMenu() {
     var submenu = document.getElementById('settings-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleSettingsMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleSettingsMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -227,7 +231,7 @@ function toggleFinanceMenu() {
     var submenu = document.getElementById('finance-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleFinanceMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleFinanceMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -253,7 +257,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleNetworkMenu()') {
+            /* These used to read the onclick attribute to find the
+               right menu button. The handlers are data-action now,
+               so this had to move with them - a converted attribute
+               that something else was reading by name is the quiet
+               way this refactor breaks. */
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleNetworkMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -266,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleHotspotMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleHotspotMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -284,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleSettingsMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleSettingsMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -303,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleCustomerMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleCustomerMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -316,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleTicketMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleTicketMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -329,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleReportMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleReportMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -342,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleLeadMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleLeadMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -358,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleOperationMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleOperationMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -373,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleFinanceMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleFinanceMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }

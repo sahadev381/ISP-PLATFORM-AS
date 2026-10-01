@@ -1,6 +1,6 @@
 <!-- Mobile Header -->
 <div class="mobile-header">
-    <button class="menu-toggle" onclick="toggleSidebar()">
+    <button class="menu-toggle" data-action="toggleSidebar">
         <i class="fa fa-bars"></i>
     </button>
     <span>ISP SYSTEM</span>
@@ -8,9 +8,13 @@
 </div>
 
 <!-- Sidebar Overlay -->
-<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div class="sidebar-overlay" data-action="toggleSidebar"></div>
 
 <?php require_once __DIR__ . '/paths.php'; $base_path = app_base_path(); ?>
+<?php /* Two customer pages include this sidebar and no header at
+         all, so the dispatcher is loaded here too. The browser
+         ignores the second copy of an identical src. */ ?>
+<script src="<?= e(app_base_path()) ?>assets/js/actions.js" defer></script>
 
 <div class="sidebar">
     <div class="sidebar-logo">
@@ -26,7 +30,7 @@
             <i class="fa fa-gauge-high"></i>Dashboard
         </a>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleCustomerMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleCustomerMenu">
             <i class="fa fa-users"></i>Customers <i class="fa fa-chevron-down float-end" id="customer-arrow"></i>
         </a>
         
@@ -54,7 +58,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleTicketMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleTicketMenu">
             <i class="fa fa-ticket"></i>Tickets <i class="fa fa-chevron-down float-end" id="ticket-arrow"></i>
         </a>
         
@@ -76,7 +80,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleNetworkMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleNetworkMenu">
             <i class="fa fa-network-wired"></i>Network <i class="fa fa-chevron-down float-end" id="network-arrow"></i>
         </a>
         
@@ -119,7 +123,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleOperationMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleOperationMenu">
             <i class="fa fa-tools"></i>Operations <i class="fa fa-chevron-down float-end" id="operation-arrow"></i>
         </a>
         
@@ -138,7 +142,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleLeadMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleLeadMenu">
             <i class="fa fa-funnel-dollar"></i>Leads <i class="fa fa-chevron-down float-end" id="lead-arrow"></i>
         </a>
         
@@ -166,7 +170,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleHotspotMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleHotspotMenu">
             <i class="fa fa-wifi"></i>Hotspot Portal <i class="fa fa-chevron-down float-end" id="hotspot-arrow"></i>
         </a>
         
@@ -197,7 +201,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleReportMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleReportMenu">
             <i class="fa fa-chart-bar"></i>Reports <i class="fa fa-chevron-down float-end" id="report-arrow"></i>
         </a>
         
@@ -231,7 +235,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleSettingsMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleSettingsMenu">
             <i class="fa fa-cogs"></i>Settings <i class="fa fa-chevron-down float-end" id="settings-arrow"></i>
         </a>
         
@@ -261,7 +265,7 @@
             </a>
         </div>
         
-        <a href="javascript:void(0)" class="menu-toggle-item" onclick="toggleFinanceMenu()">
+        <a href="javascript:void(0)" class="menu-toggle-item" data-action="toggleFinanceMenu">
             <i class="fa fa-wallet"></i>Account/Finance <i class="fa fa-chevron-down float-end" id="finance-arrow"></i>
         </a>
         

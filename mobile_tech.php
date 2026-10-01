@@ -55,7 +55,7 @@ include __DIR__ . '/includes/header.php';
     
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h4 style="margin:0; font-size:14px; font-weight:800; color:var(--secondary);">YOUR ASSIGNMENTS</h4>
-        <button onclick="refreshJobs()" style="border:none; background:none; color:var(--primary); font-weight:700;"><i class="fa fa-sync"></i></button>
+        <button data-action="refreshJobs" style="border:none; background:none; color:var(--primary); font-weight:700;"><i class="fa fa-sync"></i></button>
     </div>
 
     <div id="jobList">
@@ -144,7 +144,7 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <!-- JOB DETAIL SHEET -->
-<div class="overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="overlay" id="sheetOverlay" data-action="closeSheet"></div>
 <div class="bottom-sheet" id="jobSheet">
     <div class="sheet-handle"></div>
     <div id="sheetContent">
@@ -154,7 +154,7 @@ include __DIR__ . '/includes/header.php';
 
 <!-- Scanner Modal -->
 <div id="scannerModal">
-    <i class="fa fa-times scan-close" onclick="stopScanner()"></i>
+    <i class="fa fa-times scan-close" data-action="stopScanner"></i>
     <div id="reader"></div>
     <div style="position:absolute; bottom:50px; left:0; right:0; text-align:center; color:white; z-index:3001; pointer-events:none;">
         <p style="background:rgba(0,0,0,0.5); display:inline-block; padding:5px 10px; border-radius:5px;">Point camera at ONU MAC or Serial Barcode</p>
