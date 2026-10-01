@@ -1725,3 +1725,92 @@ cannot execute the thing it is checking will tell you it is fine.**
 
 **231 files, 0 parse errors · 323 assertions, 323 passed** (37 new) ·
 inline-handler budget 189 · CLI script guard clean.
+
+---
+
+## §28 — Phase 22: making the rotation possible to actually do
+
+The two things still blocking a 1.0 are both the owner's: rotate the
+leaked credentials, and run the smoke test against staging. Neither
+can be done from here. What can be done is to stop them being harder
+than they need to be.
+
+### The scanner
+
+Phases 1 and 2 moved every credential out of the code. Nothing stopped
+them returning, and they return the way they arrived: somebody
+debugging at 2am types the real password in to see whether that was
+the problem, and the commit lands.
+
+That matters more here than in most projects. These particular secrets
+are *already* in the history and cannot be taken out of it. Re-adding
+one does not make things slightly worse — it makes the rotation that
+finally fixes them pointless.
+
+`scripts/check_secrets.php` fails CI on the three known-leaked values
+and on nine credential shapes: a `new mysqli()` with a literal
+password, `$password = '...'`, a **non-empty default for a secret**
+(`env('DB_PASS', 'something')` is a hardcoded credential wearing a
+config-shaped hat), Twilio SIDs, live API keys, AWS key ids, private
+key blocks, literal bearer tokens, and `scheme://user:pass@host` URLs.
+
+Two deliberate exclusions, both of which are judgement calls rather
+than oversights:
+
+- **Markdown is not scanned.** `AUDIT_REPORT.md` and
+  `RELEASE_READINESS.md` quote the leaked values on purpose — that is
+  the record of what needs rotating. A scanner that forbids naming
+  the problem makes the problem harder to fix.
+- **`tests/` is scanned for the known values but not for shapes.**
+  The redaction tests cannot verify that a password is stripped
+  without a password to strip.
+
+False positives go in `.secret-allowlist`, which requires a reason per
+line. An allowlist without reasons is a way to silence a scanner
+rather than satisfy it.
+
+#### It found something immediately
+
+The first run failed on `tests/errors_test.php`, which used the real
+leaked string `radiuspass` as a fixture — written three phases ago, by
+me. Not a live exposure, but a bad habit: reusing a genuinely
+compromised value as test data makes every future grep for the real
+leak noisy, and trains whoever runs it to dismiss the hit. The
+fixtures now use an obviously fake value.
+
+### The runbook
+
+`ROTATION.md` walks through all seven, and the ordering is the
+content. Several of these credentials are consumed by processes that
+do not read this project's `.env`:
+
+- **FreeRADIUS** reads `mods-available/sql` and keeps the old
+  password until it is restarted. Change the database user first and
+  every customer loses internet while the config catches up.
+- **cron jobs** hold their environment from when they started.
+
+So each section creates the replacement alongside the old credential,
+proves both halves work, and only then removes the original. There is
+never a moment when only the broken combination exists.
+
+The RADIUS section insists on `radtest` as well as the smoke test,
+because the panel and FreeRADIUS reach the same database by different
+paths: the panel can work perfectly while authentication is broken,
+and you find out from customers rather than from a log.
+
+### On not rewriting history
+
+`git filter-repo` is explicitly recommended *against*. It rewrites
+every commit hash, forks keep the old objects regardless, GitHub
+retains unreachable objects for a long time — and most importantly it
+produces a strong feeling of having fixed the problem, which is
+actively dangerous if the credentials were never changed.
+
+Rotation makes the history harmless. Rewriting history without
+rotation only makes it look harmless.
+
+### Verification
+
+**232 files, 0 parse errors · 323 assertions, 323 passed ·
+244 files scanned for secrets, clean · 19 CLI scripts checked ·
+inline-handler budget 189.**

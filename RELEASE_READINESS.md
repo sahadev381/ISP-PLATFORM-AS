@@ -85,6 +85,16 @@ Removing them from the code (done) does not remove them from history.
 They need rotating at the source. Until that happens the platform is
 not production grade regardless of code quality.
 
+**`ROTATION.md` is now the runbook** - ordered so that nothing is
+changed before the thing that reads it, with the FreeRADIUS and cron
+cases called out because they do not read this project's `.env` and
+will keep using the old value until they are restarted.
+
+`scripts/check_secrets.php` runs in CI and fails if any of the leaked
+values, or a credential of any recognisable shape, reappears in code.
+It cannot un-leak anything; it stops the rotation being undone by the
+next 2am debugging session.
+
 ---
 
 ## 4. Engineering gaps before a 1.0

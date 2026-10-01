@@ -19,7 +19,7 @@ $t->is('a password assignment is redacted',
     'Failed: password = [redacted]');
 
 $t->lacks('an array key holding a secret is redacted',
-    error_redact("['DB_PASS' => 'radiuspass']"), 'radiuspass');
+    error_redact("['DB_PASS' => 'fixture-pw-not-real']"), 'fixture-pw-not-real');
 
 $t->lacks('an api key is redacted',
     error_redact('api_key: live_sk_9f8a7b6c5d'), 'live_sk_9f8a7b6c5d');
@@ -28,10 +28,10 @@ $t->lacks('a bearer token is redacted',
     error_redact('Authorization: Bearer eyJhbGciOiJIUzI1NiJ9abcdef'), 'eyJhbGciOiJIUzI1NiJ9abcdef');
 
 $t->lacks('credentials inside a URL are redacted',
-    error_redact('mysql://radius:radiuspass@db.internal/radius'), 'radiuspass');
+    error_redact('mysql://radius:fixture-pw-not-real@db.internal/radius'), 'fixture-pw-not-real');
 
 $t->true('the surrounding text survives',
-    strpos(error_redact('mysql://radius:radiuspass@db.internal/radius'), 'db.internal') !== false);
+    strpos(error_redact('mysql://radius:fixture-pw-not-real@db.internal/radius'), 'db.internal') !== false);
 
 $t->is('ordinary text is left alone',
     error_redact('Undefined array key "customer_id" in billing.php'),

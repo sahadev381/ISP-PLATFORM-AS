@@ -64,6 +64,13 @@ jobs:
       - name: CLI scripts actually run
         run: php scripts/check_cli_scripts.php
 
+      # These particular secrets are already in the git history and
+      # cannot be taken out of it. Re-adding one does not make things
+      # slightly worse - it makes the rotation that fixes them
+      # pointless. See ROTATION.md.
+      - name: No credentials in code
+        run: php scripts/check_secrets.php
+
       # Every on* attribute is a reason script-src must keep
       # 'unsafe-inline'. The budget can only go down.
       - name: Inline event handlers are not increasing
