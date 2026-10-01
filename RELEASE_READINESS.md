@@ -157,8 +157,9 @@ Ordered by what I would do first.
    real MySQL 8 in CI. They earned their keep immediately: on their
    first real run they caught a settlement bug that had made the
    entire phase-16 invoice fix a no-op.
-6. **Remove the 189 inline `on*` handlers.** Still open, but no
-   longer unmeasurable and no longer unsafe to attempt.
+6. **Remove the inline `on*` handlers. 189 -> 151, in progress.**
+   The first 38 are gone and a browser has confirmed each one still
+   works.
 
    CI runs every page in Chromium. **1774 report-only CSP violations
    across 137 pages** is the real size of this job - not an estimate
@@ -194,7 +195,42 @@ Ordered by what I would do first.
 
    A budget in `.inline-handler-budget` now fails CI if the count
    rises. Long cleanups lose to new code unless something stops the
-   number going up.
+   number going up. It is at **151**, lowered as each batch lands.
+
+   **What has been converted.** `assets/js/actions.js` is a single
+   delegated listener on `document`; markup opts in with
+   `data-action="fnName"`, optional `data-action-on="change|submit"`
+   and optional `data-args='[...]'` parsed as JSON. It never calls
+   `eval`: the obvious implementation, `eval(el.dataset.onclick)`,
+   needs `'unsafe-eval'` and would leave the page exactly as exposed
+   as it is today. Functions are resolved by name on `window`, so
+   nothing in an attribute can execute as code. A handler returning
+   `false` still cancels the default, which the
+   `onsubmit="return confirm(...)"` handlers rely on.
+
+   38 of the 51 **bare-call** handlers are done, in the 16 files that
+   provably load the dispatcher. The 13 left are in
+   `network_topology.php`, which includes neither header nor sidebar;
+   it needs the script tag before its handlers can move. The other
+   ~100 handlers carry arguments, inline statements or interpolated
+   PHP and have to be read one at a time.
+
+   **The two checks that make this safe**, and neither existed
+   before phase 25. Every page is rendered in Chromium, so a page
+   that breaks fails the build. And every `[data-action]` on every
+   page is resolved against `window` at load, because the way this
+   conversion fails is silent: correct attribute, dispatcher running,
+   function never in scope, button simply does nothing until somebody
+   clicks it months later. An unresolved name is now a JS error and a
+   red build.
+
+   The genuinely dangerous part was not the markup. `includes/header.php`
+   located sidebar menu buttons by reading
+   `getAttribute('onclick') === 'toggleFinanceMenu()'` in **eighteen**
+   places. Converting the attributes without finding those would have
+   left every submenu silently refusing to expand - something else was
+   reading the attribute being refactored, by name, from another file.
+   Grep for the old attribute name before moving it, not after.
 
 ---
 

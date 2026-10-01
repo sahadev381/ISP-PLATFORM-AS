@@ -2048,3 +2048,108 @@ support call.
 parity, migrations, integration tests, secrets, CSRF, inline-handler
 budget and CLI scripts all green. Caching the browser took the job
 from 10m08s to under 3 minutes.
+
+---
+
+## 32. Inline event handlers: the first 38 removed (phase 27)
+
+Every `onclick=` in the markup is a reason `script-src` has to keep
+`'unsafe-inline'`, and `'unsafe-inline'` is the reason the CSP is not
+currently an XSS defence. An attacker who gets markup into a page runs
+script regardless of what the policy says. The census in §4.6 of
+`RELEASE_READINESS.md` put the job at 189 handlers across 42 files.
+
+### What landed
+
+`assets/js/actions.js` — one delegated listener on `document` for
+`click`, `change` and `submit`. An element opts in:
+
+```html
+<button data-action="toggleSidebar">            <!-- was onclick="toggleSidebar()" -->
+<select data-action="applyFilter" data-action-on="change">
+<form   data-action="confirmDelete" data-action-on="submit">
+```
+
+Arguments, when needed, come from `data-args='["x", 3]'` and are parsed
+as **JSON**. The function is looked up by name on `window`. Nothing in
+an attribute is ever executed as code.
+
+This matters more than it looks. The obvious implementation of this
+refactor is `eval(el.dataset.onclick)`, which is mechanical, converts
+all 189 handlers in an afternoon, and is **worthless**: it requires
+`script-src 'unsafe-eval'`, which is at least as dangerous as the
+`'unsafe-inline'` it replaces. A conversion that moves the string from
+one place the browser executes it to another place the browser executes
+it has bought nothing.
+
+A handler returning `false` still gets `preventDefault()`, because
+`onsubmit="return confirm('Delete?')"` is a real pattern in this
+codebase and losing it would turn confirmation dialogs into no-ops.
+
+The script tag went into `includes/header.php`,
+`hotspot/admin/includes/header_hotspot.php` **and** `includes/sidebar.php`
+— the last because `customer/ticket_view.php` and `customer/tickets.php`
+include the sidebar and no header, and would otherwise have had markup
+pointing at a dispatcher that was never loaded.
+
+**38 of the 51 bare-call handlers converted**, across the 16 files that
+provably load the dispatcher. `.inline-handler-budget` 189 → 151.
+
+### Deliberately not converted
+
+`network_topology.php` has 13 handlers and includes neither header nor
+sidebar. Converting them would produce 13 buttons that do nothing. It
+needs the script tag first, as its own change.
+
+The remaining ~100 handlers carry arguments, multi-statement bodies or
+interpolated PHP. Those are not mechanical and each needs reading.
+
+### Why this was safe to attempt now and not three phases ago
+
+The failure mode of this conversion is silent. The attribute is
+correct, the dispatcher runs, the function was never in scope on that
+page — and the button does nothing at all, with no error, until a user
+clicks it some months later. Grep cannot see this; neither can PHP lint.
+
+Two checks introduced in §31 and phase 26 close it:
+
+1. Every page is loaded in real Chromium in CI. A page that breaks is a
+   red build.
+2. The browser check now resolves **every `[data-action]` on every
+   page** against `window` at load time. An unresolved name is reported
+   as a JavaScript error, and the error budget is zero.
+
+Check (2) was written and merged *before* a single handler was
+converted. That ordering was the point.
+
+### The bug this nearly shipped
+
+`includes/header.php` identified which sidebar submenu to expand by
+reading the handler attribute back out of the DOM:
+
+```js
+if (toggleBtns[i].getAttribute('onclick') === 'toggleFinanceMenu()') {
+```
+
+Eighteen occurrences, for nine menus, in a file different from the one
+holding the markup. The conversion to `data-action` invalidated every
+one of them; the symptom would have been every sidebar submenu quietly
+refusing to open, on every page, for every user.
+
+The general lesson: **an attribute can be an API.** Before renaming one,
+grep for code that reads it — `getAttribute('onclick')`, not just
+`onclick=`. The same grep cleared the other matches as unrelated:
+`.onclick` property assignments in `assets/js/mobile-tech.js` and
+`assets/js/network-topology.js`, and `window.onclick` modal-close
+handlers in `billing/*`, `genieacs_devices.php` and
+`hotspot/admin/blacklist.php` are all JavaScript-side and unaffected.
+
+### Verification
+
+Run `36900017532`: 137 pages, **0 JS errors**, 1776 CSP report-only
+violations, **0 missing assets**. `tests/run.php` 357/357.
+
+The CSP count does not fall yet and will not for a while: 1776 is
+dominated by the 1358 `style=""` attributes and 44 inline `<script>`
+blocks, not by the handlers. The number that moved is the one in
+`.inline-handler-budget`.
