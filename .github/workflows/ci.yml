@@ -38,6 +38,17 @@ jobs:
       - name: Unit tests
         run: php tests/run.php
 
+      - name: JavaScript syntax
+        run: |
+          set -e
+          # A syntax error anywhere in a script block stops the whole
+          # block from running, silently. Two shipped files were broken
+          # this way before this check existed.
+          for f in $(git ls-files 'assets/js/*.js'); do
+            node --check "$f" || { echo "::error file=$f::JavaScript syntax error"; exit 1; }
+          done
+          echo "All assets/js files parse."
+
       - name: CSRF coverage
         run: php scripts/check_csrf.php
 

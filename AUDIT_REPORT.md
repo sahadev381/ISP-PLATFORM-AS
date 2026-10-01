@@ -955,3 +955,68 @@ data. Flagged here for the owner to decide; deliberately not changed.
 
 **207 files, 0 parse errors · CSRF coverage clean · 133 assertions,
 133 passed.**
+
+---
+
+## §19 — Phase 13: splitting the oversized pages
+
+§8 item 5 asked for `network_topology.php` and `mobile_tech.php` to be
+split. Measuring them first showed what they actually were:
+
+| file | before | PHP | CSS | JS | HTML |
+|---|---|---|---|---|---|
+| `network_topology.php` | 1754 | 178 | 791 | 467 | 319 |
+| `mobile_tech.php` | 990 | 15 | 85 | 740 | 151 |
+
+Almost none of either file was PHP. **No `<style>` or `<script>` block
+in either file contained a single PHP tag**, so all of it could move
+out verbatim — no data-passing, no templating. The JavaScript already
+gets everything it needs from `fetch()` calls to the API endpoints.
+
+| file | after |
+|---|---|
+| `network_topology.php` | 1754 → **498** |
+| `mobile_tech.php` | 990 → **167** |
+
+New: `assets/css/network-topology.css`, `assets/js/network-topology.js`,
+`assets/css/mobile-tech.css`, `assets/js/mobile-tech.js`. The browser
+can now cache them, and getting the inline blocks out is a
+prerequisite for a Content-Security-Policy that does not need
+`unsafe-inline`.
+
+### Extraction immediately exposed two dead scripts
+
+Once the JavaScript was in a `.js` file, `node --check` could read it —
+and it failed on both counts.
+
+**1. `network_topology.php`'s entire script block never ran.** Line
+241 was:
+
+```js
+document.querySelector('.device-node[data-id="' + id + '"]')?.style.boxShadow = '0 0 20px #10b981';
+```
+
+Optional chaining is not allowed on the left-hand side of an
+assignment. That is a `SyntaxError`, and a syntax error anywhere in a
+script block prevents **the whole block** from executing. All 465
+lines of the network topology page's behaviour — the device clicks,
+the cable drawing, the live refresh — have never worked. Rewritten as
+an explicit null check.
+
+**2. `assets/js/disconnect.js` was not JavaScript.** It contained raw
+`<script>` tags, including one loading jQuery. A `.js` file is parsed
+as JavaScript, so the browser threw `Unexpected token '<'` on the
+first character. Nothing currently references the file; it has been
+rewritten as valid JavaScript with its jQuery dependency documented,
+rather than deleted, so that wiring it up would now work.
+
+### Verification
+
+New CI step **"JavaScript syntax"** runs `node --check` over every file
+in `assets/js/`. It is the check that found both bugs above, and all
+five files now pass it.
+
+**207 files, 0 parse errors · CSRF coverage clean · 133 assertions,
+133 passed · 5/5 JavaScript files parse.**
+
+This closes the last open item from §8.
