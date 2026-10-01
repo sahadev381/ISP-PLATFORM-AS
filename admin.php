@@ -102,6 +102,7 @@ include __DIR__ . '/includes/sidebar.php';
 <div id="addAdminBox" style="display:none;margin-top:15px;">
 <div class="table-box">
 <form method="post">
+<?= csrf_field() ?>
 <input type="hidden" name="edit_id" id="edit_id">
 
 <table>
@@ -216,6 +217,7 @@ $isSuper = ($a['role'] === 'superadmin');
             <h4>Change Password</h4>
 
             <form method="post">
+<?= csrf_field() ?>
                 <input type="hidden" name="admin_id" value="<?= e($a['id']) ?>">
 
                 <input class="input" type="password" name="new_password"

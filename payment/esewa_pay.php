@@ -1,6 +1,10 @@
 <?php
 include __DIR__ . '/../config.php';
 include __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
+
 
 // Fetch Settings
 $esewa_merchant = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='esewa_merchant_id'")->fetch_assoc()['setting_value'] ?? 'EPAYTEST';
@@ -30,6 +34,9 @@ include __DIR__ . '/../includes/header.php';
         <p style="color:#64748b;">Redirecting to eSewa gateway...</p>
         <div style="font-size:24px; font-weight:700; margin:20px 0; color:#1e293b;">NPR <?= number_format($amount, 2) ?></div>
         
+        <!-- Deliberately no csrf_field() here: this form posts to eSewa,
+             and our token must not be handed to a third party. The POST
+             that reaches *this* page is verified by csrf_check() above. -->
         <form id="esewaForm" method="POST" action="<?= e($esewa_url) ?>">
             <input type="hidden" name="amt" value="<?= e($amount) ?>">
             <input type="hidden" name="pdc" value="0">

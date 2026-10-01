@@ -43,6 +43,9 @@ while ($row = $result->fetch_assoc()) {
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <div class="main">
@@ -56,6 +59,7 @@ include __DIR__ . '/includes/sidebar.php';
         <?php endif; ?>
         
         <form method="POST">
+<?= csrf_field() ?>
             <!-- Email Settings -->
             <h4 style="margin: 20px 0 15px; color: var(--text-main);">
                 <i class="fa fa-envelope"></i> Email Settings (SMTP)

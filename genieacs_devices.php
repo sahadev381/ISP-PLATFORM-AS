@@ -3,6 +3,9 @@ $base_path = './';
 include __DIR__ . '/config.php';
 include __DIR__ . '/includes/auth.php';
 include __DIR__ . '/includes/genieacs_api.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "TR-069 Device Management";
 $active = "operations";
@@ -197,6 +200,7 @@ include __DIR__ . '/includes/topbar.php';
                             <td>
                                 <div style="display: flex; gap: 10px;">
                                     <form method="POST" onsubmit="return confirm('Send Reboot command to this device?');" style="display: inline;">
+<?= csrf_field() ?>
                                         <input type="hidden" name="deviceId" value="<?= e($deviceId) ?>">
                                         <button type="submit" name="reboot" class="btn-action btn-reboot" title="Reboot Device">
                                             <i class="fa fa-power-off"></i>
@@ -227,6 +231,7 @@ include __DIR__ . '/includes/topbar.php';
         </div>
         <div class="modal-body">
             <form method="POST">
+<?= csrf_field() ?>
                 <input type="hidden" name="deviceId" id="modalDeviceId">
                 <div class="form-group">
                     <label>Wi-Fi Name (SSID)</label>

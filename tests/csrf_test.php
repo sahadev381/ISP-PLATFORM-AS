@@ -86,3 +86,38 @@ $t->true('still accepts a POST token', csrf_valid_request());
 $_POST = [];
 $_GET = [];
 $_SESSION = [];
+
+$t->group('api_csrf_check() - machine callers are exempt');
+
+require_once __DIR__ . '/../includes/api_auth.php';
+
+$_SERVER['REQUEST_METHOD'] = 'POST';
+unset($_POST['_csrf'], $_SERVER['HTTP_X_CSRF_TOKEN']);
+
+// With a valid API key and no token, api_csrf_check() must return
+// normally. If it ever starts demanding a token here, every cron job
+// that posts to an endpoint dies - and csrf_check() exits, so the
+// failure mode is a silent 419 rather than a test failure elsewhere.
+$key = str_repeat('a', 32);
+$_ENV['API_KEY'] = $key;
+putenv('API_KEY=' . $key);
+$_SERVER['HTTP_X_API_KEY'] = $key;
+
+$returned = false;
+api_csrf_check();
+$returned = true;
+$t->true('a valid API key skips the token requirement', $returned);
+
+// And the browser case still needs one: csrf_valid() is what
+// api_csrf_check() defers to, so assert on that rather than on the
+// exiting wrapper.
+unset($_SERVER['HTTP_X_API_KEY']);
+$_ENV['API_KEY'] = '';
+putenv('API_KEY=');
+$t->false('a session caller with no token is not valid', csrf_valid());
+
+$_POST['_csrf'] = csrf_token();
+$t->true('a session caller with the token is valid', csrf_valid());
+
+unset($_POST['_csrf']);
+$_SERVER['REQUEST_METHOD'] = 'GET';

@@ -8,6 +8,9 @@ $base_path = '.';
 include_once __DIR__ . '/../config.php';
 include_once __DIR__ . '/../includes/auth.php';
 include_once __DIR__ . '/../includes/payment_gateway.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -44,22 +47,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $is_active = intval($_POST['is_active'] ?? 1);
         $is_test_mode = intval($_POST['is_test_mode'] ?? 0);
 
+        // The edit form never receives the stored key and secret, so an
+        // empty field means "unchanged", not "erase it". Writing the blank
+        // straight through would silently break every payment.
+        $secretSets = [];
+        $secretVals = [];
+        foreach (['api_key', 'api_secret'] as $secret) {
+            if (($_POST[$secret] ?? '') !== '') {
+                $secretSets[] = "$secret = ?";
+                $secretVals[] = $_POST[$secret];
+            }
+        }
+        $secretSql = $secretSets ? implode(', ', $secretSets) . ',' : '';
+
         db_exec($conn, "UPDATE payment_gateways SET
                       gateway_name = ?, display_name = ?,
-                      api_key = ?, api_secret = ?,
+                      $secretSql
                       merchant_id = ?, public_key = ?,
                       is_active = ?, is_test_mode = ?,
-                      updated_at = NOW() WHERE id = ?", [
+                      updated_at = NOW() WHERE id = ?", array_merge([
             $_POST['gateway_name'] ?? '',
             $_POST['display_name'] ?? '',
-            $_POST['api_key'] ?? '',
-            $_POST['api_secret'] ?? '',
+        ], $secretVals, [
             $_POST['merchant_id'] ?? '',
             $_POST['public_key'] ?? '',
             $is_active,
             $is_test_mode,
             $gateway_id,
-        ]);
+        ]));
         $message = 'Gateway updated successfully';
     }
     
@@ -454,6 +469,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                 <button class="close" onclick="document.getElementById('addModal').style.display='none'">&times;</button>
             </div>
             <form method="POST" action="">
+<?= csrf_field() ?>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add_gateway">
                     <div class="form-group">

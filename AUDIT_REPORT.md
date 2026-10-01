@@ -675,3 +675,87 @@ so no working directory could have satisfied it.
   build on any new bare relative include; confirmed it passes on the
   current tree and catches a deliberately reintroduced one.
 - Full run: **206 files, 0 parse errors; 130 assertions, 130 passed.**
+
+---
+
+## §15 — Phase 9: CSRF coverage
+
+### Where it stood
+
+Of the files that handle a POST or render a POST form, **43 were
+missing one half or both**. Two distinct failure modes:
+
+- **Unprotected** — 28 pages read `$_POST` with no token check at all,
+  including `user_add.php`, `user_edit.php`, `branch_add.php`,
+  `change_password.php`, `nas_edit.php`, `inventory.php` and the whole
+  of `billing/`. A malicious page could make a logged-in admin's
+  browser create users or change passwords.
+- **Already broken** — 10 pages *did* call `csrf_check()` but their
+  forms never emitted `csrf_field()`, so those pages were rejecting
+  their own submissions with a 419 (`plans.php`, `nas.php`,
+  `quick_renew.php`, `knowledge_base.php`, the `report/*` exports,
+  `ticket_new.php`). Adding the field fixes a live bug, not just a
+  theoretical one.
+
+### Approach
+
+`csrf_check()` returns immediately on anything that is not a POST, so
+one call near the top of a page protects every POST that page handles.
+That is what was added — 19 new guards and 34 new hidden fields across
+29 pages — rather than one guard per handler branch.
+
+**AJAX.** `includes/header.php` already published the token in a
+`<meta name="csrf-token">`. A small shim there now attaches
+`X-CSRF-Token` to every same-origin non-GET `fetch()` and
+`XMLHttpRequest`, so the dozens of existing AJAX call sites are covered
+without editing each one — and so the next one is covered by default.
+Forms built in JavaScript are a real navigation and bypass the shim, so
+`payment/khalti_pay.php` sets the field explicitly.
+
+**Machine callers.** New `api_csrf_check()` skips the token when the
+caller authenticated with an API key, because a cron job has no session
+to ride and a foreign site cannot obtain the key. Applied to
+`api/resolve_alert.php`, `api/olt_ont.php`, `api/snmp_monitor.php`,
+`api/network_topology.php`, `api/mikrotik_olt_integration.php` and
+`work_diary_api.php`. Two of those (`olt_ont`,
+`mikrotik_olt_integration`) had **no authentication at all** and gained
+`api_require_auth()` in the same pass.
+
+**One deliberate exception.** `payment/esewa_pay.php` renders a form
+that posts to eSewa. It gets no token - handing ours to a third party
+would be worse than having none - and the comment in the file says so.
+The POST arriving at that page is checked.
+
+### A credential leak found on the way
+
+`api/payment/get_gateway.php` - the modal fragment behind the "edit
+gateway" button - was **unauthenticated** and rendered
+`<input value="<?= $gateway['api_key'] ?>">`. Anyone who could reach
+`?id=1` could read the live payment credentials, against an explicit
+`secret - never render this` comment on that column in the schema.
+
+It was also simply broken: it read `$gateway['name']`, `['status']`
+and `['webhook_url']`, none of which exist on `payment_gateways`, and
+posted field names `billing/gateways.php` does not handle, so saving
+had never worked.
+
+Rewritten to require `superadmin`, select only non-secret columns
+(secrets are reduced to a `has_api_key` boolean for the placeholder),
+post the field names the handler expects, and carry a token. The
+handler now treats an empty key or secret as "unchanged" instead of
+writing the blank through and silently breaking payments.
+
+### Verification
+
+New `scripts/check_csrf.php`, wired into CI as **"CSRF coverage"**,
+fails the build on any POST form without a field or any `$_POST`
+handler without a check, with a named exemption list. It reports clean,
+alongside **207 files, 0 parse errors** and **133 assertions, 133
+passed**.
+
+### Noted, not yet done
+
+Phase 8 converted literal relative includes to `__DIR__`. A further
+**70 sites use `include $base_path . 'config.php'`**, which is the same
+CWD dependency wearing a variable, and the new CI guard does not catch
+it. Worth a follow-up.

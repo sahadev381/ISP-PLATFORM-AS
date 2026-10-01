@@ -53,6 +53,7 @@ include $base_path . 'includes/topbar.php';
         <div class="card-header">
             <h2>New Customers (<?= $result ? $result->num_rows : 0 ?>)</h2>
             <form method="post" action="export_new_users.php">
+<?= csrf_field() ?>
                 <button type="submit" style="background:#10b981; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
         </div>

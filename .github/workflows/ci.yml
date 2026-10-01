@@ -38,6 +38,9 @@ jobs:
       - name: Unit tests
         run: php tests/run.php
 
+      - name: CSRF coverage
+        run: php scripts/check_csrf.php
+
       - name: Block working-directory-relative includes
         run: |
           set -e

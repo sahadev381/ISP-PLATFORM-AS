@@ -9,6 +9,9 @@ $page_title = "Import Customers";
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <div class="main">
@@ -22,6 +25,7 @@ include __DIR__ . '/includes/sidebar.php';
         </p>
         
         <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
             <div class="form-group">
                 <label class="form-label">Select CSV File</label>
                 <input type="file" name="csv_file" class="form-control" accept=".csv" required>

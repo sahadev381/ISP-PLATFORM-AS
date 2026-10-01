@@ -98,6 +98,7 @@ include __DIR__ . '/includes/sidebar.php';
         </div>
         
         <form method="POST">
+<?= csrf_field() ?>
             <div class="form-group">
                 <label class="form-label">Category</label>
                 <select name="category" class="form-control" required>

@@ -8,6 +8,9 @@ $active = "reports";
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
 include __DIR__ . '/includes/topbar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -26,6 +29,7 @@ include __DIR__ . '/includes/topbar.php';
                 <h3>Financial & Collection</h3>
                 <p>Daily collection, online payments, and due invoices.</p>
                 <form action="report_api.php" method="POST" target="_blank">
+<?= csrf_field() ?>
                     <input type="hidden" name="type" value="financial">
                     <div style="display:flex; gap:10px; margin-top:10px;">
                         <input type="date" name="from" class="form-control" required value="<?= date('Y-m-01') ?>">
@@ -43,6 +47,7 @@ include __DIR__ . '/includes/topbar.php';
                 <h3>Expiry & Renewals</h3>
                 <p>List of expired users, upcoming expiries, and inactive accounts.</p>
                 <form action="report_api.php" method="POST" target="_blank">
+<?= csrf_field() ?>
                     <input type="hidden" name="type" value="expiry">
                     <div style="margin-top:10px;">
                         <select name="status" class="form-control">
@@ -63,6 +68,7 @@ include __DIR__ . '/includes/topbar.php';
                 <h3>Faults & Maintenance</h3>
                 <p>History of network faults, resolution times, and affected areas.</p>
                 <form action="report_api.php" method="POST" target="_blank">
+<?= csrf_field() ?>
                     <input type="hidden" name="type" value="faults">
                     <div style="display:flex; gap:10px; margin-top:10px;">
                         <input type="date" name="from" class="form-control" required value="<?= date('Y-m-01') ?>">
@@ -80,6 +86,7 @@ include __DIR__ . '/includes/topbar.php';
                 <h3>Wire Usage & Leases</h3>
                 <p>Fiber route utilization, core availability, and lease revenue.</p>
                 <form action="report_api.php" method="POST" target="_blank">
+<?= csrf_field() ?>
                     <input type="hidden" name="type" value="fiber">
                     <button class="btn btn-primary" style="width:100%; margin-top:52px;"><i class="fa fa-download"></i> Export Inventory</button>
                 </form>

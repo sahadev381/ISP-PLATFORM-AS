@@ -4,6 +4,7 @@ $base_path = '../';
 
 include $base_path . 'config.php';
 include $base_path . 'includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $page_title = "Payment - Khalti";
 
@@ -112,7 +113,10 @@ var config = {
             var fields = {
                 'token': payload.token,
                 'amount': document.getElementById('amount').value,
-                'username': <?= e_js($username) ?>
+                'username': <?= e_js($username) ?>,
+                // A form built in JS is a real navigation, not fetch/XHR,
+                // so the global header shim cannot reach it.
+                '_csrf': <?= e_js(csrf_token()) ?>
             };
             
             for(var key in fields) {

@@ -48,6 +48,9 @@ while($row = $users->fetch_assoc()){
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
 include __DIR__ . '/includes/topbar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <!DOCTYPE html>
@@ -118,6 +121,7 @@ include __DIR__ . '/includes/topbar.php';
 </table>
 </div>
 <form method="post" action="export_report.php">
+<?= csrf_field() ?>
     <input type="submit" name="export" value="Export CSV">
 </form>
 </body>

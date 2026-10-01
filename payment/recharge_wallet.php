@@ -76,6 +76,7 @@ include $base_path . 'includes/topbar.php';
 
 <!-- Hidden eSewa Form -->
 <form id="hiddenEsewaForm" method="POST" action="esewa_pay.php">
+<?= csrf_field() ?>
     <input type="hidden" name="amount" id="esewa_amt">
 </form>
 
@@ -104,7 +105,9 @@ function payWithKhalti() {
             "productName": "ISP Wallet Recharge",
             "eventHandler": {
                 onSuccess: function(payload) {
-                    location.href = `khalti_verify.php?token=${payload.token}&amount=${amt}&username=${encodeURIComponent(<?= e_js($username) ?>)}`;
+                    location.href = `khalti_verify.php?token=${payload.token}&amount=${amt}`
+                        + `&username=${encodeURIComponent(<?= e_js($username) ?>)}`
+                        + `&_csrf=${encodeURIComponent(<?= e_js(csrf_token()) ?>)}`;
                 },
                 onError: (e) => alert("Khalti Payment Failed")
             }

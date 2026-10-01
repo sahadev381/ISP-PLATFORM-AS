@@ -2,6 +2,9 @@
 include __DIR__ . '/../includes/customer.php';
 include __DIR__ . '/../includes/user-header.php';
 include __DIR__ . '/../user-config.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $error = '';
 $success = '';
@@ -42,6 +45,7 @@ if(isset($_POST['submit'])){
     <?php if($success){ ?><p style="color:lightgreen"><?= e($success) ?></p><?php } ?>
 
     <form method="post">
+<?= csrf_field() ?>
         <label>Subject</label><br>
         <input type="text" name="subject" required style="width:100%; padding:8px; margin-bottom:10px;"><br>
 

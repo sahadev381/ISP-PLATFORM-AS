@@ -132,6 +132,24 @@ if (!function_exists('api_require_auth')) {
     }
 
     /**
+     * CSRF check for JSON endpoints.
+     *
+     * Browser callers are authenticated by their session cookie, which
+     * a foreign site can make the browser send - so they need the
+     * token. Machine callers authenticate with an API key, which a
+     * foreign site cannot obtain, so requiring a token from them would
+     * only break cron jobs for no gain.
+     */
+    function api_csrf_check(): void
+    {
+        if (PHP_SAPI === 'cli' || api_has_valid_key()) {
+            return;
+        }
+        require_once __DIR__ . '/csrf.php';
+        csrf_check();
+    }
+
+    /**
      * Reject anything that is not a POST request (for state-changing endpoints).
      */
     function api_require_post(): void

@@ -56,6 +56,7 @@ include $base_path . 'includes/topbar.php';
         <div class="card-header">
             <h2>Expired Customers (<?= $result ? $result->num_rows : 0 ?>)</h2>
             <form method="post" action="export_expired_users.php">
+<?= csrf_field() ?>
                 <button type="submit" class="btn-export"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
         </div>

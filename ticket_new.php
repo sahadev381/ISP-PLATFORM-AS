@@ -2,6 +2,10 @@
 $base_path = './';
 include $base_path . 'config.php';
 include $base_path . 'includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
+
 
 $page_title = "Create Ticket";
 $active = "tickets";
@@ -63,6 +67,7 @@ include $base_path . 'includes/topbar.php';
         
         <div class="card-body">
             <form method="POST">
+<?= csrf_field() ?>
                 <div class="form-group">
                     <label>Select Customer</label>
                     <select name="customer_id" class="form-control" required>

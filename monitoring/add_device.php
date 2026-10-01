@@ -1,5 +1,8 @@
 <?php
 require __DIR__ . '/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if ($_POST) {
     $stmt = $mysqli->prepare(
@@ -12,6 +15,7 @@ if ($_POST) {
 ?>
 
 <form method="post">
+<?= csrf_field() ?>
 Name:<br><input name="name"><br>
 Address:<br><input name="address"><br>
 Type:<br>

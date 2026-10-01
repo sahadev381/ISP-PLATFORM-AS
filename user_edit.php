@@ -2,6 +2,9 @@
 
 include __DIR__ . '/config.php';
 include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "Edit Customer";
 $active = "users";
@@ -248,6 +251,7 @@ include __DIR__ . '/includes/topbar.php';
         
         <div class="card-body">
             <form method="post">
+<?= csrf_field() ?>
                 
                 <!-- Section 1: Identity -->
                 <div class="form-section">

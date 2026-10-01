@@ -7,6 +7,10 @@ $success = '';
 chdir(__DIR__ . '/..');
 include_once __DIR__ . '/../config.php';
 include_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
+
 
 $auth = new HotspotAuth();
 
@@ -739,6 +743,7 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
                 
                 <!-- Voucher Login -->
                 <form method="POST" class="login-form active" id="voucher-form">
+<?= csrf_field() ?>
                     <input type="hidden" name="login_type" value="voucher">
                     <div class="form-group">
                         <label>Username / Voucher</label>
@@ -761,6 +766,7 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
                 
                 <!-- SMS OTP Login -->
                 <form method="POST" class="login-form" id="sms-form">
+<?= csrf_field() ?>
                     <input type="hidden" name="login_type" value="sms">
                     <div class="form-group">
                         <label>Phone Number</label>
@@ -779,6 +785,7 @@ $enableVideo = $captiveSettings['captive_enable_video_bg'] ?? 0;
                 
                 <!-- Password Login -->
                 <form method="POST" class="login-form" id="password-form">
+<?= csrf_field() ?>
                     <input type="hidden" name="login_type" value="password">
                     <div class="form-group">
                         <label>Username</label>

@@ -11,6 +11,58 @@ require_once __DIR__ . '/csrf.php';
     <title><?= e($page_title ?? 'ISP System') ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES) ?>">
+    <script>
+    /*
+     * Attach the CSRF token to every same-origin state-changing request.
+     *
+     * The panel makes AJAX calls from dozens of pages via both fetch()
+     * and XMLHttpRequest. Rather than edit every call site - and rely on
+     * whoever writes the next one remembering - the token is attached
+     * here, once, for anything that is not a safe method and not going
+     * to another origin.
+     */
+    (function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var token = meta ? meta.getAttribute('content') : '';
+        if (!token) { return; }
+
+        var SAFE = { GET: 1, HEAD: 1, OPTIONS: 1, TRACE: 1 };
+
+        function sameOrigin(url) {
+            try {
+                return new URL(url, window.location.href).origin === window.location.origin;
+            } catch (e) {
+                return false;   // unparseable - treat as foreign, send nothing
+            }
+        }
+
+        var nativeFetch = window.fetch;
+        if (nativeFetch) {
+            window.fetch = function (input, init) {
+                init = init || {};
+                var url = (typeof input === 'string') ? input : (input && input.url) || '';
+                var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+                if (!SAFE[method] && sameOrigin(url)) {
+                    var headers = new Headers(init.headers || (input && input.headers) || {});
+                    if (!headers.has('X-CSRF-Token')) { headers.set('X-CSRF-Token', token); }
+                    init = Object.assign({}, init, { headers: headers });
+                }
+                return nativeFetch.call(this, input, init);
+            };
+        }
+
+        var open = XMLHttpRequest.prototype.open;
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function (method, url) {
+            this.__csrfNeeded = !SAFE[String(method).toUpperCase()] && sameOrigin(url);
+            return open.apply(this, arguments);
+        };
+        XMLHttpRequest.prototype.send = function () {
+            if (this.__csrfNeeded) { this.setRequestHeader('X-CSRF-Token', token); }
+            return send.apply(this, arguments);
+        };
+    })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

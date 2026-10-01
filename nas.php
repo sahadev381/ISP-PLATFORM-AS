@@ -57,6 +57,7 @@ include __DIR__ . '/includes/topbar.php';
             <h3><i class="fa fa-plus"></i> Add Network Device</h3>
         </div>
         <form method="post">
+<?= csrf_field() ?>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px;">
                 <div class="form-group">
                     <label class="form-label">Device Name</label>

@@ -2,6 +2,10 @@
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/customer.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Reached both as a POST (khalti_pay.php) and as a GET navigation
+// (recharge_wallet.php), so accept the token from either.
+csrf_check_request();
 
 $token = $_POST['token'] ?? '';
 $amount = (float) ($_POST['amount'] ?? 0);

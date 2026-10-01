@@ -1,6 +1,9 @@
 <?php
 include __DIR__ . '/config.php';
 include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "Stock Management Dashboard";
 $active = "inventory";
@@ -132,6 +135,7 @@ include __DIR__ . '/includes/topbar.php';
     <div style="background:#fff; margin:5% auto; padding:25px; border-radius:15px; width:400px; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
         <h3>Register New Hardware</h3>
         <form method="POST">
+<?= csrf_field() ?>
             <label>Category</label>
             <select name="item_name" class="form-control" style="width:100%; padding:10px; margin-bottom:15px;">
                 <option value="XPON ONU">XPON ONU</option>
@@ -153,6 +157,7 @@ include __DIR__ . '/includes/topbar.php';
         <h3>Issue Hardware</h3>
         <p id="issueItemName" style="color:#64748b; font-weight:600;"></p>
         <form method="POST">
+<?= csrf_field() ?>
             <input type="hidden" name="item_id" id="issueItemId">
             <label>Customer Username</label>
             <input type="text" name="customer_user" class="form-control" style="width:100%; padding:10px; margin-bottom:15px;" required>

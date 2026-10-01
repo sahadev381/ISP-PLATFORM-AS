@@ -8,6 +8,7 @@ header('Content-Type: application/json');
 include_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/api_auth.php';
 api_require_auth();
+api_csrf_check();
 
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';

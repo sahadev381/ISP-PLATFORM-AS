@@ -115,6 +115,7 @@ include __DIR__ . '/includes/sidebar.php';
         <h3>Renew User</h3>
 
         <form method="post">
+<?= csrf_field() ?>
             <table>
                 <tr>
                     <td>User</td>

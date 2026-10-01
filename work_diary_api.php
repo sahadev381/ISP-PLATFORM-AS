@@ -4,6 +4,10 @@ include __DIR__ . '/includes/auth.php';
 
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/includes/api_auth.php';
+api_require_auth();
+api_csrf_check();
+
 $action = $_GET['action'] ?? '';
 $admin_id = $_SESSION['user_id'] ?? 0;
 $username = $_SESSION['username'] ?? 'System';

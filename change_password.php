@@ -29,6 +29,9 @@ if (isset($_POST['change'])) {
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <div class="main">
@@ -41,6 +44,7 @@ include __DIR__ . '/includes/sidebar.php';
 <?php } ?>
 
 <form method="post" class="table-box">
+<?= csrf_field() ?>
     <input class="input" type="password" name="password" placeholder="New password" required>
     <br><br>
     <button class="btn" name="change">Change Password</button>

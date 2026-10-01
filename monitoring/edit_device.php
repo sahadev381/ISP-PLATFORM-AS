@@ -1,5 +1,8 @@
 <?php
 include __DIR__ . '/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 // Check if 'id' parameter is provided
 if (!isset($_GET['id'])) {
@@ -65,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <h2>Edit Device</h2>
 <form method="POST" action="">
+<?= csrf_field() ?>
     <label>Name:</label><br>
     <input type="text" name="name" value="<?= htmlspecialchars($device['name']) ?>" required><br><br>
 

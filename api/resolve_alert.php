@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/api_auth.php';
 
 api_require_auth();
 api_require_post();
+api_csrf_check();
 
 $id = (int) ($_POST['id'] ?? 0);
 

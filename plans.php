@@ -11,6 +11,7 @@ $active = "plans";
 /* Plan Form Template */
 function renderPlanForm($id_prefix, $isEdit = false) { ?>
     <form method="post">
+<?= csrf_field() ?>
         <?php if($isEdit) echo '<input type="hidden" name="id" id="edit_id">'; ?>
         <div class="form-grid">
             <div class="form-group">

@@ -7,6 +7,9 @@ $base_path = '.';
 
 include_once __DIR__ . '/../config.php';
 include_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -428,6 +431,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                 <button class="close" onclick="document.getElementById('createModal').style.display='none'">&times;</button>
             </div>
             <form method="POST" action="">
+<?= csrf_field() ?>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="create_invoice">
                     <div class="form-group">

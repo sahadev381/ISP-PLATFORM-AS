@@ -53,6 +53,7 @@ include $base_path . 'includes/topbar.php';
         <div class="card-header">
             <h2>Expiring Soon (<?= $result ? $result->num_rows : 0 ?>)</h2>
             <form method="post" action="export_expiring_users.php">
+<?= csrf_field() ?>
                 <button type="submit" style="background:#f59e0b; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
         </div>

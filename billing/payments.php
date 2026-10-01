@@ -7,6 +7,9 @@ $base_path = '.';
 
 include_once __DIR__ . '/../config.php';
 include_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
