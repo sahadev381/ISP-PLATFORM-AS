@@ -1392,3 +1392,79 @@ in any case, and a notice is not a broken page.
 **217 files, 0 parse errors · CSRF coverage clean · 218 assertions,
 218 passed · both migrations parse under sqlglot and are tracked by
 git.**
+
+---
+
+## §24 — Phase 18: making CI run the money code
+
+Everything up to here was static. The payment settlement written in
+phase 16 — which marks invoices paid, extends expiry and rewrites
+RADIUS attributes — had still never executed.
+
+The CI `schema` job already ran MySQL 8 to validate the schema, so the
+database was there; it was just not being used for anything that
+mattered.
+
+### Integration tests
+
+`tests/integration/run.php` builds a plan, a customer and an invoice,
+then calls `invoice_settle()` and checks the database afterwards. They
+live in a subdirectory so `tests/run.php` — which globs
+`tests/*_test.php` — does not pick them up and fail on a machine
+without MySQL.
+
+What they pin down:
+
+- a pending invoice becomes paid, with `paid_at` and the gateway
+  reference recorded
+- the customer's expiry is extended, they are reactivated and
+  unblocked, `radcheck.Expiration` is written and the rate limit
+  restored — i.e. **paying actually restores service**, which is the
+  whole point of the phase 16 fix
+- **settling twice does not renew twice.** Both gateways have a
+  callback and a webhook that can fire for the same payment; if a
+  replay extended the expiry again, every retry would be a free month
+- renewing early adds to the time remaining; a 4-month purchase on a
+  7-day plan is 28 days
+- a cancelled invoice is refused and the customer is not renewed
+- an invoice whose customer row has been deleted still settles without
+  throwing — the money was received either way
+- `status = 'unpaid'` is rejected by the ENUM under the strict mode CI
+  runs, which is precisely why the `billing_cron.php` bug survived on
+  installs without it
+
+### New installs and upgraded installs must agree
+
+A migration system drifts when a column is added to `schema.sql` but
+not as a migration, or the reverse. CI now builds the database both
+ways — `schema.sql` plus `migrate.php baseline`, versus the older
+schema brought forward by `migrate.php up` — and diffs
+`information_schema`. They have to match exactly.
+
+That check immediately justified itself: `schema.sql` already had the
+columns migration 002 adds, so a fresh install followed by
+`migrate.php up` would have failed on "Duplicate column name". Hence
+the new `baseline` command, which records migrations as applied without
+running them. It is the standard answer to this problem and the repo
+needed it before the first upgrade, not after.
+
+Also added: a check that `migrate.php up` run twice reports nothing to
+do.
+
+### Tooling that works before the app is configured
+
+`migrate.php` required `config.php`, which does not exist in CI and
+does not exist on a first deployment either — migrations have to run
+*before* the app is configured. `includes/cli_db.php` uses `config.php`
+when present and falls back to `DB_*` environment variables when not.
+
+### Verification
+
+**219 files, 0 parse errors · CSRF coverage clean · 218 unit
+assertions, 218 passed · 24 integration assertions that run against
+MySQL 8 in CI.**
+
+The caveat from `RELEASE_READINESS.md` §1 is now narrower, but it has
+not gone away: CI executes the billing path against a real database,
+and no page has still ever been rendered in a browser. The smoke test
+from §23 is the thing that closes that, and it needs a staging server.

@@ -189,6 +189,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli
+
       # The schema was reconstructed from the application's queries, so
       # the useful check is that MySQL actually accepts it and that every
       # column the PHP writes to really exists.
@@ -200,6 +206,67 @@ jobs:
 
       - name: Schema is idempotent
         run: mysql -h127.0.0.1 -uroot -pci isp_platform < database/schema.sql
+
+      # A new column has to be added twice: to schema.sql so new installs
+      # get it, and as a migration so existing installs get it. Forgetting
+      # either is how a migration system drifts. Build the same database
+      # both ways and compare.
+      - name: New install and upgraded install produce the same schema
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: ci
+        run: |
+          set -e
+
+          # Path A - a new install: schema.sql, then record the migrations
+          # as applied without running them.
+          mysql -h127.0.0.1 -uroot -pci -e "DROP DATABASE IF EXISTS fresh; CREATE DATABASE fresh;"
+          mysql -h127.0.0.1 -uroot -pci fresh < database/schema.sql
+          DB_NAME=fresh php scripts/migrate.php baseline
+
+          # Path B - an existing install at v0.9.0, brought forward by the
+          # migrations. Strip the columns migration 002 adds so the
+          # starting point really is the older schema.
+          mysql -h127.0.0.1 -uroot -pci -e "DROP DATABASE IF EXISTS upgraded; CREATE DATABASE upgraded;"
+          mysql -h127.0.0.1 -uroot -pci upgraded < database/schema.sql
+          mysql -h127.0.0.1 -uroot -pci upgraded -e \
+            "ALTER TABLE invoices DROP COLUMN paid_at, DROP COLUMN payment_reference;"
+          DB_NAME=upgraded php scripts/migrate.php up
+
+          dump_cols () {
+            mysql -h127.0.0.1 -uroot -pci -N -B -e \
+              "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+               FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$1'
+               ORDER BY TABLE_NAME, COLUMN_NAME"
+          }
+          dump_cols fresh    > /tmp/fresh.txt
+          dump_cols upgraded > /tmp/upgraded.txt
+
+          if ! diff -u /tmp/fresh.txt /tmp/upgraded.txt; then
+            echo "::error::schema.sql and the migrations disagree - a change was added to one but not the other"
+            exit 1
+          fi
+          echo "A new install and an upgraded install have identical schemas."
+
+      - name: Migrations are idempotent
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: ci
+          DB_NAME: upgraded
+        run: |
+          set -e
+          php scripts/migrate.php up | tee /tmp/again.txt
+          grep -q "Nothing to do" /tmp/again.txt
+
+      - name: Integration tests against MySQL
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: ci
+          DB_NAME: isp_platform
+        run: php tests/integration/run.php
 
       - name: Every column used by the code exists
         run: |

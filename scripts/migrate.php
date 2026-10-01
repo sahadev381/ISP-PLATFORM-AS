@@ -5,6 +5,18 @@
  *     php scripts/migrate.php status     what has run, what has not
  *     php scripts/migrate.php up         apply everything pending
  *     php scripts/migrate.php up --dry   print the SQL, change nothing
+ *     php scripts/migrate.php baseline   mark everything as applied
+ *
+ * NEW INSTALL vs EXISTING INSTALL
+ *
+ *     new:       load database/schema.sql, then `migrate.php baseline`
+ *     existing:  `migrate.php up`
+ *
+ * schema.sql always describes the CURRENT shape of the database, so a
+ * fresh install already has everything the migrations would add.
+ * Running them anyway would fail on "Duplicate column name". `baseline`
+ * records them as applied without executing them, which is what puts a
+ * new database and an upgraded one on the same footing.
  *
  * WHY
  *
@@ -40,8 +52,9 @@ if (PHP_SAPI !== 'cli') {
     exit("Migrations may only be run from the command line.\n");
 }
 
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/cli_db.php';
 require_once __DIR__ . '/../includes/migrations.php';
+$conn = cli_db_connect();
 
 $migrationsDir = __DIR__ . '/../database/migrations';
 
@@ -124,8 +137,28 @@ if ($command === 'status') {
     exit(0);
 }
 
+if ($command === 'baseline') {
+    if (!$pending) {
+        echo "Nothing to record - every migration is already applied.\n";
+        exit(0);
+    }
+
+    echo "Recording " . count($pending) . " migration(s) as applied WITHOUT running them.\n";
+    echo "Only correct on a database created from database/schema.sql.\n\n";
+
+    $stmt = $conn->prepare("INSERT INTO schema_migrations (version) VALUES (?)");
+    foreach ($pending as $version) {
+        $stmt->bind_param('s', $version);
+        $stmt->execute();
+        echo "  recorded $version\n";
+    }
+
+    echo "\nDone.\n";
+    exit(0);
+}
+
 if ($command !== 'up') {
-    fwrite(STDERR, "Usage: php scripts/migrate.php [status|up] [--dry]\n");
+    fwrite(STDERR, "Usage: php scripts/migrate.php [status|up|baseline] [--dry]\n");
     exit(1);
 }
 

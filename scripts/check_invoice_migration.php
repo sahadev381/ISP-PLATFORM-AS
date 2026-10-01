@@ -21,7 +21,8 @@ if (PHP_SAPI !== 'cli') {
     exit("Command line only.\n");
 }
 
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/cli_db.php';
+$conn = cli_db_connect();
 
 function count_of(mysqli $conn, string $sql): int
 {

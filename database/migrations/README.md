@@ -29,3 +29,24 @@ Anything that drops a column or a table goes in its own migration,
 separate from everything else, with a comment explaining what was
 checked first. Prefer the two-step: stop writing to the column in one
 release, drop it in the next.
+
+## New install vs existing install
+
+```
+new install:       mysql < database/schema.sql
+                   php scripts/migrate.php baseline
+
+existing install:  php scripts/migrate.php up --dry
+                   php scripts/migrate.php up
+```
+
+`database/schema.sql` always describes the **current** shape of the
+database. A fresh install therefore already has everything the
+migrations would add, and running them would fail on "Duplicate column
+name". `baseline` records them as applied without executing them.
+
+This means a new column has to be added in **two** places: to
+`schema.sql`, so new installs get it, and as a migration, so existing
+installs get it. Forgetting either one is the usual way a migration
+system drifts — the CI `schema` job applies both paths and compares
+them, which is what catches it.
