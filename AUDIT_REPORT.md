@@ -1970,3 +1970,81 @@ checking. **The only thing that finds a runtime error is a run.**
 **137 pages render against MySQL 8, on every push** · 346 assertions
 · schema parity, migrations, integration tests, secrets, CSRF,
 inline-handler budget and CLI scripts all green.
+
+---
+
+## §31 — Phase 25: running the JavaScript
+
+The crawler from the previous phase proves a page *renders*. It does
+not execute one line of the JavaScript on it — and this codebase has
+44 inline `<script>` blocks, 189 inline `on*` handlers and 1358
+`style` attributes. A syntax error in one inline block disables that
+entire block, silently; phase 13 found two files shipped that way,
+and the only reason they were found is that somebody read them.
+
+`scripts/browser_check.mjs` loads every page in Chromium, logs in
+through the real form, and records uncaught JavaScript errors and
+same-origin 404s. It takes its page list from `smoke_test.php --list
+--json`, so the denylist stays in one place — those entries are
+safety reasons (`monitor.php` sends SMS, `expire.php` runs a
+`DELETE`) and a second copy would drift out of date.
+
+### 1816 errors, almost none of them errors
+
+The first run reported 1816. Nearly all were
+`Content-Security-Policy-Report-Only` console messages: the header
+doing exactly what it was configured to do, against a policy
+deliberately stricter than what the code can satisfy today.
+
+Leaving those in the error bucket would have buried the real failures
+under sixteen hundred expected ones, which is the fastest way to make
+a check worthless. Counted separately, the numbers became useful:
+
+```
+137 pages, 19 JS errors on 3 pages, 1789 CSP violations, 13 missing assets
+```
+
+### The three pages
+
+**`live_graph.php`** declared `<canvas id="usageChart">` and loaded
+`live_chart.js`, which looks for `#liveChart`. The script logged
+`Canvas not found` — and then called `getContext()` on null anyway.
+The TypeError stopped the rest of the file, including the poller. The
+page has never drawn a graph. The diagnostic was written, and then
+the code immediately crashed on the condition it had just diagnosed.
+
+**`system_logs.php`** was the only page in the project loading
+DataTables without jQuery. DataTables is a jQuery plugin, so `$` was
+undefined and the initialiser threw: the log table was never
+sortable, searchable or paginated.
+
+**`map.php`** loaded Google tiles over plain `http://`. That is mixed
+content in every browser, and it is blocked by the enforced
+`img-src`, which allows `https:` and not `http:`. On any HTTPS
+deployment the map has been blank.
+
+None of these would have been found by reading the code. Two of them
+look entirely reasonable until something executes them.
+
+**137 pages now produce 0 uncaught JavaScript errors**, and
+`.browser-error-budget` holds the line at zero.
+
+### What this unlocks
+
+§4.6 was refused in phase 21 as "all of the risk and none of the
+benefit": converting 189 handlers blind, on pages nothing had ever
+rendered, with no way to tell whether a converted button still
+worked.
+
+Both halves of that objection are now gone. The work is measured —
+**1774 report-only violations across 137 pages**, what a browser
+actually refuses rather than what a grep estimates — and a converted
+handler that breaks turns the build red instead of turning into a
+support call.
+
+### Verification
+
+**137 pages render · 0 JavaScript errors · 346 assertions ·** schema
+parity, migrations, integration tests, secrets, CSRF, inline-handler
+budget and CLI scripts all green. Caching the browser took the job
+from 10m08s to under 3 minutes.

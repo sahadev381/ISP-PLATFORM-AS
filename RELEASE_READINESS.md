@@ -157,8 +157,17 @@ Ordered by what I would do first.
    real MySQL 8 in CI. They earned their keep immediately: on their
    first real run they caught a settlement bug that had made the
    entire phase-16 invoice fix a no-op.
-6. **Remove the 189 inline `on*` handlers.** Still open, and the
-   description above was wrong in three ways worth recording.
+6. **Remove the 189 inline `on*` handlers.** Still open, but no
+   longer unmeasurable and no longer unsafe to attempt.
+
+   CI runs every page in Chromium. **1774 report-only CSP violations
+   across 137 pages** is the real size of this job - not an estimate
+   from grepping the source, but what a browser actually refuses. And
+   a converted handler can now be checked: the browser check fails if
+   the JavaScript error count rises above zero, so a button that
+   stops working is a red build rather than a customer complaint.
+
+   The description below was wrong in three ways worth recording.
 
    - It is **not sufficient**. At zero handlers the 44 inline
      `<script>` blocks still require `script-src 'unsafe-inline'`
@@ -178,9 +187,10 @@ Ordered by what I would do first.
 
    The report-only header did *not* "already produce the work list":
    it carried no `report-uri`, so the violations went to the console
-   of whoever had devtools open and nowhere else. That is fixed, and
-   `scripts/check_inline_handlers.php --report` prints the same work
-   list grouped by how hard each one is to remove.
+   of whoever had devtools open and nowhere else. That is fixed;
+   `scripts/check_inline_handlers.php --report` prints the work list
+   grouped by how hard each one is to remove, and the browser check
+   prints the same list as the browser sees it.
 
    A budget in `.inline-handler-budget` now fails CI if the count
    rises. Long cleanups lose to new code unless something stops the
