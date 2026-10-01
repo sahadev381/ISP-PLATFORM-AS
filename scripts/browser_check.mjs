@@ -108,9 +108,14 @@ for (const rel of pages) {
     errors.push(t);
   };
   const onResponse = r => {
-    if (r.status() === 404 && r.url().startsWith(base)) {
-      missing.push(r.url().slice(base.length));
-    }
+    if (r.status() !== 404 || !r.url().startsWith(base)) return;
+    const path = r.url().slice(base.length);
+    /* The page's own document is not a missing asset. Several pages
+       need ?id= and answer rbac_deny(404) without one, which is the
+       behaviour we want - turning an IDOR into a 404 - and the PHP
+       crawler already accounts for it. */
+    if (path === `/${rel}` || path.split('?')[0] === `/${rel}`) return;
+    missing.push(path);
   };
 
   page.on('pageerror', onPageError);
@@ -146,6 +151,25 @@ for (const rel of pages) {
   page.off('pageerror', onPageError);
   page.off('console', onConsole);
   page.off('response', onResponse);
+
+  /* Every data-action must name a function that exists. This is the
+     one way the inline-handler conversion can fail silently: the
+     attribute is spelled right, the dispatcher runs, and the target
+     was never in scope - so the button does nothing at all, with no
+     error, until somebody clicks it. Checked on load instead. */
+  try {
+    const unresolved = await page.evaluate(() => {
+      const bad = [];
+      document.querySelectorAll('[data-action]').forEach(el => {
+        const name = el.getAttribute('data-action');
+        if (typeof window[name] !== 'function') bad.push(name);
+      });
+      return [...new Set(bad)];
+    });
+    for (const name of unresolved) {
+      errors.push(`data-action="${name}" does not resolve to a function`);
+    }
+  } catch { /* page already navigated away or closed */ }
 
   visited++;
   for (const e of new Set(errors)) findings.push({ page: rel, kind: 'js', detail: e });
