@@ -232,7 +232,16 @@ include __DIR__ . '/includes/topbar.php';
 
     <div id="plan-fuptest-tab" class="plan-tab-content" style="display:none;">
         <div class="table-card" style="height: 800px;">
-            <iframe src="fup_test.php" style="width:100%; height:100%; border:none; border-radius:15px;"></iframe>
+            <?php /* fup_test.php does not exist in this repository, so this
+                     tab was an iframe onto a 404 - a blank panel with no
+                     explanation. Saying so is better than showing nothing;
+                     the tab is left in place because removing it would
+                     hide the fact that the feature is missing. */ ?>
+            <div style="padding:40px; text-align:center; color:#64748b;">
+                <p style="font-size:15px; font-weight:600;">FUP test tool is not installed.</p>
+                <p style="font-size:13px;">This tab embeds <code>fup_test.php</code>, which is not part of this
+                   deployment. Add it, or remove this tab from <code>plans.php</code>.</p>
+            </div>
         </div>
     </div>
 </div>

@@ -2,7 +2,11 @@
 require_once __DIR__ . '/../../../includes/http_headers.php';
 send_security_headers();
 $page = $page ?? 'dashboard';
-$base_path = $base_path ?? '.';
+/* Derived rather than declared - see includes/paths.php. The hand-set
+   '.' here produced /hotspot/admin/assets/css/theme.css, which does
+   not exist: every page in this directory rendered unstyled. */
+require_once __DIR__ . '/../../../includes/paths.php';
+$base_path = app_base_path();
 ?>
 <!DOCTYPE html>
 <html lang="en">
