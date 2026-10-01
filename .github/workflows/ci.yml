@@ -52,6 +52,12 @@ jobs:
       - name: CSRF coverage
         run: php scripts/check_csrf.php
 
+      # The schema job does this properly against MySQL, but that job
+      # takes minutes and needs a database. This parses schema.sql, so it
+      # fails here within seconds and can be run on a laptop.
+      - name: Schema covers every table the code writes to
+        run: php scripts/check_schema.php
+
       - name: Migration files are well formed
         run: |
           set -e

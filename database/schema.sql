@@ -1106,3 +1106,17 @@ CREATE TABLE IF NOT EXISTS sms_logs (
 
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ---------------------------------------------------------------------
+-- Applied database migrations.
+--
+-- Written by scripts/migrate.php. It creates this table itself if it is
+-- absent, but it belongs here too: a new install should start with it,
+-- and the CI check that every table the code writes to exists in the
+-- schema is right to insist on that.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version    VARCHAR(255) NOT NULL,
+    applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

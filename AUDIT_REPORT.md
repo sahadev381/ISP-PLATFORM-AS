@@ -1468,3 +1468,25 @@ The caveat from `RELEASE_READINESS.md` §1 is now narrower, but it has
 not gone away: CI executes the billing path against a real database,
 and no page has still ever been rendered in a browser. The smoke test
 from §23 is the thing that closes that, and it needs a staging server.
+
+### §24.1 — CI caught what local verification did not
+
+Two consecutive pushes failed the `schema` job on "Every column used by
+the code exists". Local verification had reported everything green both
+times.
+
+The cause: `scripts/migrate.php` inserts into `schema_migrations`, and
+that table was not in `database/schema.sql`. The runner creates it at
+startup, so the tool worked — but a table the code writes to was
+missing from the schema of record, and the fresh-versus-upgraded
+comparison would have disagreed as well.
+
+Added to `schema.sql`. The more useful outcome is `scripts/check_schema.php`:
+the same check done by parsing `schema.sql` instead of querying MySQL,
+so it runs on a machine with no database and in the lint job, minutes
+before the schema job. The MySQL version stays — it is stronger — but
+it should not be the first thing to notice.
+
+This is a straightforward case of the local toolchain being weaker than
+CI and me treating "my checks pass" as "CI will pass". The fix is to
+make the local checks the same checks.
