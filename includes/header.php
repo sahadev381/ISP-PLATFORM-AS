@@ -3,6 +3,11 @@ if(!isset($base_path)) {
     $base_path = '';
 }
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/http_headers.php';
+
+/* CSP and friends. Must go out before any markup; see http_headers.php
+   for what the policy can and cannot protect against. */
+send_security_headers();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,35 +75,32 @@ require_once __DIR__ . '/csrf.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= e($base_path) ?>assets/css/theme.css">
 <script>
-// Attach the CSRF token to every same-origin POST made from this page.
+/*
+ * jQuery is loaded later on some pages, so its hook cannot live in the
+ * block above. Same rule applies: same-origin requests only. The
+ * previous version of this block re-wrapped window.fetch a second time
+ * without an origin check, which sent the CSRF token to every
+ * third-party host the panel talked to.
+ */
 (function () {
-    var token = document.querySelector('meta[name="csrf-token"]');
-    window.CSRF_TOKEN = token ? token.getAttribute('content') : '';
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    window.CSRF_TOKEN = meta ? meta.getAttribute('content') : '';
 
-    // jQuery (loaded later on some pages) — hook in once it is available.
     document.addEventListener('DOMContentLoaded', function () {
-        if (window.jQuery) {
-            window.jQuery.ajaxSetup({
-                headers: { 'X-CSRF-Token': window.CSRF_TOKEN }
-            });
-        }
-    });
-
-    // Plain fetch()
-    var nativeFetch = window.fetch;
-    if (nativeFetch) {
-        window.fetch = function (input, init) {
-            init = init || {};
-            var method = (init.method || 'GET').toUpperCase();
-            if (method !== 'GET' && method !== 'HEAD') {
-                init.headers = new Headers(init.headers || {});
-                if (!init.headers.has('X-CSRF-Token')) {
-                    init.headers.set('X-CSRF-Token', window.CSRF_TOKEN);
+        if (!window.jQuery || !window.CSRF_TOKEN) { return; }
+        window.jQuery.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (settings.crossDomain) { return; }
+                try {
+                    var target = new URL(settings.url, window.location.href);
+                    if (target.origin !== window.location.origin) { return; }
+                } catch (e) {
+                    return;
                 }
+                xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
             }
-            return nativeFetch(input, init);
-        };
-    }
+        });
+    });
 })();
 
 function toggleSidebar() {

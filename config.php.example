@@ -30,18 +30,10 @@ ini_set('log_errors', '1');
 /* ---------------------------------------------------------------
  | Session (hardened cookie flags)
  |--------------------------------------------------------------- */
-if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => (bool) env('APP_HTTPS', true),
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    ini_set('session.use_strict_mode', '1');
-    session_start();
-}
+/* Hardened cookie flags live in one place - see includes/session.php for
+   why this must not be inlined here again. */
+require_once __DIR__ . '/includes/session.php';
+session_boot();
 
 /* ---------------------------------------------------------------
  | Database

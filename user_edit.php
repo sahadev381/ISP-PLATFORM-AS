@@ -40,7 +40,10 @@ if ($result->num_rows === 0) die("User not found.");
 $user = $result->fetch_assoc();
 
 // Fetch current cleartext password from radcheck
-$current_rad_pass = db_value($conn, "SELECT value FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password' LIMIT 1", [$username], 'N/A');
+// RADIUS needs this password in the clear for CHAP/MSCHAP, so it cannot
+// be hashed - which is exactly why it must not be rendered into a page.
+// Only report whether one exists.
+$current_rad_pass_is_set = db_value($conn, "SELECT value FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password' LIMIT 1", [$username], '') !== '';
 
 /* =========================
    FETCH PLANS & BRANCHES
@@ -396,9 +399,10 @@ include __DIR__ . '/includes/topbar.php';
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Current PPPoE Password</label>
-                            <div style="padding: 12px; background: #f1f5f9; border-radius: 10px; font-family: monospace; font-weight: bold; color: #1e293b; border: 1px solid #e2e8f0;">
-                                <?= htmlspecialchars($current_rad_pass) ?>
+                            <div style="padding: 12px; background: #f1f5f9; border-radius: 10px; font-family: monospace; color: #64748b; border: 1px solid #e2e8f0;">
+                                <?= $current_rad_pass_is_set ? '•••••••• (set)' : 'not set' ?>
                             </div>
+                            <small style="color:#94a3b8;">RADIUS stores this in the clear, so it is not printed here. Set a new one below to change it.</small>
                         </div>
                         <div class="form-group">
                             <label>Set New Password <small style="color: #94a3b8; font-weight: normal;">(Leave empty to keep current)</small></label>

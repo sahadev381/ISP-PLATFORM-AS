@@ -33,7 +33,25 @@ if ($username === '') {
     exit;
 }
 
-$nas = db_one($conn, "SELECT ip_address, secret FROM nas WHERE status = 1 LIMIT 1");
+// Disconnect through the NAS the customer is actually connected to.
+// The old query took whichever enabled NAS came back first, so on any
+// deployment with more than one device the Disconnect-Request was sent
+// to the wrong box and silently did nothing.
+$nas = db_one($conn, "
+    SELECT n.ip_address, n.secret
+    FROM radacct r
+    JOIN nas n ON n.nasname = r.nasipaddress OR n.ip_address = r.nasipaddress
+    WHERE r.username = ? AND r.acctstoptime IS NULL
+    ORDER BY r.acctstarttime DESC
+    LIMIT 1
+", [$username]);
+
+if (!$nas) {
+    // No open session: fall back to the single configured NAS, which is
+    // correct for the common one-router deployment.
+    $nas = db_one($conn, "SELECT ip_address, secret FROM nas WHERE status = 1 LIMIT 1");
+}
+
 if (!$nas) {
     echo json_encode(['success' => false, 'msg' => 'NAS not configured']);
     exit;
@@ -56,11 +74,22 @@ if (!is_executable($radclient)) {
 
 // Feed the attribute to radclient on stdin instead of building an `echo`
 // pipeline, so the username never touches the shell at all.
+// Hand the shared secret to radclient in a file (-S), not on the
+// command line. Arguments are world-readable through /proc, so the old
+// form leaked the RADIUS secret to any local user running `ps`.
+$secretFile = tempnam(sys_get_temp_dir(), 'radsec');
+if ($secretFile === false) {
+    echo json_encode(['success' => false, 'msg' => 'Could not prepare the request']);
+    exit;
+}
+chmod($secretFile, 0600);
+file_put_contents($secretFile, (string) $nas['secret'] . "\n");
+
 $cmd = sprintf(
-    '%s -x %s disconnect %s 2>&1',
+    '%s -x -S %s %s disconnect 2>&1',
     escapeshellcmd($radclient),
-    escapeshellarg($nasIp . ':3799'),
-    escapeshellarg((string) $nas['secret'])
+    escapeshellarg($secretFile),
+    escapeshellarg($nasIp . ':3799')
 );
 
 $descriptors = [
@@ -71,6 +100,7 @@ $descriptors = [
 
 $process = proc_open($cmd, $descriptors, $pipes);
 if (!is_resource($process)) {
+    @unlink($secretFile);
     echo json_encode(['success' => false, 'msg' => 'Could not start radclient']);
     exit;
 }
@@ -82,6 +112,7 @@ $output = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
 fclose($pipes[1]);
 fclose($pipes[2]);
 proc_close($process);
+@unlink($secretFile);
 
 if (stripos($output, 'Received Disconnect-ACK') !== false) {
     if (function_exists('logActivity')) {

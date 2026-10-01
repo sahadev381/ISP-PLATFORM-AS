@@ -1,4 +1,7 @@
 <?php
+/* Sessions are started in exactly one place so the hardened cookie
+   flags always apply - see includes/session.php. */
+require_once __DIR__ . '/session.php';
 /**
  * CSRF protection helpers.
  *
@@ -16,9 +19,7 @@ if (!function_exists('csrf_token')) {
 
     function csrf_token(): string
     {
-        if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
-            session_start();
-        }
+        session_boot();
         if (empty($_SESSION['_csrf_token'])) {
             $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
         }

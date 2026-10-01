@@ -80,7 +80,7 @@ include __DIR__ . '/includes/topbar.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">RADIUS Secret (For Mikrotik)</label>
-                    <input type="text" name="secret" class="form-control">
+                    <input type="password" name="secret" class="form-control" autocomplete="new-password">
                 </div>
                 
                 <!-- SNMP Settings -->

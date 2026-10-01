@@ -52,6 +52,24 @@ jobs:
       - name: CSRF coverage
         run: php scripts/check_csrf.php
 
+      - name: Block hand-rolled session_start()
+        run: |
+          set -e
+          # The hardened cookie flags (HttpOnly/Secure/SameSite) can only be
+          # applied before the session starts. Any file that calls
+          # session_start() itself gets the PHP defaults instead, and
+          # session_set_cookie_params() in config.php then does nothing.
+          # Everything must go through session_boot().
+          hits=$(grep -rn --include='*.php' -E '^[^*/]*\bsession_start\s*\(' . \
+                 | grep -v '^./includes/session.php:' \
+                 | grep -v '^./vendor/' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::call session_boot() (includes/session.php) instead of session_start()"
+            exit 1
+          fi
+          echo "All entry points use session_boot()."
+
       - name: Block working-directory-relative includes
         run: |
           set -e

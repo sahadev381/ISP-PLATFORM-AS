@@ -1102,3 +1102,129 @@ sets), refuses to proceed without a session, and reports based on
 **207 files, 0 parse errors · 44/44 inline scripts parse · 5/5
 `assets/js` files parse · CSRF coverage clean under the stricter rule ·
 133 assertions, 133 passed.**
+
+---
+
+## §21 — Phase 15: sessions, and a CSP that admits what it cannot do
+
+### The session hardening had been switched off by 25 files
+
+`config.php.example` sets the session cookie to HttpOnly, Secure and
+SameSite=Lax. That code was correct and it never ran.
+
+Twenty-five files called `session_start()` on line 2, *before*
+including config.php — the whole hotspot area, the whole billing area,
+every logout script, `includes/auth.php`, `includes/customer.php`,
+plus `includes/csrf.php` and `includes/api_auth.php` which start a
+session from inside a function. PHP had already queued
+
+```
+Set-Cookie: PHPSESSID=...
+```
+
+with the defaults by the time config.php got a say, and
+`session_set_cookie_params()` does nothing once a session is active.
+
+So in practice the admin session cookie was **readable by any injected
+script** (no HttpOnly) and **sent on cross-site requests** (no
+SameSite). The protection existed in the file one would read to check
+for it, and not in the running system.
+
+`includes/session.php` now owns session startup — `session_boot()`
+sets the cookie parameters, turns on `use_strict_mode` (so an attacker
+cannot fix a victim's session id by planting a cookie) and only then
+starts the session. If an older deployed `config.php` gets there
+first, it re-issues the cookie with the right flags rather than
+silently giving up. A CI step rejects any new `session_start()`.
+
+Three smaller things in the same area:
+
+- `session_destroy()` on logout and on timeout left the cookie in the
+  browser and `$_SESSION` populated. `session_kill()` clears all three.
+- The absolute timeout was wrapped in `isset($_SESSION['login_time'])`,
+  so a session without that key was never subject to it.
+- `index.php` set `login_time` but not `last_activity`, so the idle
+  timeout did not start until the second page load.
+
+### The CSRF token was being handed to third parties
+
+`includes/header.php` contained **two** CSRF shims. The first checked
+same-origin before attaching the token. The second — which wrapped
+`window.fetch` a second time, on the outside — did not, and neither did
+its `jQuery.ajaxSetup`. Every cross-origin request the panel made
+carried `X-CSRF-Token`. One shim now, origin-checked, with the jQuery
+hook using `beforeSend` so it can test the target too.
+
+### Content-Security-Policy
+
+What the codebase contains today:
+
+| | count |
+|---|---|
+| `on*` attribute handlers | 188 |
+| `style="..."` attributes | 1357 |
+| inline `<style>` blocks | 57 |
+| inline `<script>` blocks | 44 |
+
+A policy that blocks inline script would break all of it, and
+`'unsafe-inline'` cannot be combined with a nonce — once a nonce is
+present browsers ignore `'unsafe-inline'` entirely. So **the enforced
+policy keeps `'unsafe-inline'` and is not an XSS defence.** The XSS
+defence in this project is the escaping in `includes/html.php`. Saying
+otherwise would be the main risk of shipping a CSP at all.
+
+What the enforced policy does buy, today, without breaking anything:
+
+- `base-uri 'self'` — an injected `<base href>` cannot silently
+  re-point every relative URL on the page at an attacker
+- `form-action` — an injected form cannot post an admin's input
+  somewhere else
+- `object-src 'none'` — no plugin embedding
+- `frame-ancestors 'self'` — clickjacking
+- `script-src` allowlist — `<script src="//evil">` is refused even
+  though inline script is not
+- no `'unsafe-eval'` — verified the codebase uses neither `eval` nor
+  `new Function`
+
+The allowlist was built from the hosts actually referenced in the
+source, not from guesswork. `payment/esewa_pay.php` submits a real form
+to eSewa, so `form-action` includes the eSewa hosts — a bare
+`form-action 'self'` would have broken checkout, which is how a CSP
+usually ends up being deleted a week later.
+
+Alongside it, the strict policy (same thing minus `'unsafe-inline'`,
+plus a nonce) goes out as `Content-Security-Policy-Report-Only`. It
+changes nothing for users and makes the browser report exactly what
+would break. That report is the work list for removing the 188 inline
+handlers. Also added: `nosniff`, `Referrer-Policy`,
+`Permissions-Policy`, `X-Frame-Options`, and HSTS when on HTTPS.
+
+### RADIUS
+
+- **`nas_edit.php` rendered the RADIUS shared secret** into a
+  `type="text"` input. That secret authenticates the entire NAS, and it
+  was in the page source for every admin who opened the form. Now a
+  blank password field; empty means keep.
+- **`user_edit.php` printed the customer's PPPoE password in the
+  clear.** RADIUS genuinely cannot hash it — `Cleartext-Password` is
+  required for CHAP/MSCHAP — which is precisely why it should not be
+  rendered. The page now reports only whether one is set.
+- **`disconnect_user.php` passed the shared secret as a command-line
+  argument.** Arguments are world-readable via `/proc`, so any local
+  user running `ps` could read it. Now written to a `0600` temp file
+  and passed with `-S`.
+- **`disconnect_user.php` disconnected through the wrong device.** It
+  took `SELECT ... FROM nas WHERE status = 1 LIMIT 1` — whichever
+  enabled NAS came back first. On any deployment with more than one
+  router the Disconnect-Request went to a box the customer was not on
+  and did nothing. It now looks up the NAS from the customer's open
+  `radacct` session, falling back to the old behaviour when there is no
+  open session.
+
+### Verification
+
+**210 files, 0 parse errors · CSRF coverage clean · 159 assertions,
+159 passed** (26 new, covering cookie attributes, the absence of
+hand-rolled `session_start()`, and the policy contents — including a
+test that fails if `'unsafe-inline'` ever appears in the report-only
+policy).

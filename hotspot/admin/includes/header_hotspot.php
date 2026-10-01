@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../includes/http_headers.php';
+send_security_headers();
 $page = $page ?? 'dashboard';
 $base_path = $base_path ?? '.';
 ?>

@@ -35,7 +35,8 @@ if (isset($_POST['login'])) {
                 $_SESSION['username'] = $row['username'];
                 $_SESSION['role']     = $row['role'] ?? '';
                 $_SESSION['branch_id']= $row['branch_id'] ?? null;
-                $_SESSION['login_time'] = time();
+                $_SESSION['login_time']    = time();
+                $_SESSION['last_activity'] = time();
                 
                 header("Location: dashboard.php");
                 exit;

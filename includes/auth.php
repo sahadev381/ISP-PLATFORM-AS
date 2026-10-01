@@ -1,7 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/session.php';
+session_boot();
 
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])){
@@ -27,13 +26,20 @@ if (isset($conn) && function_exists('db_all')) {
     }
 }
 
+// A session with no login_time recorded never hit the absolute timeout
+// below, because the whole check was wrapped in isset(). Treat a missing
+// value as "started now" so the clock at least starts.
+if (!isset($_SESSION['login_time'])) {
+    $_SESSION['login_time'] = time();
+}
+
 // Check if session is expired (absolute timeout)
 if (isset($_SESSION['login_time'])) {
     $sessionDuration = time() - $_SESSION['login_time'];
     $maxDuration = $timeout * 60;
     
     if ($sessionDuration > $maxDuration) {
-        session_destroy();
+        session_kill();
         header("Location: /index.php?timeout=1");
         exit;
     }
@@ -45,7 +51,7 @@ if (isset($_SESSION['last_activity'])) {
     $maxIdle = $idleTimeout * 60;
     
     if ($idleTime > $maxIdle) {
-        session_destroy();
+        session_kill();
         header("Location: /index.php?idle=1");
         exit;
     }

@@ -35,7 +35,12 @@ if (!$nas) {
 if (isset($_POST['update'])) {
     $nasname = $_POST['nasname'];
     $shortname = $_POST['shortname'];
-    $secret = $_POST['secret'];
+    // Blank means "keep the existing secret" - the form no longer
+    // carries the current value, so an empty field is not a clear.
+    $secret = $_POST['secret'] ?? '';
+    if ($secret === '') {
+        $secret = (string) db_value($conn, "SELECT secret FROM nas WHERE id = ?", [$id], '');
+    }
     $device_type = $_POST['device_type'];
     $ports = intval($_POST['ports'] ?: 1812);
     $ip_address = $_POST['ip_address'];
@@ -146,7 +151,9 @@ include __DIR__ . '/includes/topbar.php';
                     <div class="form-grid">
                         <div class="form-group">
                             <label>RADIUS Secret</label>
-                            <input type="text" name="secret" class="form-control" value="<?= htmlspecialchars($nas['secret'] ?? '') ?>">
+                            <input type="password" name="secret" class="form-control" autocomplete="new-password"
+                                   placeholder="<?= !empty($nas['secret']) ? 'unchanged - type to replace' : 'not set' ?>">
+                            <small class="text-muted">The shared secret is never sent back to the browser. Leave blank to keep it.</small>
                         </div>
                         <div class="form-group">
                             <label>RADIUS Port</label>

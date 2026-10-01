@@ -1,4 +1,7 @@
 <?php
+/* Sessions are started in exactly one place so the hardened cookie
+   flags always apply - see includes/session.php. */
+require_once __DIR__ . '/session.php';
 /**
  * Guard for api/*.php endpoints.
  *
@@ -49,9 +52,7 @@ if (!function_exists('api_require_auth')) {
 
     function api_is_logged_in(): bool
     {
-        if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
-            session_start();
-        }
+        session_boot();
         return !empty($_SESSION['user_id']);
     }
 
@@ -65,9 +66,7 @@ if (!function_exists('api_require_auth')) {
      */
     function api_customer_id(): ?int
     {
-        if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
-            session_start();
-        }
+        session_boot();
         $id = (int) ($_SESSION['customer_id'] ?? 0);
         return $id > 0 ? $id : null;
     }
