@@ -58,6 +58,17 @@ jobs:
       - name: Schema covers every table the code writes to
         run: php scripts/check_schema.php
 
+      # A shebang before declare(strict_types=1) is a fatal error that
+      # token_get_all() parses happily, so the lint step above cannot
+      # see it. Four backup scripts shipped that way.
+      - name: CLI scripts actually run
+        run: php scripts/check_cli_scripts.php
+
+      # Every on* attribute is a reason script-src must keep
+      # 'unsafe-inline'. The budget can only go down.
+      - name: Inline event handlers are not increasing
+        run: php scripts/check_inline_handlers.php
+
       - name: Migration files are well formed
         run: |
           set -e

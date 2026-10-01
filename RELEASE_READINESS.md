@@ -117,9 +117,34 @@ Ordered by what I would do first.
    real MySQL 8 in CI. They earned their keep immediately: on their
    first real run they caught a settlement bug that had made the
    entire phase-16 invoice fix a no-op.
-6. **Remove the 188 inline `on*` handlers** so the strict CSP can be
-   enforced rather than report-only. Large, mechanical, low risk, and
-   the report-only header already produces the work list.
+6. **Remove the 189 inline `on*` handlers.** Still open, and the
+   description above was wrong in three ways worth recording.
+
+   - It is **not sufficient**. At zero handlers the 44 inline
+     `<script>` blocks still require `script-src 'unsafe-inline'`
+     until each carries `nonce="<?= csp_nonce() ?>"`.
+   - It is **not low risk, and there is no half-way state**. A nonce
+     and `'unsafe-inline'` cannot coexist: the moment a nonce appears
+     the browser ignores `'unsafe-inline'`, so every remaining `on*`
+     handler stops working that same day. A partial conversion buys
+     no security at all and risks breaking working screens - on pages
+     that, per section 1, have still never been rendered in a
+     browser. **Do this after staging exists, not before.**
+   - **`style-src 'unsafe-inline'` is effectively permanent.** There
+     are 1358 `style=""` attributes and a nonce applies to elements,
+     not attributes. The honest target is `script-src` without
+     `'unsafe-inline'`, `style-src` keeping it. Injected style is a
+     real but far weaker vector than injected script.
+
+   The report-only header did *not* "already produce the work list":
+   it carried no `report-uri`, so the violations went to the console
+   of whoever had devtools open and nowhere else. That is fixed, and
+   `scripts/check_inline_handlers.php --report` prints the same work
+   list grouped by how hard each one is to remove.
+
+   A budget in `.inline-handler-budget` now fails CI if the count
+   rises. Long cleanups lose to new code unless something stops the
+   number going up.
 
 ---
 

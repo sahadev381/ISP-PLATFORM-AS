@@ -1,4 +1,3 @@
-#!/usr/bin/php
 <?php
 /**
  * Restore a backup into a database.

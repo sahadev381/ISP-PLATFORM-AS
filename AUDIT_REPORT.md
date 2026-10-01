@@ -1638,3 +1638,90 @@ the same situation this phase set out to fix.
 ### Verification
 
 **226 files, 0 parse errors · 286 assertions, 286 passed** (41 new).
+
+---
+
+## §27 — Phase 21: making the CSP cleanup finishable
+
+`RELEASE_READINESS.md` item 4.6 read: *"Remove the 188 inline `on*`
+handlers so the strict CSP can be enforced rather than report-only.
+Large, mechanical, low risk, and the report-only header already
+produces the work list."*
+
+Measuring it first showed that sentence to be wrong three times over.
+
+### "the report-only header already produces the work list"
+
+It did not. `Content-Security-Policy-Report-Only` has been sent for
+several phases with **no `report-uri`**. A report-only policy with
+nowhere to report to writes a message in the console of whoever
+happens to have devtools open and is otherwise inert. The header has
+been costing bytes and buying nothing.
+
+Fixed: `report-uri /csp_report.php` plus `report-to` and a
+`Reporting-Endpoints` header, since Chrome ignores `report-uri` and
+Safari and Firefox ignore `report-to`.
+
+The collector is unusual for this codebase in that **it cannot be
+authenticated** — browsers post reports without credentials — and
+anyone on the internet can make a browser post to it by embedding a
+page that violates its own policy. So the defences are about volume
+rather than identity: a 16 KB body cap, a signature that collapses one
+broken page reported by a thousand visitors into one record, and a
+filter for the browser-extension reports that are the bulk of real
+traffic. A report endpoint that writes a line per request is a way to
+fill a disk, and a full disk takes the platform down.
+
+### "so the strict CSP can be enforced"
+
+Not by itself. At zero handlers the 44 inline `<script>` blocks still
+require `'unsafe-inline'`. And `style-src 'unsafe-inline'` is
+realistically permanent: 1358 `style=""` attributes, and a nonce
+applies to elements, not attributes. The honest target is `script-src`
+clean and `style-src` not — which is still the trade worth making.
+
+### "low risk"
+
+The opposite. A nonce and `'unsafe-inline'` annihilate each other, so
+there is no gradual path: the day a nonce is added, every remaining
+`on*` handler dies. A partial conversion is all of the risk and none
+of the benefit.
+
+Of the 189 handlers, 54 are bare calls, 52 are calls with literal
+arguments, 55 are arbitrary statements and 28 contain interpolated
+PHP. Converting 106 of them mechanically is easy. Doing it blind, on
+pages that §1 still says have never been rendered in a browser, is
+how a working admin panel acquires 106 dead buttons. **Deliberately
+not done here.** It should follow the staging deploy.
+
+What is done is the thing that makes it finishable:
+`.inline-handler-budget` records today's 189 and CI fails if the
+number rises. Long cleanups lose to new code unless something holds
+the line.
+
+### A bug this phase found in the last one
+
+`scripts/check_cli_scripts.php` exists because of a mistake found
+while adding the new script. **All four backup scripts shipped in
+Phase 19 were fatally broken.** Each began with `#!/usr/bin/php`
+followed by `declare(strict_types=1)`, and PHP requires that
+declaration to be the very first statement in the file.
+
+Nothing caught it. The lint step uses `token_get_all()`, which parses
+the file happily — the rule is enforced at compile time, not parse
+time. The test suite does not execute them. The PHP-WASM harness
+cannot, because they use `exec()`. So three independent checks all
+said green on four scripts that would have died on the first line of
+their first real run — including the restore script, which is the one
+you reach for on the worst day.
+
+The shebangs are gone (they were never used; everything invokes
+`php scripts/x.php`) and CI now rejects the combination.
+
+This is the same lesson as §24.1, in a new disguise: **a check that
+cannot execute the thing it is checking will tell you it is fine.**
+
+### Verification
+
+**231 files, 0 parse errors · 323 assertions, 323 passed** (37 new) ·
+inline-handler budget 189 · CLI script guard clean.

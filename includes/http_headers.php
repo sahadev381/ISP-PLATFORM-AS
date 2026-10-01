@@ -8,7 +8,7 @@
  * feeling that is often not earned. This codebase currently contains:
  *
  *     186   on* attribute handlers  (onclick="...")
- *     1357  style="..." attributes
+ *     1358  style="..." attributes
  *     57    inline <style> blocks
  *     44    inline <script> blocks
  *
@@ -34,8 +34,25 @@
  *
  * The strict policy we would like to reach is sent at the same time as
  * Content-Security-Policy-Report-Only. It changes nothing for users; it
- * makes the browser report what would break. That report is the work
- * list for removing the inline handlers.
+ * makes the browser report what would break. Those reports are posted
+ * to /csp_report.php and recorded, so the work list is real and not
+ * merely theoretical.
+ *
+ * BE HONEST ABOUT THE TARGET. Removing the on* handlers is necessary
+ * but not sufficient:
+ *
+ *   - At zero handlers, the 44 inline <script> blocks still require
+ *     'unsafe-inline' until each one carries nonce="<?= csp_nonce() ?>".
+ *   - A nonce and 'unsafe-inline' cannot coexist, so there is no safe
+ *     half-way state: the day the nonce appears, every remaining on*
+ *     handler stops working. The handlers must all go first.
+ *   - style-src 'unsafe-inline' is, realistically, permanent. 1358
+ *     style="" attributes cannot be nonced - nonces apply to elements,
+ *     not attributes - and removing them is a rewrite of every page.
+ *
+ * So the achievable goal is script-src without 'unsafe-inline', with
+ * style-src keeping it. That is the trade worth making: injected style
+ * is a real but far weaker vector than injected script.
  */
 
 require_once __DIR__ . '/env.php';
@@ -125,7 +142,7 @@ if (!function_exists('csp_sources')) {
         $s = csp_sources();
         $self = "'self'";
 
-        return implode('; ', [
+        $directives = [
             "default-src $self",
             "script-src $self 'nonce-$nonce' " . implode(' ', $s['script']),
             "style-src $self 'nonce-$nonce' " . implode(' ', $s['style']),
@@ -136,7 +153,38 @@ if (!function_exists('csp_sources')) {
             "base-uri $self",
             "object-src 'none'",
             "frame-ancestors $self",
-        ]);
+        ];
+
+        /* Without this the report goes to the console of whoever has
+           devtools open, and nowhere else - which is what happened
+           for the whole time this header has been sent. report-uri is
+           deprecated but is still the only one Safari and Firefox
+           honour; report-to is what Chrome wants. Send both. */
+        $endpoint = csp_report_endpoint();
+        if ($endpoint !== '') {
+            $directives[] = 'report-uri ' . $endpoint;
+            $directives[] = 'report-to csp-endpoint';
+        }
+
+        return implode('; ', $directives);
+    }
+
+    /**
+     * Where violation reports are posted.
+     *
+     * Set CSP_REPORT_URI to '' to turn collection off entirely - worth
+     * doing if nobody is reading the log, since the endpoint is
+     * unauthenticated by necessity.
+     */
+    function csp_report_endpoint(): string
+    {
+        env_load();
+        $configured = env('CSP_REPORT_URI', null);
+        if ($configured !== null) {
+            return trim((string) $configured);
+        }
+
+        return '/csp_report.php';
     }
 
     function csp_is_https(): bool
@@ -179,6 +227,13 @@ if (!function_exists('csp_sources')) {
 
         header('Content-Security-Policy: ' . csp_enforced_policy());
         header('Content-Security-Policy-Report-Only: ' . csp_report_only_policy(csp_nonce()));
+
+        /* Chrome ignores report-uri and needs the endpoint declared
+           through the Reporting API instead. */
+        $endpoint = csp_report_endpoint();
+        if ($endpoint !== '') {
+            header('Reporting-Endpoints: csp-endpoint="' . $endpoint . '"');
+        }
 
         // Stop the browser guessing that a .txt upload is really HTML.
         header('X-Content-Type-Options: nosniff');
