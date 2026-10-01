@@ -201,6 +201,14 @@ function discover_pages(string $root, array $denylist, array $skipDirs, array $s
 
 $pages = discover_pages($root, $denylist, $skipDirs, $skipSegments);
 
+/* The browser check crawls the same list. One source of truth for the
+   denylist matters: the reasons in it are safety reasons - monitor.php
+   sends SMS, expire.php runs a DELETE - and a second copy would drift. */
+if ($listOnly && isset($opts['json'])) {
+    echo json_encode($pages, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
+    exit(0);
+}
+
 if ($listOnly) {
     echo "Would visit " . count($pages) . " pages:\n";
     foreach ($pages as $p) {

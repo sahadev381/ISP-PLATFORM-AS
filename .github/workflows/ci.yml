@@ -451,6 +451,26 @@ jobs:
       - name: Load every page
         run: php scripts/smoke_test.php --url=http://127.0.0.1:8080 --user=smoke --pass=ci-smoke-password
 
+      # The PHP crawler proves a page renders. It does not execute a
+      # line of the JavaScript on it, and a syntax error in an inline
+      # <script> disables that whole block silently - two files shipped
+      # that way before anyone read them. A real browser is also what
+      # makes the inline-handler cleanup in RELEASE_READINESS 4.6
+      # possible to attempt: converting 189 handlers blind was refused
+      # because nothing could tell whether a converted button worked.
+      - name: Install a browser
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Run every page in a browser
+        run: |
+          set -e
+          php scripts/smoke_test.php --url=http://127.0.0.1:8080 --list --json > /tmp/pages.json
+          node scripts/browser_check.mjs \
+            --url=http://127.0.0.1:8080 --user=smoke --pass=ci-smoke-password \
+            --pages=/tmp/pages.json
+
       # The crawler reads the response body. The server log catches
       # anything that was written to stderr instead - a fatal after
       # output has started, for example, which still returns a
