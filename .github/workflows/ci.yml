@@ -339,3 +339,116 @@ jobs:
                   print(f"    {c}")
           sys.exit(1 if problems else 0)
           PY
+
+  # ------------------------------------------------------------------
+  # The gap RELEASE_READINESS called "the one that matters most":
+  # nothing in this repository had ever loaded a page. Every other
+  # check is static - parsers, scanners, unit tests over pure helpers.
+  # A file parses perfectly and still dies on the first request when a
+  # column was renamed or an include is missing, and phases 6 and 11
+  # each found pages that had been broken for a long time that way.
+  #
+  # This runs the real application against a real MySQL, logs in as a
+  # real admin and requests every page. It is not a substitute for a
+  # staging deploy against production-shaped data - the seed is small
+  # and clean - but it does mean "it renders" is now a fact rather
+  # than an assumption.
+  # ------------------------------------------------------------------
+  pages:
+    name: Every page loads
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci
+          MYSQL_DATABASE: isp_platform
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -pci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, curl, json
+
+      - name: Load schema and seed
+        run: |
+          set -e
+          mysql -h127.0.0.1 -uroot -pci isp_platform < database/schema.sql
+          mysql -h127.0.0.1 -uroot -pci isp_platform < database/seed.sql
+
+      - name: Configure the application
+        run: |
+          set -e
+          cp config.php.example config.php
+          cat > .env <<'ENV'
+          APP_DEBUG=false
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_USER=root
+          DB_PASS=ci
+          DB_NAME=isp_platform
+          MON_DB_HOST=127.0.0.1
+          MON_DB_USER=root
+          MON_DB_PASS=ci
+          MON_DB_NAME=isp_platform
+          ENV
+
+      # create_admin.php prompts on stdin by design - a password in a
+      # command line argument lands in `ps` and in shell history. For
+      # CI the row goes in directly.
+      - name: Create an administrator
+        run: |
+          php -r '
+            require "config.php";
+            $hash = password_hash("ci-smoke-password", PASSWORD_DEFAULT);
+            $conn->query("DELETE FROM admins WHERE username = \"smoke\"");
+            /* role is ENUM(superadmin,manager,support) and the flag is
+               `active`, not `status`. superadmin so branch_scope() does
+               not filter the crawl down to one branch. */
+            $stmt = $conn->prepare("INSERT INTO admins (username, password, role, active) VALUES (?, ?, \"superadmin\", 1)");
+            $stmt->bind_param("ss", $u, $hash);
+            $u = "smoke";
+            $stmt->execute();
+            echo "admin created\n";
+          '
+
+      - name: Start the application
+        run: |
+          php -S 127.0.0.1:8080 -t . > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8080/index.php; then
+              echo "server up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the built-in server never became ready"
+          cat /tmp/server.log
+          exit 1
+
+      - name: Load every page
+        run: php scripts/smoke_test.php --url=http://127.0.0.1:8080 --user=smoke --pass=ci-smoke-password
+
+      # The crawler reads the response body. The server log catches
+      # anything that was written to stderr instead - a fatal after
+      # output has started, for example, which still returns a
+      # partially rendered page with a 200.
+      - name: No fatals in the server log
+        if: always()
+        run: |
+          echo "--- server log ---"
+          cat /tmp/server.log || true
+          if grep -qE 'PHP (Fatal|Parse) error|Uncaught' /tmp/server.log; then
+            grep -nE 'PHP (Fatal|Parse) error|Uncaught' /tmp/server.log \
+              | sed 's/^/::error::/'
+            exit 1
+          fi
