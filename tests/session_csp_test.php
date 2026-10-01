@@ -109,3 +109,41 @@ foreach ($it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($roo
 }
 $t->true("inline on* handlers still exist ($inline found)", $inline > 0);
 $t->true('so the enforced policy still needs unsafe-inline, and is not an XSS defence', strpos($enforced, "'unsafe-inline'") !== false);
+
+/* ------------------------------------------------------------------ */
+$t->group('client IP cannot be forged in the audit log');
+
+/* getClientIP() used to prefer X-Forwarded-For unconditionally, so every
+   address in login_attempts and activity_log was attacker-controlled.
+   Security's constructor needs a database, so exercise the logic through
+   a subclass that skips it. */
+require_once __DIR__ . '/../includes/security.php';
+
+$probe = new class extends Security {
+    public function __construct() {}   // no DB
+};
+
+$_SERVER['REMOTE_ADDR']          = '203.0.113.9';
+$_SERVER['HTTP_X_FORWARDED_FOR'] = '1.2.3.4';
+$_SERVER['HTTP_CLIENT_IP']       = '5.6.7.8';
+
+putenv('TRUSTED_PROXIES=');
+$_ENV['TRUSTED_PROXIES'] = '';
+$t->is('a forged X-Forwarded-For is ignored when no proxy is configured',
+    $probe->getClientIP(), '203.0.113.9');
+
+$_ENV['TRUSTED_PROXIES'] = '198.51.100.7';
+putenv('TRUSTED_PROXIES=198.51.100.7');
+$t->is('a header from an untrusted source is still ignored',
+    $probe->getClientIP(), '203.0.113.9');
+
+$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+$t->is('the header is believed only when the request came from the proxy',
+    $probe->getClientIP(), '1.2.3.4');
+
+$_SERVER['HTTP_X_FORWARDED_FOR'] = 'not-an-ip, 9.9.9.9';
+$t->is('garbage entries are skipped', $probe->getClientIP(), '9.9.9.9');
+
+unset($_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['HTTP_CLIENT_IP'], $_SERVER['REMOTE_ADDR']);
+putenv('TRUSTED_PROXIES=');
+$_ENV['TRUSTED_PROXIES'] = '';

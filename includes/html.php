@@ -135,3 +135,30 @@ if (!function_exists('e_href')) {
         return e($url);
     }
 }
+
+if (!function_exists('generate_wifi_password')) {
+    /**
+     * A WiFi password the customer has to be able to read off a page and
+     * type into a phone, and that nobody can predict.
+     *
+     * It cannot be hashed: the customer is shown it and TR-069 pushes it
+     * to the router. So the only thing protecting it is how it is
+     * generated. The previous version was
+     * substr(md5($username . time()), 0, 10) - the username is known and
+     * time() is guessable within the few seconds the form took, leaving
+     * about a thousand candidates to try.
+     *
+     * The alphabet omits 0/O/1/l/I, which get misread off a printed slip.
+     */
+    function generate_wifi_password(int $length = 12): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        $max = strlen($alphabet) - 1;
+        $out = '';
+        for ($i = 0; $i < $length; $i++) {
+            $out .= $alphabet[random_int(0, $max)];
+        }
+        return $out;
+    }
+}
+

@@ -85,3 +85,30 @@ $t->group('double-escaping');
 // security hole, but it renders visible &amp;lt; to the user, so the
 // test records the behaviour rather than pretending it is fine.
 $t->is('e() is not idempotent', e(e('<b>')), '&amp;lt;b&amp;gt;');
+
+/* ------------------------------------------------------------------ */
+$t->group('generated WiFi passwords');
+
+/* The old generator was substr(md5($username . time()), 0, 10): known
+   username, guessable timestamp, so roughly a thousand candidates. */
+$t->is('default length is 12', strlen(generate_wifi_password()), 12);
+$t->is('length is configurable', strlen(generate_wifi_password(20)), 20);
+
+$seen = [];
+for ($i = 0; $i < 500; $i++) {
+    $seen[generate_wifi_password()] = true;
+}
+$t->is('500 passwords generated in one loop are all different', count($seen), 500);
+
+/* The whole point: it must not be derivable from the inputs the old one
+   used. Generating two in the same second must not collide. */
+$t->true('two passwords made in the same second differ',
+    generate_wifi_password() !== generate_wifi_password());
+
+$chars = count_chars(implode('', array_keys($seen)), 3);
+$t->lacks('omits characters that get misread on a printed slip: 0', $chars, '0');
+$t->lacks('omits O', $chars, 'O');
+$t->lacks('omits 1', $chars, '1');
+$t->lacks('omits l', $chars, 'l');
+$t->true('uses only the intended alphabet',
+    preg_match('/^[A-HJ-NP-Za-km-z2-9]+$/', implode('', array_keys($seen))) === 1);

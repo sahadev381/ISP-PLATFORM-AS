@@ -60,7 +60,7 @@ if (isset($_POST['add'])) {
 
         // Auto-generate Wi-Fi credentials
         $wifi_ssid = "ISP_" . $username;
-        $wifi_password = substr(md5($username . time()), 0, 10);
+        $wifi_password = generate_wifi_password();
 
         $conn->begin_transaction();
         try {

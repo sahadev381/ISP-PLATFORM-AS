@@ -21,10 +21,17 @@ if ($action == 'add_entry') {
     if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
         if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif'])) {
-            $filename = 'diary_' . time() . '.' . $ext;
-            $target = 'uploads/' . $filename;
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $target)) {
-                $image_path = $filename;
+            // Reject anything that is not really an image, and never
+            // trust the client-supplied filename.
+            if (@getimagesize($_FILES['image']['tmp_name']) !== false) {
+                $filename = 'diary_' . bin2hex(random_bytes(8)) . '.' . $ext;
+                $uploadDir = __DIR__ . '/uploads/';
+                if (!is_dir($uploadDir)) {
+                    @mkdir($uploadDir, 0755, true);
+                }
+                if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $filename)) {
+                    $image_path = $filename;
+                }
             }
         }
     }
@@ -35,7 +42,9 @@ if ($action == 'add_entry') {
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status' => 'error', 'message' => $conn->error]);
+        // $conn->error names tables and columns; log it, do not ship it.
+        error_log('work_diary add_entry failed: ' . $conn->error);
+        echo json_encode(['status' => 'error', 'message' => 'Could not save the entry.']);
     }
 }
 
