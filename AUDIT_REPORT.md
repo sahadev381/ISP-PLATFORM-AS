@@ -1020,3 +1020,85 @@ five files now pass it.
 133 passed · 5/5 JavaScript files parse.**
 
 This closes the last open item from §8.
+
+---
+
+## §20 — Phase 14: checking the checker
+
+The `node --check` trick from Phase 13 had found a page whose entire
+script block was dead, so the obvious next step was to run it over
+*every* inline script in the repository: 44 blocks across 42 files,
+with PHP tags substituted out so the result is parseable. **All 44
+parse.** `network_topology.php` was the only one. A clean negative
+result, but worth having.
+
+The interesting finding came from turning the same scepticism on the
+CSRF work from Phase 9.
+
+### The guard was in the wrong place in three files
+
+Phase 9 placed `csrf_check()` after the last include near the top of
+each page, on the reasoning that it is a no-op on GET so it is safe
+anywhere early. In `change_password.php` that heuristic put it at line
+33 — *below* the POST handler at line 7. The handler ran first. The
+guard was decoration.
+
+Worse, two files passed the Phase 9 scan without ever being touched:
+
+| file | wrote at | first `csrf_check` |
+|---|---|---|
+| `admin.php` | line 36 (creates an admin) | line 52 |
+| `nas.php` | line 26 (creates a NAS device) | line 37 |
+
+Both have a GET-delete branch further down that calls
+`csrf_check_request()`. That single occurrence was enough for
+"does this file mention csrf?" to answer yes, while the POST branch
+above it — the one that **creates an administrator account** — had no
+check at all.
+
+All three now check the token as the first statement of the branch
+that writes.
+
+### The real fix was to the checker
+
+A whole-file grep for `csrf_check` cannot tell protected from
+unprotected. `scripts/check_csrf.php` now also fails when a database
+write appears *before* the first token check in the same file.
+
+Verified the way a check should be: the fix was reverted in `nas.php`
+and the checker was re-run, which reported
+
+```
+::error::nas.php: writes to the database on line 27, before the first csrf_check()
+1 CSRF problem(s) found.
+```
+
+and then the fix was restored.
+
+### And the password change never worked
+
+`change_password.php` had this:
+
+```php
+// assuming auth.php sets admin ID
+//$admin_id = $_SESSION['admin_id'];
+
+$stmt->bind_param("si", $hash, $admin_id);
+```
+
+`$admin_id` was never defined. `bind_param()` bound null, so the
+statement became `UPDATE admins SET password = ? WHERE id = NULL`,
+which matches no rows — and `execute()` returns true for a query that
+ran successfully and changed nothing. The page therefore reported
+**"Password updated successfully!"** every single time while never
+changing a password.
+
+Now reads `$_SESSION['user_id']` (what `includes/auth.php` actually
+sets), refuses to proceed without a session, and reports based on
+`affected_rows` rather than on "the query ran".
+
+### Verification
+
+**207 files, 0 parse errors · 44/44 inline scripts parse · 5/5
+`assets/js` files parse · CSRF coverage clean under the stricter rule ·
+133 assertions, 133 passed.**

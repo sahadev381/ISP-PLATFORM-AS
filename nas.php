@@ -9,6 +9,9 @@ $active = "nas";
 
 /* ADD NETWORK DEVICE */
 if(isset($_POST['add'])){
+    // This branch writes; the token must be checked before it does.
+    csrf_check();
+
     $nasname = $_POST['nasname'];
     $shortname = $_POST['shortname'];
     $secret = $_POST['secret'];

@@ -1,10 +1,14 @@
 <?php
 include __DIR__ . '/config.php';
 include __DIR__ . '/includes/auth.php'; // must contain session check
+require_once __DIR__ . '/includes/csrf.php';
 
 $msg = "";
 
 if (isset($_POST['change'])) {
+    // This branch writes; the token must be checked before it does.
+    csrf_check();
+
 
     $new_password = $_POST['password'];
 
@@ -13,25 +17,30 @@ if (isset($_POST['change'])) {
     } else {
         $hash = password_hash($new_password, PASSWORD_DEFAULT);
 
-        // assuming auth.php sets admin ID
-        //$admin_id = $_SESSION['admin_id'];
+        // $admin_id was never defined - the line that would have set it
+        // was commented out. bind_param() therefore bound null, the
+        // statement became "WHERE id = NULL", it matched no rows, and
+        // execute() still returned true. The page reported "Password
+        // updated successfully!" every time without changing anything.
+        $admin_id = (int) ($_SESSION['user_id'] ?? 0);
 
-        $stmt = $conn->prepare("UPDATE admins SET password=? WHERE id=?");
-        $stmt->bind_param("si", $hash, $admin_id);
-
-        if ($stmt->execute()) {
-            $msg = "Password updated successfully!";
+        if ($admin_id <= 0) {
+            $msg = "Your session has expired. Please sign in again.";
         } else {
-            $msg = "Failed to update password!";
+            db_exec($conn, "UPDATE admins SET password = ? WHERE id = ?", [$hash, $admin_id]);
+
+            // Report on rows actually changed, not on "the query ran".
+            if ($conn->affected_rows === 1) {
+                $msg = "Password updated successfully!";
+            } else {
+                $msg = "Failed to update password!";
+            }
         }
     }
 }
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
-require_once __DIR__ . '/includes/csrf.php';
-// Rejects a POST that did not come from one of our own forms.
-csrf_check();
 ?>
 
 <div class="main">

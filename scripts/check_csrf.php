@@ -53,6 +53,27 @@ foreach ($it as $file) {
     if ($hasPost && !$hasCheck && $allow !== 'check') {
         $problems[] = "$rel: reads \$_POST with no csrf_check()";
     }
+
+    // "The token appears somewhere in the file" is not the same as
+    // "the token is checked before anything is written". admin.php and
+    // nas.php both passed the check above while their POST branch wrote
+    // to the database unprotected - the csrf_check_request() that
+    // satisfied the grep was further down, on a GET branch.
+    if ($hasCheck && $allow !== 'order') {
+        $checkAt = null;
+        if (preg_match('/\bcsrf_check(_request)?\s*\(/', $src, $m, PREG_OFFSET_CAPTURE)) {
+            $checkAt = $m[0][1];
+        }
+        $writeAt = null;
+        if (preg_match('/\b(db_exec|->prepare|->query)\s*\(\s*["\'][^"\']*\b(INSERT|UPDATE|DELETE)\b/i',
+                       $src, $m, PREG_OFFSET_CAPTURE)) {
+            $writeAt = $m[0][1];
+        }
+        if ($checkAt !== null && $writeAt !== null && $writeAt < $checkAt) {
+            $line = substr_count(substr($src, 0, $writeAt), "\n") + 1;
+            $problems[] = "$rel: writes to the database on line $line, before the first csrf_check()";
+        }
+    }
 }
 
 sort($problems);

@@ -19,6 +19,9 @@ $branches = $conn->query("SELECT id,name FROM branches WHERE status='active'");
 
 /* ADD / UPDATE ADMIN */
 if (isset($_POST['add'])) {
+    // This branch writes; the token must be checked before it does.
+    csrf_check();
+
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
     $branch_id = $_POST['branch_id'] ?: null;
