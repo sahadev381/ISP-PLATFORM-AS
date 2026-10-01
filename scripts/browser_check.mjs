@@ -86,6 +86,7 @@ let visited = 0;
 for (const rel of pages) {
   const errors = [];
   const missing = [];
+  const csp = [];
 
   const onPageError = e => errors.push(String(e.message || e));
   const onConsole = m => {
@@ -94,6 +95,16 @@ for (const rel of pages) {
     /* A failed network request also logs a console error; the
        response handler below reports those with more detail. */
     if (/Failed to load resource/i.test(t)) return;
+    /* Content-Security-Policy-Report-Only violations arrive as console
+       errors, but nothing is broken - that is the header working
+       exactly as intended. They are the inline-script work list for
+       RELEASE_READINESS 4.6, so they are counted separately. Leaving
+       them in the error bucket would bury the real errors under
+       sixteen hundred expected messages. */
+    if (/^\[Report Only\]/i.test(t)) {
+      csp.push(t);
+      return;
+    }
     errors.push(t);
   };
   const onResponse = r => {
@@ -107,13 +118,29 @@ for (const rel of pages) {
   page.on('response', onResponse);
 
   try {
-    await page.goto(`${base}/${rel}`, { waitUntil: 'load', timeout: 20000 });
+    const resp = await page.goto(`${base}/${rel}`, { waitUntil: 'load', timeout: 20000 });
+    /* A 204 has no body, so Chromium aborts the navigation rather than
+       rendering anything. csp_report.php always answers 204. That is
+       the endpoint behaving correctly, not a page that failed. */
+    if (resp && [204, 205, 304].includes(resp.status())) {
+      page.off('pageerror', onPageError);
+      page.off('console', onConsole);
+      page.off('response', onResponse);
+      visited++;
+      continue;
+    }
     /* Give deferred scripts and DOMContentLoaded handlers a moment to
        throw. Most of this codebase's JavaScript runs at parse time,
        but the DataTables and chart initialisers do not. */
     await page.waitForTimeout(250);
   } catch (e) {
-    errors.push(`navigation: ${e.message}`);
+    /* Same case as above when the abort happens before a response
+       object is returned. */
+    if (/ERR_ABORTED/.test(e.message)) {
+      // nothing rendered because there was nothing to render
+    } else {
+      errors.push(`navigation: ${e.message}`);
+    }
   }
 
   page.off('pageerror', onPageError);
@@ -123,6 +150,7 @@ for (const rel of pages) {
   visited++;
   for (const e of new Set(errors)) findings.push({ page: rel, kind: 'js', detail: e });
   for (const m of new Set(missing)) findings.push({ page: rel, kind: '404', detail: m });
+  for (const c of new Set(csp)) findings.push({ page: rel, kind: 'csp', detail: c });
 
   process.stdout.write(`\r[${visited}/${pages.length}] ${rel.slice(0, 60).padEnd(62)}`);
 }
@@ -134,6 +162,7 @@ await browser.close();
 
 const js = findings.filter(f => f.kind === 'js');
 const notFound = findings.filter(f => f.kind === '404');
+const cspViolations = findings.filter(f => f.kind === 'csp');
 
 const group = list => {
   const by = new Map();
@@ -166,7 +195,27 @@ if (notFound.length) {
   }
 }
 
-console.log(`\n${visited} pages, ${js.length} JavaScript errors, ${notFound.length} missing assets.`);
+if (cspViolations.length) {
+  /* The strict policy is sent report-only precisely so this list
+     exists. It is the measured size of RELEASE_READINESS 4.6 - not an
+     estimate from grepping the source, but what a browser actually
+     refuses. */
+  const kinds = new Map();
+  for (const v of cspViolations) {
+    const k = /directive: "([a-z-]+)/.exec(v.detail)?.[1] ?? 'unknown';
+    kinds.set(k, (kinds.get(k) ?? 0) + 1);
+  }
+  console.log(`\nCSP (report-only) would block ${cspViolations.length} things`
+    + ` on ${group(cspViolations).size} pages - this is the 4.6 work list\n`);
+  for (const [k, n] of [...kinds].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${String(n).padStart(5)}  ${k}`);
+  }
+  console.log('\n  Nothing is broken by these: the policy is report-only.');
+  console.log('  They are what would break if it were enforced today.');
+}
+
+console.log(`\n${visited} pages, ${js.length} JavaScript errors,`
+  + ` ${cspViolations.length} CSP violations, ${notFound.length} missing assets.`);
 
 /* A warning rather than an error: this line is informational, and it
    must survive even on a green run. The job log is only reachable
@@ -174,7 +223,8 @@ console.log(`\n${visited} pages, ${js.length} JavaScript errors, ${notFound.leng
    annotation is sometimes the only way to read the number. */
 if (inCI) {
   console.log(`::warning::browser check: ${visited} pages, ${js.length} JS errors`
-    + ` on ${group(js).size} pages, ${notFound.length} missing assets (budget ${budget})`);
+    + ` on ${group(js).size} pages, ${cspViolations.length} CSP report-only violations,`
+    + ` ${notFound.length} missing assets (budget ${budget})`);
   for (const [p, details] of [...group(js)].slice(0, 25)) {
     console.log(`::warning file=${p}::${details[0].replace(/\s+/g, ' ').slice(0, 300)}`);
   }

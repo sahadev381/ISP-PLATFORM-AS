@@ -458,6 +458,14 @@ jobs:
       # makes the inline-handler cleanup in RELEASE_READINESS 4.6
       # possible to attempt: converting 189 handlers blind was refused
       # because nothing could tell whether a converted button worked.
+      # The download is ~130 MB and the apt dependencies take minutes.
+      # Without the cache this one step was most of a ten-minute job.
+      - name: Cache the browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.49.1-${{ runner.os }}
+
       - name: Install a browser
         run: |
           npm install --no-save playwright@1.49.1
