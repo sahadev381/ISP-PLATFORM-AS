@@ -447,8 +447,14 @@ jobs:
         run: |
           echo "--- server log ---"
           cat /tmp/server.log || true
-          if grep -qE 'PHP (Fatal|Parse) error|Uncaught' /tmp/server.log; then
-            grep -nE 'PHP (Fatal|Parse) error|Uncaught' /tmp/server.log \
+          # includes/errors.php catches exceptions, so a failure that
+          # used to read "PHP Fatal error" now arrives as a JSON record
+          # on stderr. Match both, and annotate - on a network that
+          # cannot reach the Actions blob storage the annotations are
+          # the only readable output.
+          pattern='PHP (Fatal|Parse) error|Uncaught|"level":"(fatal|exception|error)"'
+          if grep -qE "$pattern" /tmp/server.log; then
+            grep -hoE "$pattern.*" /tmp/server.log | cut -c1-400 | head -20 \
               | sed 's/^/::error::/'
             exit 1
           fi
