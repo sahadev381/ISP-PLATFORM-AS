@@ -27,8 +27,13 @@ $monthly = $conn->query("
         SUM(base_amount) as base
     FROM invoices 
     WHERE status = 'paid'
-    GROUP BY month 
-    ORDER BY created_at DESC
+    GROUP BY month
+    /* ORDER BY created_at is rejected under only_full_group_by, which
+       is the default in MySQL 8: created_at is not grouped and not
+       aggregated, so there is no single value to sort by. Sort by the
+       largest date within each month instead - which is what the
+       original was reaching for. */
+    ORDER BY MAX(created_at) DESC
 ");
 
 include __DIR__ . '/../includes/header.php';

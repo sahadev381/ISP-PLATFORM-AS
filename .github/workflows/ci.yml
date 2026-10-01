@@ -256,6 +256,13 @@ jobs:
           mysql -h127.0.0.1 -uroot -pci upgraded < database/schema.sql
           mysql -h127.0.0.1 -uroot -pci upgraded -e \
             "ALTER TABLE invoices DROP COLUMN paid_at, DROP COLUMN payment_reference;"
+          # ... and the columns migration 003 adds, for the same reason.
+          # Every migration needs its columns removed here, or the
+          # migration runs against a database that already has them and
+          # this job stops testing the thing it exists to test.
+          mysql -h127.0.0.1 -uroot -pci upgraded -e \
+            "ALTER TABLE kb_categories DROP COLUMN sort_order;
+             ALTER TABLE hotspot_voucher_types DROP COLUMN status;"
           DB_NAME=upgraded php scripts/migrate.php up
 
           dump_cols () {

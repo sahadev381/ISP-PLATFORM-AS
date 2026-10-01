@@ -12,7 +12,11 @@ include __DIR__ . '/../includes/sidebar.php';
 include __DIR__ . '/../includes/header.php';
 
 $username = $_SESSION['username'] ?? '';
-$public_key = KHALTI_PUBLIC_KEY;
+/* KHALTI_PUBLIC_KEY was never defined anywhere - phase 2 moved the
+   keys into .env and this reference was missed, so the page was a
+   fatal error. An unconfigured gateway must degrade to "not
+   available", not to a 500. */
+$public_key = (string) env('KHALTI_PUBLIC_KEY', '');
 ?>
 
 <div class="main">

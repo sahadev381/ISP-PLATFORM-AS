@@ -58,8 +58,11 @@ include __DIR__ . '/../includes/topbar.php';
                 <thead><tr style="text-align:left; color:#94a3b8;"><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
                 <tbody>
                     <?php
+                    /* db_all() returns an array, not a mysqli_result.
+                       The ->fetch_assoc() left over from the raw-query
+                       version was a fatal error on every page load. */
                     $txns = db_all($conn, "SELECT * FROM wallet_transactions WHERE username = ? ORDER BY created_at DESC LIMIT 5", [$username]);
-                    while($t = $txns->fetch_assoc()):
+                    foreach ($txns as $t):
                     ?>
                     <tr style="border-bottom:1px solid #f8fafc;">
                         <td style="padding:10px 0;"><?= date('M d, h:i A', strtotime($t['created_at'])) ?></td>
@@ -67,7 +70,7 @@ include __DIR__ . '/../includes/topbar.php';
                         <td style="font-weight:600;">NPR <?= number_format($t['amount'], 2) ?></td>
                         <td><span style="color:<?= $t['status']=='completed'?'#10b981':'#ef4444' ?>; font-weight:700;"><?= e(strtoupper($t['status'])) ?></span></td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
