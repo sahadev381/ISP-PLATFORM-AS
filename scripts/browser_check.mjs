@@ -168,6 +168,18 @@ if (notFound.length) {
 
 console.log(`\n${visited} pages, ${js.length} JavaScript errors, ${notFound.length} missing assets.`);
 
+/* A warning rather than an error: this line is informational, and it
+   must survive even on a green run. The job log is only reachable
+   from a machine that can talk to the Actions blob storage, so the
+   annotation is sometimes the only way to read the number. */
+if (inCI) {
+  console.log(`::warning::browser check: ${visited} pages, ${js.length} JS errors`
+    + ` on ${group(js).size} pages, ${notFound.length} missing assets (budget ${budget})`);
+  for (const [p, details] of [...group(js)].slice(0, 25)) {
+    console.log(`::warning file=${p}::${details[0].replace(/\s+/g, ' ').slice(0, 300)}`);
+  }
+}
+
 writeFileSync('/tmp/browser-findings.json', JSON.stringify(findings, null, 2));
 
 if (!Number.isFinite(budget)) {
