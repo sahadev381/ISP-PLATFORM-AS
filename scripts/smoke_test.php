@@ -266,6 +266,10 @@ $loggedIn = ($login['status'] === 302) || stripos($login['body'], 'dashboard') !
 if (!$loggedIn || stripos($login['body'], 'Invalid username') !== false) {
     echo "FAILED\n";
     fwrite(STDERR, "Login was rejected. Check --user/--pass, and that the account is not locked out.\n");
+    if (getenv('GITHUB_ACTIONS') === 'true') {
+        printf("::error::Smoke test could not log in (HTTP %d, csrf token %s)\n",
+            $login['status'], $token === '' ? 'MISSING' : 'found');
+    }
     if ($token === '') {
         fwrite(STDERR, "No CSRF token was found on the login page, which may itself be the problem.\n");
     }
@@ -377,6 +381,25 @@ function section(string $title, array $rows, bool $showDetail = true): void
     }
 }
 
+/**
+ * Emit a GitHub annotation per problem.
+ *
+ * Not decoration. The job log is only reachable from a machine that
+ * can talk to the Actions blob storage; annotations come back through
+ * the API, so on a restricted network they are the only way to find
+ * out what failed.
+ */
+function annotate(string $title, array $rows): void
+{
+    if (getenv('GITHUB_ACTIONS') !== 'true') {
+        return;
+    }
+    foreach ($rows as [$page, $status, $detail]) {
+        printf("::error file=%s::%s (HTTP %s) %s\n",
+            $page, $title, $status ?: '-', str_replace(["\r", "\n"], ' ', (string) $detail));
+    }
+}
+
 echo str_repeat('=', 72) . "\n";
 echo "Smoke test: $baseUrl\n";
 echo str_repeat('=', 72) . "\n";
@@ -386,6 +409,10 @@ section('HTTP errors', $results['http']);
 section('Empty responses', $results['empty']);
 section('Warnings and notices leaked into the page', $results['warning']);
 section('Redirected (session lost, or auth check wrong)', $results['redirect'], false);
+
+annotate('page did not render', $results['fatal']);
+annotate('HTTP error', $results['http']);
+annotate('empty response', $results['empty']);
 
 printf(
     "\n%d pages: %d ok, %d fatal, %d http errors, %d empty, %d with warnings, %d redirected\n",
@@ -412,6 +439,9 @@ $failed = count($results['fatal']) + count($results['http']) + count($results['e
 
 if ($failed > 0) {
     echo "\n$failed page(s) need attention.\n";
+    if (getenv('GITHUB_ACTIONS') === 'true') {
+        printf("::error::%d of %d pages failed to render\n", $failed, $total);
+    }
     exit(1);
 }
 
