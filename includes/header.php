@@ -1,7 +1,9 @@
 <?php
-if(!isset($base_path)) {
-    $base_path = '';
-}
+/* Derived, not declared. Pages set $base_path by hand and disagreed
+   with each other - billing/ and hotspot/admin/ both produced URLs
+   that 404ed - so whatever a page asked for is overridden here. */
+require_once __DIR__ . '/paths.php';
+$base_path = app_base_path();
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/http_headers.php';
 

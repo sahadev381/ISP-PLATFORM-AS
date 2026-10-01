@@ -228,6 +228,9 @@ if (inCI) {
   for (const [p, details] of [...group(js)].slice(0, 25)) {
     console.log(`::warning file=${p}::${details[0].replace(/\s+/g, ' ').slice(0, 300)}`);
   }
+  for (const [p, details] of [...group(notFound)].slice(0, 25)) {
+    console.log(`::warning file=${p}::missing: ${[...new Set(details)].join(' ').slice(0, 300)}`);
+  }
 }
 
 writeFileSync('/tmp/browser-findings.json', JSON.stringify(findings, null, 2));

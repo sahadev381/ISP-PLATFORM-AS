@@ -10,7 +10,7 @@
 <!-- Sidebar Overlay -->
 <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-<?php if(!isset($base_path)) $base_path = ''; ?>
+<?php require_once __DIR__ . '/paths.php'; $base_path = app_base_path(); ?>
 
 <div class="sidebar">
     <div class="sidebar-logo">
