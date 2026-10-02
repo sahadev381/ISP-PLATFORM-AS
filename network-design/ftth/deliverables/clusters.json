@@ -1,0 +1,1774 @@
+{
+ "pops": {
+  "HE": {
+   "lat": 27.829537390474155,
+   "lon": 85.57499272608827,
+   "pon": 32,
+   "type": "headend",
+   "label": "Melamchi Bazaar (Headend/DC)"
+  },
+  "POP1": {
+   "lat": 27.885702646495595,
+   "lon": 85.63752691551393,
+   "pon": 16,
+   "type": "pop",
+   "label": "Thangpal/Larke khola corridor"
+  },
+  "POP2": {
+   "lat": 27.850960058830545,
+   "lon": 85.54447626218794,
+   "pon": 16,
+   "type": "pop",
+   "label": "North of Melamchi (Helambu road)"
+  },
+  "POP3": {
+   "lat": 27.827761887767213,
+   "lon": 85.4863487361582,
+   "pon": 16,
+   "type": "pop",
+   "label": "Haibung / Thakani ridge"
+  },
+  "POP4": {
+   "lat": 27.768840004877315,
+   "lon": 85.52522143691486,
+   "pon": 16,
+   "type": "pop",
+   "label": "Chauki Bjy. / Dubachaur south"
+  },
+  "POP5": {
+   "lat": 27.739832022953937,
+   "lon": 85.60296683890036,
+   "pon": 16,
+   "type": "pop",
+   "label": "Indrawati south / Baluwapati"
+  },
+  "POP6": {
+   "lat": 27.828876819580096,
+   "lon": 85.44831652699213,
+   "pon": 16,
+   "type": "pop",
+   "label": "Chisapani (Haibung west)"
+  },
+  "POP7": {
+   "lat": 27.953790941984032,
+   "lon": 85.54790792673954,
+   "pon": 16,
+   "type": "pop",
+   "label": "Timbu (Helambu)"
+  }
+ },
+ "settlements": [
+  {
+   "id": 316984476,
+   "name": "Nagarkot",
+   "lat": 27.718508,
+   "lon": 85.51973,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 5.62
+  },
+  {
+   "id": 1341029341,
+   "name": "Chisapani",
+   "lat": 27.8255523,
+   "lon": 85.4483889,
+   "type": "hamlet",
+   "pop": "POP6",
+   "dist_km": 0.37
+  },
+  {
+   "id": 1341029381,
+   "name": "Chauki Banjyang",
+   "lat": 27.7642043,
+   "lon": 85.4977503,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 2.75
+  },
+  {
+   "id": 1490444242,
+   "name": "Dandagaun",
+   "lat": 27.7365745,
+   "lon": 85.5330155,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 3.67
+  },
+  {
+   "id": 1490444244,
+   "name": "Gairigaun",
+   "lat": 27.7258378,
+   "lon": 85.5365534,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 4.91
+  },
+  {
+   "id": 1490444246,
+   "name": "Masyargaun",
+   "lat": 27.7294916,
+   "lon": 85.5434352,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 4.73
+  },
+  {
+   "id": 1492179947,
+   "name": "Chhapgaun",
+   "lat": 27.7334092,
+   "lon": 85.5518697,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 4.73
+  },
+  {
+   "id": 1492179950,
+   "name": "Chhittegaun",
+   "lat": 27.7127203,
+   "lon": 85.5378552,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 6.36
+  },
+  {
+   "id": 1498636645,
+   "name": "Kaflenigaun",
+   "lat": 27.7144459,
+   "lon": 85.527698,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 6.05
+  },
+  {
+   "id": 2019307131,
+   "name": "Mulkharka (W)",
+   "lat": 27.7776708,
+   "lon": 85.4327027,
+   "type": "hamlet",
+   "pop": "POP6",
+   "dist_km": 5.9
+  },
+  {
+   "id": 2019360372,
+   "name": "Jhule",
+   "lat": 27.7749449,
+   "lon": 85.490121,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 3.52
+  },
+  {
+   "id": 2322395811,
+   "name": "Sanugopte",
+   "lat": 27.9535843,
+   "lon": 85.4820067,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 6.47
+  },
+  {
+   "id": 2324993818,
+   "name": "Pati Bhanjyang",
+   "lat": 27.8438459,
+   "lon": 85.4577235,
+   "type": "hamlet",
+   "pop": "POP6",
+   "dist_km": 1.9
+  },
+  {
+   "id": 3476589106,
+   "name": null,
+   "lat": 27.8205209,
+   "lon": 85.5606828,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.73
+  },
+  {
+   "id": 3476589167,
+   "name": null,
+   "lat": 27.8278268,
+   "lon": 85.5572192,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.76
+  },
+  {
+   "id": 3476590203,
+   "name": null,
+   "lat": 27.8300792,
+   "lon": 85.5680839,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 0.68
+  },
+  {
+   "id": 3476590644,
+   "name": null,
+   "lat": 27.8336289,
+   "lon": 85.580459,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 0.7
+  },
+  {
+   "id": 3476590700,
+   "name": null,
+   "lat": 27.8344349,
+   "lon": 85.562098,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.38
+  },
+  {
+   "id": 3476590747,
+   "name": null,
+   "lat": 27.8350859,
+   "lon": 85.5830882,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.01
+  },
+  {
+   "id": 3476590809,
+   "name": null,
+   "lat": 27.8356904,
+   "lon": 85.5710024,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 0.79
+  },
+  {
+   "id": 3476591332,
+   "name": "Dubachaur",
+   "lat": 27.8422933,
+   "lon": 85.5692583,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.53
+  },
+  {
+   "id": 3476607431,
+   "name": null,
+   "lat": 27.826388,
+   "lon": 85.5649814,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.04
+  },
+  {
+   "id": 3476995248,
+   "name": "Dhap",
+   "lat": 27.9140436,
+   "lon": 85.6371457,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 3.15
+  },
+  {
+   "id": 3477088939,
+   "name": "Okhreni",
+   "lat": 27.8587008,
+   "lon": 85.6624951,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 3.88
+  },
+  {
+   "id": 3477664021,
+   "name": null,
+   "lat": 27.9368273,
+   "lon": 85.4936551,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 5.65
+  },
+  {
+   "id": 3478122415,
+   "name": null,
+   "lat": 27.807059,
+   "lon": 85.5457112,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 3.81
+  },
+  {
+   "id": 3478122416,
+   "name": null,
+   "lat": 27.8094654,
+   "lon": 85.5438342,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 3.79
+  },
+  {
+   "id": 3478304260,
+   "name": null,
+   "lat": 27.8211218,
+   "lon": 85.5595493,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.78
+  },
+  {
+   "id": 3478304261,
+   "name": null,
+   "lat": 27.8200611,
+   "lon": 85.5528829,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 2.42
+  },
+  {
+   "id": 3478304264,
+   "name": null,
+   "lat": 27.8220706,
+   "lon": 85.5415062,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 3.23
+  },
+  {
+   "id": 3478399579,
+   "name": null,
+   "lat": 27.8249672,
+   "lon": 85.525281,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 3.45
+  },
+  {
+   "id": 3478406054,
+   "name": null,
+   "lat": 27.8347576,
+   "lon": 85.5374773,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 1.93
+  },
+  {
+   "id": 3478518232,
+   "name": null,
+   "lat": 27.8044082,
+   "lon": 85.5436348,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 4.16
+  },
+  {
+   "id": 3478518272,
+   "name": null,
+   "lat": 27.8092854,
+   "lon": 85.5381989,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 4.26
+  },
+  {
+   "id": 3478518440,
+   "name": null,
+   "lat": 27.8133215,
+   "lon": 85.5434277,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 3.59
+  },
+  {
+   "id": 3478518445,
+   "name": null,
+   "lat": 27.8180678,
+   "lon": 85.5529527,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 2.51
+  },
+  {
+   "id": 3478531718,
+   "name": null,
+   "lat": 27.8019635,
+   "lon": 85.5718452,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 3.08
+  },
+  {
+   "id": 3478531728,
+   "name": null,
+   "lat": 27.8071709,
+   "lon": 85.5680445,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 2.58
+  },
+  {
+   "id": 3478531732,
+   "name": null,
+   "lat": 27.8108186,
+   "lon": 85.5620659,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 2.44
+  },
+  {
+   "id": 3478659304,
+   "name": "Sermathang",
+   "lat": 27.9441465,
+   "lon": 85.595457,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 4.79
+  },
+  {
+   "id": 3480468975,
+   "name": "Timbu",
+   "lat": 27.9536588,
+   "lon": 85.5478923,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 0.01
+  },
+  {
+   "id": 3480468976,
+   "name": "Dongdhing",
+   "lat": 27.9439088,
+   "lon": 85.5383797,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 1.44
+  },
+  {
+   "id": 3480518000,
+   "name": "Chhimi",
+   "lat": 27.9526896,
+   "lon": 85.5858404,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 3.73
+  },
+  {
+   "id": 3480579571,
+   "name": "Gyalthum",
+   "lat": 27.8816967,
+   "lon": 85.5411752,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 3.43
+  },
+  {
+   "id": 3480665642,
+   "name": null,
+   "lat": 27.846907,
+   "lon": 85.5338382,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 1.14
+  },
+  {
+   "id": 3480665661,
+   "name": null,
+   "lat": 27.8482049,
+   "lon": 85.5255335,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 1.89
+  },
+  {
+   "id": 3480665662,
+   "name": null,
+   "lat": 27.8498776,
+   "lon": 85.5427886,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 0.2
+  },
+  {
+   "id": 3480733676,
+   "name": null,
+   "lat": 27.8422761,
+   "lon": 85.5494054,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 1.08
+  },
+  {
+   "id": 3480733683,
+   "name": null,
+   "lat": 27.842742,
+   "lon": 85.5404798,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 0.99
+  },
+  {
+   "id": 3480733688,
+   "name": null,
+   "lat": 27.8431644,
+   "lon": 85.5424548,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 0.89
+  },
+  {
+   "id": 3480740947,
+   "name": null,
+   "lat": 27.8678531,
+   "lon": 85.5592293,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 2.37
+  },
+  {
+   "id": 3480740966,
+   "name": null,
+   "lat": 27.8688084,
+   "lon": 85.5224466,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 2.94
+  },
+  {
+   "id": 3480741238,
+   "name": null,
+   "lat": 27.8394532,
+   "lon": 85.5486784,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 1.34
+  },
+  {
+   "id": 3480741264,
+   "name": null,
+   "lat": 27.8408334,
+   "lon": 85.5377594,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 1.31
+  },
+  {
+   "id": 3480741265,
+   "name": null,
+   "lat": 27.8408375,
+   "lon": 85.534783,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 1.47
+  },
+  {
+   "id": 3480741398,
+   "name": null,
+   "lat": 27.8562194,
+   "lon": 85.5339213,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 1.19
+  },
+  {
+   "id": 3480741419,
+   "name": null,
+   "lat": 27.8575223,
+   "lon": 85.529136,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 1.68
+  },
+  {
+   "id": 3480741424,
+   "name": null,
+   "lat": 27.858196,
+   "lon": 85.5598355,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 1.71
+  },
+  {
+   "id": 3480741428,
+   "name": null,
+   "lat": 27.8624546,
+   "lon": 85.5375489,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 1.45
+  },
+  {
+   "id": 3480741430,
+   "name": null,
+   "lat": 27.8659819,
+   "lon": 85.5197888,
+   "type": "isolated_dwelling",
+   "pop": "POP2",
+   "dist_km": 2.95
+  },
+  {
+   "id": 3480741438,
+   "name": null,
+   "lat": 27.866885,
+   "lon": 85.5540904,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 2.01
+  },
+  {
+   "id": 3480741599,
+   "name": null,
+   "lat": 27.8761704,
+   "lon": 85.5292801,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 3.18
+  },
+  {
+   "id": 3480741601,
+   "name": null,
+   "lat": 27.8763048,
+   "lon": 85.5399763,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 2.85
+  },
+  {
+   "id": 3480741606,
+   "name": null,
+   "lat": 27.8771584,
+   "lon": 85.5438151,
+   "type": "hamlet",
+   "pop": "POP2",
+   "dist_km": 2.91
+  },
+  {
+   "id": 3483370140,
+   "name": null,
+   "lat": 27.9834377,
+   "lon": 85.5214388,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 4.2
+  },
+  {
+   "id": 3483370141,
+   "name": null,
+   "lat": 27.9815984,
+   "lon": 85.5270615,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 3.71
+  },
+  {
+   "id": 3493123996,
+   "name": null,
+   "lat": 27.8411953,
+   "lon": 85.568508,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 1.44
+  },
+  {
+   "id": 3494667084,
+   "name": "Dhaitar",
+   "lat": 27.7088266,
+   "lon": 85.6069514,
+   "type": "hamlet",
+   "pop": "POP5",
+   "dist_km": 3.47
+  },
+  {
+   "id": 3499940892,
+   "name": "Tarke Ghyang",
+   "lat": 27.9989686,
+   "lon": 85.5537629,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 5.06
+  },
+  {
+   "id": 3504505787,
+   "name": null,
+   "lat": 27.7464049,
+   "lon": 85.5192407,
+   "type": "village",
+   "pop": "POP4",
+   "dist_km": 2.56
+  },
+  {
+   "id": 3570636096,
+   "name": "Nagi Dada",
+   "lat": 27.8644611,
+   "lon": 85.628923,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 2.51
+  },
+  {
+   "id": 3570636138,
+   "name": null,
+   "lat": 27.8444995,
+   "lon": 85.6224036,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.82
+  },
+  {
+   "id": 3570636139,
+   "name": null,
+   "lat": 27.8410559,
+   "lon": 85.624659,
+   "type": "hamlet",
+   "pop": "HE",
+   "dist_km": 5.05
+  },
+  {
+   "id": 3570636151,
+   "name": null,
+   "lat": 27.8504371,
+   "lon": 85.6437885,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 3.97
+  },
+  {
+   "id": 3570636158,
+   "name": null,
+   "lat": 27.8500376,
+   "lon": 85.6361331,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 3.97
+  },
+  {
+   "id": 3570636165,
+   "name": null,
+   "lat": 27.8616238,
+   "lon": 85.6065217,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.06
+  },
+  {
+   "id": 3570636166,
+   "name": null,
+   "lat": 27.8595391,
+   "lon": 85.6064403,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.22
+  },
+  {
+   "id": 3570636167,
+   "name": "Kotgau Thatidada",
+   "lat": 27.8773152,
+   "lon": 85.6241003,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 1.62
+  },
+  {
+   "id": 4502253641,
+   "name": null,
+   "lat": 27.8047274,
+   "lon": 85.5464255,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 3.94
+  },
+  {
+   "id": 4974901094,
+   "name": "Gunsakot",
+   "lat": 27.9219197,
+   "lon": 85.6689959,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 5.08
+  },
+  {
+   "id": 4996144082,
+   "name": "Baluwapati Deupur",
+   "lat": 27.7531089,
+   "lon": 85.5505858,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 3.05
+  },
+  {
+   "id": 5053935155,
+   "name": "Haibung",
+   "lat": 27.8207076,
+   "lon": 85.4657362,
+   "type": "hamlet",
+   "pop": "POP6",
+   "dist_km": 1.94
+  },
+  {
+   "id": 5639811166,
+   "name": "Naldum",
+   "lat": 27.716811,
+   "lon": 85.5219421,
+   "type": "hamlet",
+   "pop": "POP4",
+   "dist_km": 5.79
+  },
+  {
+   "id": 5710888015,
+   "name": "Kharchung",
+   "lat": 27.9871338,
+   "lon": 85.5358694,
+   "type": "hamlet",
+   "pop": "POP7",
+   "dist_km": 3.89
+  },
+  {
+   "id": 7320718995,
+   "name": "Chipling",
+   "lat": 27.8687016,
+   "lon": 85.4558385,
+   "type": "hamlet",
+   "pop": "POP6",
+   "dist_km": 4.49
+  },
+  {
+   "id": 8775459240,
+   "name": "Tin Dhara",
+   "lat": 27.896145,
+   "lon": 85.5980444,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.05
+  },
+  {
+   "id": 8776902152,
+   "name": "Basnet Tole",
+   "lat": 27.9241219,
+   "lon": 85.6593396,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.78
+  },
+  {
+   "id": 10266634915,
+   "name": "Mulkharka (E)",
+   "lat": 27.8460287,
+   "lon": 85.642639,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.44
+  },
+  {
+   "id": 10266637632,
+   "name": "Melamchi",
+   "lat": 27.8293022,
+   "lon": 85.5761316,
+   "type": "town",
+   "pop": "HE",
+   "dist_km": 0.12
+  },
+  {
+   "id": 10268957529,
+   "name": "Gobre",
+   "lat": 27.8620084,
+   "lon": 85.6721667,
+   "type": "hamlet",
+   "pop": "POP1",
+   "dist_km": 4.31
+  },
+  {
+   "id": 13250737784,
+   "name": "Panchpokhari Thangpal",
+   "lat": 27.9008147,
+   "lon": 85.6323422,
+   "type": "village",
+   "pop": "POP1",
+   "dist_km": 1.76
+  },
+  {
+   "id": 13250737785,
+   "name": "Helambu",
+   "lat": 27.9283732,
+   "lon": 85.5557193,
+   "type": "village",
+   "pop": "POP7",
+   "dist_km": 2.93
+  },
+  {
+   "id": 13250737786,
+   "name": "Indrawati",
+   "lat": 27.8119464,
+   "lon": 85.6229964,
+   "type": "village",
+   "pop": "HE",
+   "dist_km": 5.11
+  },
+  {
+   "id": 13266440921,
+   "name": "Mandandeupur",
+   "lat": 27.714525,
+   "lon": 85.6147953,
+   "type": "town",
+   "pop": "POP5",
+   "dist_km": 3.05
+  }
+ ],
+ "clusters": [
+  {
+   "cluster_id": "POP4-C01",
+   "pop": "POP4",
+   "lat": 27.717659,
+   "lon": 85.520836,
+   "label": "Nagarkot",
+   "n_settlements": 2,
+   "members": [
+    "Nagarkot",
+    "Naldum"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C02",
+   "pop": "POP4",
+   "lat": 27.764204,
+   "lon": 85.49775,
+   "label": "Chauki Banjyang",
+   "n_settlements": 1,
+   "members": [
+    "Chauki Banjyang"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C03",
+   "pop": "POP4",
+   "lat": 27.736574,
+   "lon": 85.533016,
+   "label": "Dandagaun",
+   "n_settlements": 1,
+   "members": [
+    "Dandagaun"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C04",
+   "pop": "POP4",
+   "lat": 27.725838,
+   "lon": 85.536553,
+   "label": "Gairigaun",
+   "n_settlements": 1,
+   "members": [
+    "Gairigaun"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C05",
+   "pop": "POP4",
+   "lat": 27.729492,
+   "lon": 85.543435,
+   "label": "Masyargaun",
+   "n_settlements": 1,
+   "members": [
+    "Masyargaun"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C06",
+   "pop": "POP4",
+   "lat": 27.733409,
+   "lon": 85.55187,
+   "label": "Chhapgaun",
+   "n_settlements": 1,
+   "members": [
+    "Chhapgaun"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C07",
+   "pop": "POP4",
+   "lat": 27.71272,
+   "lon": 85.537855,
+   "label": "Chhittegaun",
+   "n_settlements": 1,
+   "members": [
+    "Chhittegaun"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C08",
+   "pop": "POP4",
+   "lat": 27.714446,
+   "lon": 85.527698,
+   "label": "Kaflenigaun",
+   "n_settlements": 1,
+   "members": [
+    "Kaflenigaun"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C09",
+   "pop": "POP4",
+   "lat": 27.774945,
+   "lon": 85.490121,
+   "label": "Jhule",
+   "n_settlements": 1,
+   "members": [
+    "Jhule"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C10",
+   "pop": "POP4",
+   "lat": 27.746405,
+   "lon": 85.519241,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3504505787"
+   ]
+  },
+  {
+   "cluster_id": "POP4-C11",
+   "pop": "POP4",
+   "lat": 27.753109,
+   "lon": 85.550586,
+   "label": "Baluwapati Deupur",
+   "n_settlements": 1,
+   "members": [
+    "Baluwapati Deupur"
+   ]
+  },
+  {
+   "cluster_id": "POP6-C01",
+   "pop": "POP6",
+   "lat": 27.825552,
+   "lon": 85.448389,
+   "label": "Chisapani",
+   "n_settlements": 1,
+   "members": [
+    "Chisapani"
+   ]
+  },
+  {
+   "cluster_id": "POP6-C02",
+   "pop": "POP6",
+   "lat": 27.777671,
+   "lon": 85.432703,
+   "label": "Mulkharka (W)",
+   "n_settlements": 1,
+   "members": [
+    "Mulkharka (W)"
+   ]
+  },
+  {
+   "cluster_id": "POP6-C03",
+   "pop": "POP6",
+   "lat": 27.843846,
+   "lon": 85.457724,
+   "label": "Pati Bhanjyang",
+   "n_settlements": 1,
+   "members": [
+    "Pati Bhanjyang"
+   ]
+  },
+  {
+   "cluster_id": "POP6-C04",
+   "pop": "POP6",
+   "lat": 27.820708,
+   "lon": 85.465736,
+   "label": "Haibung",
+   "n_settlements": 1,
+   "members": [
+    "Haibung"
+   ]
+  },
+  {
+   "cluster_id": "POP6-C05",
+   "pop": "POP6",
+   "lat": 27.868702,
+   "lon": 85.455838,
+   "label": "Chipling",
+   "n_settlements": 1,
+   "members": [
+    "Chipling"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C01",
+   "pop": "POP7",
+   "lat": 27.953584,
+   "lon": 85.482007,
+   "label": "Sanugopte",
+   "n_settlements": 1,
+   "members": [
+    "Sanugopte"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C02",
+   "pop": "POP7",
+   "lat": 27.936827,
+   "lon": 85.493655,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3477664021"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C03",
+   "pop": "POP7",
+   "lat": 27.944146,
+   "lon": 85.595457,
+   "label": "Sermathang",
+   "n_settlements": 1,
+   "members": [
+    "Sermathang"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C04",
+   "pop": "POP7",
+   "lat": 27.953659,
+   "lon": 85.547892,
+   "label": "Timbu",
+   "n_settlements": 1,
+   "members": [
+    "Timbu"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C05",
+   "pop": "POP7",
+   "lat": 27.943909,
+   "lon": 85.53838,
+   "label": "Dongdhing",
+   "n_settlements": 1,
+   "members": [
+    "Dongdhing"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C06",
+   "pop": "POP7",
+   "lat": 27.95269,
+   "lon": 85.58584,
+   "label": "Chhimi",
+   "n_settlements": 1,
+   "members": [
+    "Chhimi"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C07",
+   "pop": "POP7",
+   "lat": 27.983438,
+   "lon": 85.521439,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3483370140"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C08",
+   "pop": "POP7",
+   "lat": 27.981598,
+   "lon": 85.527062,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3483370141"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C09",
+   "pop": "POP7",
+   "lat": 27.998969,
+   "lon": 85.553763,
+   "label": "Tarke Ghyang",
+   "n_settlements": 1,
+   "members": [
+    "Tarke Ghyang"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C10",
+   "pop": "POP7",
+   "lat": 27.987134,
+   "lon": 85.535869,
+   "label": "Kharchung",
+   "n_settlements": 1,
+   "members": [
+    "Kharchung"
+   ]
+  },
+  {
+   "cluster_id": "POP7-C11",
+   "pop": "POP7",
+   "lat": 27.928373,
+   "lon": 85.555719,
+   "label": "Helambu",
+   "n_settlements": 1,
+   "members": [
+    "Helambu"
+   ]
+  },
+  {
+   "cluster_id": "HE-C01",
+   "pop": "HE",
+   "lat": 27.829302,
+   "lon": 85.576132,
+   "label": "Melamchi",
+   "n_settlements": 1,
+   "members": [
+    "Melamchi"
+   ]
+  },
+  {
+   "cluster_id": "HE-C02",
+   "pop": "HE",
+   "lat": 27.820821,
+   "lon": 85.560116,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3476589106",
+    "#3478304260"
+   ]
+  },
+  {
+   "cluster_id": "HE-C03",
+   "pop": "HE",
+   "lat": 27.827827,
+   "lon": 85.557219,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3476589167"
+   ]
+  },
+  {
+   "cluster_id": "HE-C04",
+   "pop": "HE",
+   "lat": 27.830079,
+   "lon": 85.568084,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3476590203"
+   ]
+  },
+  {
+   "cluster_id": "HE-C05",
+   "pop": "HE",
+   "lat": 27.834357,
+   "lon": 85.581774,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3476590644",
+    "#3476590747"
+   ]
+  },
+  {
+   "cluster_id": "HE-C06",
+   "pop": "HE",
+   "lat": 27.834435,
+   "lon": 85.562098,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3476590700"
+   ]
+  },
+  {
+   "cluster_id": "HE-C07",
+   "pop": "HE",
+   "lat": 27.83569,
+   "lon": 85.571002,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3476590809"
+   ]
+  },
+  {
+   "cluster_id": "HE-C08",
+   "pop": "HE",
+   "lat": 27.841744,
+   "lon": 85.568883,
+   "label": "Dubachaur",
+   "n_settlements": 2,
+   "members": [
+    "Dubachaur",
+    "#3493123996"
+   ]
+  },
+  {
+   "cluster_id": "HE-C09",
+   "pop": "HE",
+   "lat": 27.826388,
+   "lon": 85.564981,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3476607431"
+   ]
+  },
+  {
+   "cluster_id": "HE-C10",
+   "pop": "HE",
+   "lat": 27.807796,
+   "lon": 85.544607,
+   "label": null,
+   "n_settlements": 5,
+   "members": [
+    "#3478122415",
+    "#3478122416",
+    "#3478518232",
+    "#3478518440",
+    "#4502253641"
+   ]
+  },
+  {
+   "cluster_id": "HE-C11",
+   "pop": "HE",
+   "lat": 27.819064,
+   "lon": 85.552918,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3478304261",
+    "#3478518445"
+   ]
+  },
+  {
+   "cluster_id": "HE-C12",
+   "pop": "HE",
+   "lat": 27.809285,
+   "lon": 85.538199,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478518272"
+   ]
+  },
+  {
+   "cluster_id": "HE-C13",
+   "pop": "HE",
+   "lat": 27.801963,
+   "lon": 85.571845,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478531718"
+   ]
+  },
+  {
+   "cluster_id": "HE-C14",
+   "pop": "HE",
+   "lat": 27.807171,
+   "lon": 85.568044,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478531728"
+   ]
+  },
+  {
+   "cluster_id": "HE-C15",
+   "pop": "HE",
+   "lat": 27.810819,
+   "lon": 85.562066,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478531732"
+   ]
+  },
+  {
+   "cluster_id": "HE-C16",
+   "pop": "HE",
+   "lat": 27.841056,
+   "lon": 85.624659,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3570636139"
+   ]
+  },
+  {
+   "cluster_id": "HE-C17",
+   "pop": "HE",
+   "lat": 27.811946,
+   "lon": 85.622996,
+   "label": "Indrawati",
+   "n_settlements": 1,
+   "members": [
+    "Indrawati"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C01",
+   "pop": "POP1",
+   "lat": 27.914044,
+   "lon": 85.637146,
+   "label": "Dhap",
+   "n_settlements": 1,
+   "members": [
+    "Dhap"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C02",
+   "pop": "POP1",
+   "lat": 27.858701,
+   "lon": 85.662495,
+   "label": "Okhreni",
+   "n_settlements": 1,
+   "members": [
+    "Okhreni"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C03",
+   "pop": "POP1",
+   "lat": 27.864461,
+   "lon": 85.628923,
+   "label": "Nagi Dada",
+   "n_settlements": 1,
+   "members": [
+    "Nagi Dada"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C04",
+   "pop": "POP1",
+   "lat": 27.8445,
+   "lon": 85.622404,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3570636138"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C05",
+   "pop": "POP1",
+   "lat": 27.850437,
+   "lon": 85.643788,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3570636151"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C06",
+   "pop": "POP1",
+   "lat": 27.850038,
+   "lon": 85.636133,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3570636158"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C07",
+   "pop": "POP1",
+   "lat": 27.860581,
+   "lon": 85.606481,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3570636165",
+    "#3570636166"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C08",
+   "pop": "POP1",
+   "lat": 27.877315,
+   "lon": 85.6241,
+   "label": "Kotgau Thatidada",
+   "n_settlements": 1,
+   "members": [
+    "Kotgau Thatidada"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C09",
+   "pop": "POP1",
+   "lat": 27.92192,
+   "lon": 85.668996,
+   "label": "Gunsakot",
+   "n_settlements": 1,
+   "members": [
+    "Gunsakot"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C10",
+   "pop": "POP1",
+   "lat": 27.896145,
+   "lon": 85.598044,
+   "label": "Tin Dhara",
+   "n_settlements": 1,
+   "members": [
+    "Tin Dhara"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C11",
+   "pop": "POP1",
+   "lat": 27.924122,
+   "lon": 85.65934,
+   "label": "Basnet Tole",
+   "n_settlements": 1,
+   "members": [
+    "Basnet Tole"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C12",
+   "pop": "POP1",
+   "lat": 27.846029,
+   "lon": 85.642639,
+   "label": "Mulkharka (E)",
+   "n_settlements": 1,
+   "members": [
+    "Mulkharka (E)"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C13",
+   "pop": "POP1",
+   "lat": 27.862008,
+   "lon": 85.672167,
+   "label": "Gobre",
+   "n_settlements": 1,
+   "members": [
+    "Gobre"
+   ]
+  },
+  {
+   "cluster_id": "POP1-C14",
+   "pop": "POP1",
+   "lat": 27.900815,
+   "lon": 85.632342,
+   "label": "Panchpokhari Thangpal",
+   "n_settlements": 1,
+   "members": [
+    "Panchpokhari Thangpal"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C01",
+   "pop": "POP2",
+   "lat": 27.822071,
+   "lon": 85.541506,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478304264"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C02",
+   "pop": "POP2",
+   "lat": 27.824967,
+   "lon": 85.525281,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478399579"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C03",
+   "pop": "POP2",
+   "lat": 27.834758,
+   "lon": 85.537477,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3478406054"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C04",
+   "pop": "POP2",
+   "lat": 27.881697,
+   "lon": 85.541175,
+   "label": "Gyalthum",
+   "n_settlements": 1,
+   "members": [
+    "Gyalthum"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C05",
+   "pop": "POP2",
+   "lat": 27.848205,
+   "lon": 85.525533,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480665661"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C06",
+   "pop": "POP2",
+   "lat": 27.849878,
+   "lon": 85.542789,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480665662"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C07",
+   "pop": "POP2",
+   "lat": 27.867853,
+   "lon": 85.559229,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480740947"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C08",
+   "pop": "POP2",
+   "lat": 27.856871,
+   "lon": 85.531529,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3480741398",
+    "#3480741419"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C09",
+   "pop": "POP2",
+   "lat": 27.858196,
+   "lon": 85.559836,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480741424"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C10",
+   "pop": "POP2",
+   "lat": 27.862455,
+   "lon": 85.537549,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480741428"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C11",
+   "pop": "POP2",
+   "lat": 27.866885,
+   "lon": 85.55409,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480741438"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C12",
+   "pop": "POP2",
+   "lat": 27.87617,
+   "lon": 85.52928,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480741599"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C13",
+   "pop": "POP2",
+   "lat": 27.876732,
+   "lon": 85.541896,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3480741601",
+    "#3480741606"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C14",
+   "pop": "POP2",
+   "lat": 27.846907,
+   "lon": 85.533838,
+   "label": null,
+   "n_settlements": 1,
+   "members": [
+    "#3480665642"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C15",
+   "pop": "POP2",
+   "lat": 27.840865,
+   "lon": 85.549042,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3480733676",
+    "#3480741238"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C16",
+   "pop": "POP2",
+   "lat": 27.841894,
+   "lon": 85.538869,
+   "label": null,
+   "n_settlements": 4,
+   "members": [
+    "#3480733683",
+    "#3480733688",
+    "#3480741264",
+    "#3480741265"
+   ]
+  },
+  {
+   "cluster_id": "POP2-C17",
+   "pop": "POP2",
+   "lat": 27.867395,
+   "lon": 85.521118,
+   "label": null,
+   "n_settlements": 2,
+   "members": [
+    "#3480740966",
+    "#3480741430"
+   ]
+  },
+  {
+   "cluster_id": "POP5-C01",
+   "pop": "POP5",
+   "lat": 27.714525,
+   "lon": 85.614795,
+   "label": "Mandandeupur",
+   "n_settlements": 1,
+   "members": [
+    "Mandandeupur"
+   ]
+  },
+  {
+   "cluster_id": "POP5-C02",
+   "pop": "POP5",
+   "lat": 27.708827,
+   "lon": 85.606951,
+   "label": "Dhaitar",
+   "n_settlements": 1,
+   "members": [
+    "Dhaitar"
+   ]
+  }
+ ]
+}

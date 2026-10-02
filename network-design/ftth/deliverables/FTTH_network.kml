@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<name>FTTH Design - Melamchi/Helambu</name>
+<Style id="he"><IconStyle><color>ff2828c6</color><scale>1.6</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/ranger_station.png</href></Icon></IconStyle></Style>
+<Style id="pop"><IconStyle><color>ffc63f3f</color><scale>1.3</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/communications.png</href></Icon></IconStyle></Style>
+<Style id="db"><IconStyle><color>ff00a5ff</color><scale>0.9</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png</href></Icon></IconStyle></Style>
+<Style id="ringA"><LineStyle><color>ff3535e5</color><width>4</width></LineStyle></Style>
+<Style id="ringB"><LineStyle><color>ffe5881e</color><width>4</width></LineStyle></Style>
+<Style id="ringC"><LineStyle><color>ff47a043</color><width>4</width></LineStyle></Style>
+<Style id="spur"><LineStyle><color>ff008cfb</color><width>4</width></LineStyle></Style>
+<Style id="wireless"><LineStyle><color>ffaa248e</color><width>2</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+
+<Folder><name>POPs / Headend</name>
+<Placemark><name>HE</name><styleUrl>#he</styleUrl>
+<description>Melamchi Bazaar (Headend/DC, 32-PON OLT) | OLT 32 PON</description>
+<Point><coordinates>85.57499272608827,27.829537390474155,0</coordinates></Point></Placemark>
+<Placemark><name>POP1</name><styleUrl>#pop</styleUrl>
+<description>POP1 - Thangpal/Larke corridor (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.63752691551393,27.885702646495595,0</coordinates></Point></Placemark>
+<Placemark><name>POP2</name><styleUrl>#pop</styleUrl>
+<description>POP2 - North Melamchi, Helambu road (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.54447626218794,27.850960058830545,0</coordinates></Point></Placemark>
+<Placemark><name>POP3</name><styleUrl>#pop</styleUrl>
+<description>POP3 - Haibung/Thakani ridge (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.4863487361582,27.827761887767213,0</coordinates></Point></Placemark>
+<Placemark><name>POP4</name><styleUrl>#pop</styleUrl>
+<description>POP4 - Chauki Bjy/Dubachaur south (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.52522143691486,27.768840004877315,0</coordinates></Point></Placemark>
+<Placemark><name>POP5</name><styleUrl>#pop</styleUrl>
+<description>POP5 - Indrawati/Mandandeupur side (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.60296683890036,27.739832022953937,0</coordinates></Point></Placemark>
+<Placemark><name>POP6</name><styleUrl>#pop</styleUrl>
+<description>POP6 - Chisapani/Haibung west (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.44831652699213,27.828876819580096,0</coordinates></Point></Placemark>
+<Placemark><name>POP7</name><styleUrl>#pop</styleUrl>
+<description>POP7 - Timbu, Helambu (16-PON) | OLT 16 PON</description>
+<Point><coordinates>85.54790792673954,27.953790941984032,0</coordinates></Point></Placemark>
+</Folder>
+<Folder><name>Backbone rings (straight, road-km labeled)</name>
+<Placemark><name>HE-POP2 | 5.85 road-km | 48F</name>
+<styleUrl>#ringA</styleUrl><description>Ring A+C (shared)</description>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.54447626218794,27.850960058830545,0</coordinates></LineString></Placemark>
+<Placemark><name>POP2-POP1 | 19.84 road-km | 48F</name>
+<styleUrl>#ringA</styleUrl><description>Ring A</description>
+<LineString><tessellate>1</tessellate><coordinates>85.54447626218794,27.850960058830545,0 85.63752691551393,27.885702646495595,0</coordinates></LineString></Placemark>
+<Placemark><name>POP1-HE | 14.55 road-km | 48F</name>
+<styleUrl>#ringA</styleUrl><description>Ring A</description>
+<LineString><tessellate>1</tessellate><coordinates>85.63752691551393,27.885702646495595,0 85.57499272608827,27.829537390474155,0</coordinates></LineString></Placemark>
+<Placemark><name>HE-POP5 | 12.51 road-km | 48F</name>
+<styleUrl>#ringB</styleUrl><description>Ring B</description>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.60296683890036,27.739832022953937,0</coordinates></LineString></Placemark>
+<Placemark><name>POP5-POP4 | 13.19 road-km | 48F</name>
+<styleUrl>#ringB</styleUrl><description>Ring B</description>
+<LineString><tessellate>1</tessellate><coordinates>85.60296683890036,27.739832022953937,0 85.52522143691486,27.768840004877315,0</coordinates></LineString></Placemark>
+<Placemark><name>POP4-HE | 19.9 road-km | 48F</name>
+<styleUrl>#ringB</styleUrl><description>Ring B</description>
+<LineString><tessellate>1</tessellate><coordinates>85.52522143691486,27.768840004877315,0 85.57499272608827,27.829537390474155,0</coordinates></LineString></Placemark>
+<Placemark><name>HE-POP3 | 17.84 road-km | 48F</name>
+<styleUrl>#ringC</styleUrl><description>Ring C</description>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.4863487361582,27.827761887767213,0</coordinates></LineString></Placemark>
+<Placemark><name>POP3-POP6 | 11.01 road-km | 48F</name>
+<styleUrl>#ringC</styleUrl><description>Ring C</description>
+<LineString><tessellate>1</tessellate><coordinates>85.4863487361582,27.827761887767213,0 85.44831652699213,27.828876819580096,0</coordinates></LineString></Placemark>
+<Placemark><name>POP6-POP2 | 22.21 road-km | 48F</name>
+<styleUrl>#ringC</styleUrl><description>Ring C</description>
+<LineString><tessellate>1</tessellate><coordinates>85.44831652699213,27.828876819580096,0 85.54447626218794,27.850960058830545,0</coordinates></LineString></Placemark>
+<Placemark><name>HE-POP7 | 34.32 road-km | 24F</name>
+<styleUrl>#spur</styleUrl><description>Spur (fiber 24F) + wireless PTP backup</description>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.54790792673954,27.953790941984032,0</coordinates></LineString></Placemark>
+<Placemark><name>Wireless PTP backup HE-POP7 (~14 km LOS)</name><styleUrl>#wireless</styleUrl>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.54790792673954,27.953790941984032,0</coordinates></LineString></Placemark>
+</Folder>
+<Folder><name>DB / FAT sites (77)</name>
+<Placemark><name>DB-POP4-C01 - Nagarkot</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Nagarkot; Naldum&lt;br&gt;OSM buildings(450m): 180&lt;br&gt;Est. homes: 135&lt;br&gt;FAT boxes: 12</description>
+<Point><coordinates>85.520836,27.717659,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C02 - Chauki Banjyang</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Chauki Banjyang&lt;br&gt;OSM buildings(450m): 123&lt;br&gt;Est. homes: 92&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.49775,27.764204,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C03 - Dandagaun</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Dandagaun&lt;br&gt;OSM buildings(450m): 83&lt;br&gt;Est. homes: 62&lt;br&gt;FAT boxes: 6</description>
+<Point><coordinates>85.533016,27.736574,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C04 - Gairigaun</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Gairigaun&lt;br&gt;OSM buildings(450m): 160&lt;br&gt;Est. homes: 120&lt;br&gt;FAT boxes: 10</description>
+<Point><coordinates>85.536553,27.725838,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C05 - Masyargaun</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Masyargaun&lt;br&gt;OSM buildings(450m): 23&lt;br&gt;Est. homes: 17&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.543435,27.729492,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C06 - Chhapgaun</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Chhapgaun&lt;br&gt;OSM buildings(450m): 245&lt;br&gt;Est. homes: 184&lt;br&gt;FAT boxes: 16</description>
+<Point><coordinates>85.55187,27.733409,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C07 - Chhittegaun</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Chhittegaun&lt;br&gt;OSM buildings(450m): 75&lt;br&gt;Est. homes: 56&lt;br&gt;FAT boxes: 5</description>
+<Point><coordinates>85.537855,27.71272,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C08 - Kaflenigaun</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Kaflenigaun&lt;br&gt;OSM buildings(450m): 97&lt;br&gt;Est. homes: 73&lt;br&gt;FAT boxes: 7</description>
+<Point><coordinates>85.527698,27.714446,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C09 - Jhule</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Jhule&lt;br&gt;OSM buildings(450m): 38&lt;br&gt;Est. homes: 28&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.490121,27.774945,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C10 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: #3504505787&lt;br&gt;OSM buildings(450m): 28&lt;br&gt;Est. homes: 21&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.519241,27.746405,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP4-C11 - Baluwapati Deupur</name><styleUrl>#db</styleUrl>
+<description>POP: POP4&lt;br&gt;Villages: Baluwapati Deupur&lt;br&gt;OSM buildings(450m): 93&lt;br&gt;Est. homes: 70&lt;br&gt;FAT boxes: 6</description>
+<Point><coordinates>85.550586,27.753109,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP6-C01 - Chisapani</name><styleUrl>#db</styleUrl>
+<description>POP: POP6&lt;br&gt;Villages: Chisapani&lt;br&gt;OSM buildings(450m): 38&lt;br&gt;Est. homes: 28&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.448389,27.825552,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP6-C02 - Mulkharka (W)</name><styleUrl>#db</styleUrl>
+<description>POP: POP6&lt;br&gt;Villages: Mulkharka (W)&lt;br&gt;OSM buildings(450m): 264&lt;br&gt;Est. homes: 198&lt;br&gt;FAT boxes: 17</description>
+<Point><coordinates>85.432703,27.777671,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP6-C03 - Pati Bhanjyang</name><styleUrl>#db</styleUrl>
+<description>POP: POP6&lt;br&gt;Villages: Pati Bhanjyang&lt;br&gt;OSM buildings(450m): 67&lt;br&gt;Est. homes: 50&lt;br&gt;FAT boxes: 5</description>
+<Point><coordinates>85.457724,27.843846,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP6-C04 - Haibung</name><styleUrl>#db</styleUrl>
+<description>POP: POP6&lt;br&gt;Villages: Haibung&lt;br&gt;OSM buildings(450m): 132&lt;br&gt;Est. homes: 99&lt;br&gt;FAT boxes: 9</description>
+<Point><coordinates>85.465736,27.820708,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP6-C05 - Chipling</name><styleUrl>#db</styleUrl>
+<description>POP: POP6&lt;br&gt;Villages: Chipling&lt;br&gt;OSM buildings(450m): 76&lt;br&gt;Est. homes: 57&lt;br&gt;FAT boxes: 5</description>
+<Point><coordinates>85.455838,27.868702,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C01 - Sanugopte</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Sanugopte&lt;br&gt;OSM buildings(450m): 2&lt;br&gt;Est. homes: 2&lt;br&gt;FAT boxes: 1</description>
+<Point><coordinates>85.482007,27.953584,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C02 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: #3477664021&lt;br&gt;OSM buildings(450m): 174&lt;br&gt;Est. homes: 130&lt;br&gt;FAT boxes: 11</description>
+<Point><coordinates>85.493655,27.936827,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C03 - Sermathang</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Sermathang&lt;br&gt;OSM buildings(450m): 190&lt;br&gt;Est. homes: 142&lt;br&gt;FAT boxes: 12</description>
+<Point><coordinates>85.595457,27.944146,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C04 - Timbu</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Timbu&lt;br&gt;OSM buildings(450m): 120&lt;br&gt;Est. homes: 90&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.547892,27.953659,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C05 - Dongdhing</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Dongdhing&lt;br&gt;OSM buildings(450m): 63&lt;br&gt;Est. homes: 47&lt;br&gt;FAT boxes: 4</description>
+<Point><coordinates>85.53838,27.943909,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C06 - Chhimi</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Chhimi&lt;br&gt;OSM buildings(450m): 42&lt;br&gt;Est. homes: 32&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.58584,27.95269,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C07 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: #3483370140&lt;br&gt;OSM buildings(450m): 8&lt;br&gt;Est. homes: 6&lt;br&gt;FAT boxes: 1</description>
+<Point><coordinates>85.521439,27.983438,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C08 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: #3483370141&lt;br&gt;OSM buildings(450m): 22&lt;br&gt;Est. homes: 16&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.527062,27.981598,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C09 - Tarke Ghyang</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Tarke Ghyang&lt;br&gt;OSM buildings(450m): 114&lt;br&gt;Est. homes: 86&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.553763,27.998969,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C10 - Kharchung</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Kharchung&lt;br&gt;OSM buildings(450m): 58&lt;br&gt;Est. homes: 44&lt;br&gt;FAT boxes: 4</description>
+<Point><coordinates>85.535869,27.987134,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP7-C11 - Helambu</name><styleUrl>#db</styleUrl>
+<description>POP: POP7&lt;br&gt;Villages: Helambu&lt;br&gt;OSM buildings(450m): 176&lt;br&gt;Est. homes: 132&lt;br&gt;FAT boxes: 11</description>
+<Point><coordinates>85.555719,27.928373,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C01 - Melamchi</name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: Melamchi&lt;br&gt;OSM buildings(450m): 545&lt;br&gt;Est. homes: 409&lt;br&gt;FAT boxes: 35</description>
+<Point><coordinates>85.576132,27.829302,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C02 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476589106; #3478304260&lt;br&gt;OSM buildings(450m): 196&lt;br&gt;Est. homes: 147&lt;br&gt;FAT boxes: 13</description>
+<Point><coordinates>85.560116,27.820821,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C03 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476589167&lt;br&gt;OSM buildings(450m): 174&lt;br&gt;Est. homes: 130&lt;br&gt;FAT boxes: 11</description>
+<Point><coordinates>85.557219,27.827827,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C04 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476590203&lt;br&gt;OSM buildings(450m): 105&lt;br&gt;Est. homes: 79&lt;br&gt;FAT boxes: 7</description>
+<Point><coordinates>85.568084,27.830079,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C05 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476590644; #3476590747&lt;br&gt;OSM buildings(450m): 217&lt;br&gt;Est. homes: 163&lt;br&gt;FAT boxes: 14</description>
+<Point><coordinates>85.581774,27.834357,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C06 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476590700&lt;br&gt;OSM buildings(450m): 56&lt;br&gt;Est. homes: 42&lt;br&gt;FAT boxes: 4</description>
+<Point><coordinates>85.562098,27.834435,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C07 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476590809&lt;br&gt;OSM buildings(450m): 206&lt;br&gt;Est. homes: 154&lt;br&gt;FAT boxes: 13</description>
+<Point><coordinates>85.571002,27.83569,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C08 - Dubachaur</name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: Dubachaur; #3493123996&lt;br&gt;OSM buildings(450m): 113&lt;br&gt;Est. homes: 85&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.568883,27.841744,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C09 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3476607431&lt;br&gt;OSM buildings(450m): 141&lt;br&gt;Est. homes: 106&lt;br&gt;FAT boxes: 9</description>
+<Point><coordinates>85.564981,27.826388,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C10 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3478122415; #3478122416; #3478518232; #3478518440&lt;br&gt;OSM buildings(450m): 252&lt;br&gt;Est. homes: 189&lt;br&gt;FAT boxes: 16</description>
+<Point><coordinates>85.544607,27.807796,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C11 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3478304261; #3478518445&lt;br&gt;OSM buildings(450m): 226&lt;br&gt;Est. homes: 170&lt;br&gt;FAT boxes: 15</description>
+<Point><coordinates>85.552918,27.819064,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C12 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3478518272&lt;br&gt;OSM buildings(450m): 117&lt;br&gt;Est. homes: 88&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.538199,27.809285,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C13 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3478531718&lt;br&gt;OSM buildings(450m): 144&lt;br&gt;Est. homes: 108&lt;br&gt;FAT boxes: 9</description>
+<Point><coordinates>85.571845,27.801963,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C14 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3478531728&lt;br&gt;OSM buildings(450m): 64&lt;br&gt;Est. homes: 48&lt;br&gt;FAT boxes: 4</description>
+<Point><coordinates>85.568044,27.807171,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C15 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3478531732&lt;br&gt;OSM buildings(450m): 115&lt;br&gt;Est. homes: 86&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.562066,27.810819,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C16 - </name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: #3570636139&lt;br&gt;OSM buildings(450m): 170&lt;br&gt;Est. homes: 128&lt;br&gt;FAT boxes: 11</description>
+<Point><coordinates>85.624659,27.841056,0</coordinates></Point></Placemark>
+<Placemark><name>DB-HE-C17 - Indrawati</name><styleUrl>#db</styleUrl>
+<description>POP: HE&lt;br&gt;Villages: Indrawati&lt;br&gt;OSM buildings(450m): 196&lt;br&gt;Est. homes: 147&lt;br&gt;FAT boxes: 13</description>
+<Point><coordinates>85.622996,27.811946,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C01 - Dhap</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Dhap&lt;br&gt;OSM buildings(450m): 226&lt;br&gt;Est. homes: 170&lt;br&gt;FAT boxes: 15</description>
+<Point><coordinates>85.637146,27.914044,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C02 - Okhreni</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Okhreni&lt;br&gt;OSM buildings(450m): 78&lt;br&gt;Est. homes: 58&lt;br&gt;FAT boxes: 5</description>
+<Point><coordinates>85.662495,27.858701,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C03 - Nagi Dada</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Nagi Dada&lt;br&gt;OSM buildings(450m): 106&lt;br&gt;Est. homes: 80&lt;br&gt;FAT boxes: 7</description>
+<Point><coordinates>85.628923,27.864461,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C04 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: #3570636138&lt;br&gt;OSM buildings(450m): 115&lt;br&gt;Est. homes: 86&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.622404,27.8445,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C05 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: #3570636151&lt;br&gt;OSM buildings(450m): 44&lt;br&gt;Est. homes: 33&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.643788,27.850437,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C06 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: #3570636158&lt;br&gt;OSM buildings(450m): 30&lt;br&gt;Est. homes: 22&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.636133,27.850038,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C07 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: #3570636165; #3570636166&lt;br&gt;OSM buildings(450m): 111&lt;br&gt;Est. homes: 83&lt;br&gt;FAT boxes: 7</description>
+<Point><coordinates>85.606481,27.860581,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C08 - Kotgau Thatidada</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Kotgau Thatidada&lt;br&gt;OSM buildings(450m): 161&lt;br&gt;Est. homes: 121&lt;br&gt;FAT boxes: 11</description>
+<Point><coordinates>85.6241,27.877315,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C09 - Gunsakot</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Gunsakot&lt;br&gt;OSM buildings(450m): 545&lt;br&gt;Est. homes: 409&lt;br&gt;FAT boxes: 35</description>
+<Point><coordinates>85.668996,27.92192,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C10 - Tin Dhara</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Tin Dhara&lt;br&gt;OSM buildings(450m): 199&lt;br&gt;Est. homes: 149&lt;br&gt;FAT boxes: 13</description>
+<Point><coordinates>85.598044,27.896145,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C11 - Basnet Tole</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Basnet Tole&lt;br&gt;OSM buildings(450m): 331&lt;br&gt;Est. homes: 248&lt;br&gt;FAT boxes: 21</description>
+<Point><coordinates>85.65934,27.924122,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C12 - Mulkharka (E)</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Mulkharka (E)&lt;br&gt;OSM buildings(450m): 35&lt;br&gt;Est. homes: 26&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.642639,27.846029,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C13 - Gobre</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Gobre&lt;br&gt;OSM buildings(450m): 32&lt;br&gt;Est. homes: 24&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.672167,27.862008,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP1-C14 - Panchpokhari Thangpal</name><styleUrl>#db</styleUrl>
+<description>POP: POP1&lt;br&gt;Villages: Panchpokhari Thangpal&lt;br&gt;OSM buildings(450m): 294&lt;br&gt;Est. homes: 220&lt;br&gt;FAT boxes: 19</description>
+<Point><coordinates>85.632342,27.900815,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C01 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3478304264&lt;br&gt;OSM buildings(450m): 22&lt;br&gt;Est. homes: 16&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.541506,27.822071,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C02 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3478399579&lt;br&gt;OSM buildings(450m): 122&lt;br&gt;Est. homes: 92&lt;br&gt;FAT boxes: 8</description>
+<Point><coordinates>85.525281,27.824967,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C03 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3478406054&lt;br&gt;OSM buildings(450m): 74&lt;br&gt;Est. homes: 56&lt;br&gt;FAT boxes: 5</description>
+<Point><coordinates>85.537477,27.834758,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C04 - Gyalthum</name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: Gyalthum&lt;br&gt;OSM buildings(450m): 146&lt;br&gt;Est. homes: 110&lt;br&gt;FAT boxes: 10</description>
+<Point><coordinates>85.541175,27.881697,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C05 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480665661&lt;br&gt;OSM buildings(450m): 204&lt;br&gt;Est. homes: 153&lt;br&gt;FAT boxes: 13</description>
+<Point><coordinates>85.525533,27.848205,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C06 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480665662&lt;br&gt;OSM buildings(450m): 194&lt;br&gt;Est. homes: 146&lt;br&gt;FAT boxes: 13</description>
+<Point><coordinates>85.542789,27.849878,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C07 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480740947&lt;br&gt;OSM buildings(450m): 236&lt;br&gt;Est. homes: 177&lt;br&gt;FAT boxes: 15</description>
+<Point><coordinates>85.559229,27.867853,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C08 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480741398; #3480741419&lt;br&gt;OSM buildings(450m): 146&lt;br&gt;Est. homes: 110&lt;br&gt;FAT boxes: 10</description>
+<Point><coordinates>85.531529,27.856871,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C09 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480741424&lt;br&gt;OSM buildings(450m): 157&lt;br&gt;Est. homes: 118&lt;br&gt;FAT boxes: 10</description>
+<Point><coordinates>85.559836,27.858196,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C10 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480741428&lt;br&gt;OSM buildings(450m): 275&lt;br&gt;Est. homes: 206&lt;br&gt;FAT boxes: 18</description>
+<Point><coordinates>85.537549,27.862455,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C11 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480741438&lt;br&gt;OSM buildings(450m): 304&lt;br&gt;Est. homes: 228&lt;br&gt;FAT boxes: 19</description>
+<Point><coordinates>85.55409,27.866885,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C12 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480741599&lt;br&gt;OSM buildings(450m): 160&lt;br&gt;Est. homes: 120&lt;br&gt;FAT boxes: 10</description>
+<Point><coordinates>85.52928,27.87617,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C13 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480741601; #3480741606&lt;br&gt;OSM buildings(450m): 100&lt;br&gt;Est. homes: 75&lt;br&gt;FAT boxes: 7</description>
+<Point><coordinates>85.541896,27.876732,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C14 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480665642&lt;br&gt;OSM buildings(450m): 44&lt;br&gt;Est. homes: 33&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.533838,27.846907,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C15 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480733676; #3480741238&lt;br&gt;OSM buildings(450m): 58&lt;br&gt;Est. homes: 44&lt;br&gt;FAT boxes: 4</description>
+<Point><coordinates>85.549042,27.840865,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C16 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480733683; #3480733688; #3480741264; #3480741265&lt;br&gt;OSM buildings(450m): 44&lt;br&gt;Est. homes: 33&lt;br&gt;FAT boxes: 3</description>
+<Point><coordinates>85.538869,27.841894,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP2-C17 - </name><styleUrl>#db</styleUrl>
+<description>POP: POP2&lt;br&gt;Villages: #3480740966; #3480741430&lt;br&gt;OSM buildings(450m): 32&lt;br&gt;Est. homes: 24&lt;br&gt;FAT boxes: 2</description>
+<Point><coordinates>85.521118,27.867395,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP5-C01 - Mandandeupur</name><styleUrl>#db</styleUrl>
+<description>POP: POP5&lt;br&gt;Villages: Mandandeupur&lt;br&gt;OSM buildings(450m): 212&lt;br&gt;Est. homes: 159&lt;br&gt;FAT boxes: 14</description>
+<Point><coordinates>85.614795,27.714525,0</coordinates></Point></Placemark>
+<Placemark><name>DB-POP5-C02 - Dhaitar</name><styleUrl>#db</styleUrl>
+<description>POP: POP5&lt;br&gt;Villages: Dhaitar&lt;br&gt;OSM buildings(450m): 182&lt;br&gt;Est. homes: 136&lt;br&gt;FAT boxes: 12</description>
+<Point><coordinates>85.606951,27.708827,0</coordinates></Point></Placemark>
+</Folder>
+<Folder><name>Distribution tree (MST, straight)</name>
+<Placemark><name>HE -&gt; DB-HE-C01 (0.16 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.576132,27.829302,0</coordinates></LineString></Placemark>
+<Placemark><name>HE -&gt; DB-HE-C04 (0.92 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.57499272608827,27.829537390474155,0 85.568084,27.830079,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C04 -&gt; DB-HE-C09 (0.69 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.568084,27.830079,0 85.564981,27.826388,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C04 -&gt; DB-HE-C07 (0.93 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.568084,27.830079,0 85.571002,27.83569,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C07 -&gt; DB-HE-C08 (0.95 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.571002,27.83569,0 85.568883,27.841744,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C04 -&gt; DB-HE-C06 (1.03 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.568084,27.830079,0 85.562098,27.834435,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C09 -&gt; DB-HE-C03 (1.05 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.564981,27.826388,0 85.557219,27.827827,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C09 -&gt; DB-HE-C02 (1.06 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.564981,27.826388,0 85.560116,27.820821,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C02 -&gt; DB-HE-C11 (0.99 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.560116,27.820821,0 85.552918,27.819064,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C01 -&gt; DB-HE-C05 (1.07 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.576132,27.829302,0 85.581774,27.834357,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C02 -&gt; DB-HE-C15 (1.52 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.560116,27.820821,0 85.562066,27.810819,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C15 -&gt; DB-HE-C14 (0.96 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.562066,27.810819,0 85.568044,27.807171,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C14 -&gt; DB-HE-C13 (0.93 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.568044,27.807171,0 85.571845,27.801963,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C11 -&gt; DB-HE-C10 (2.02 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.552918,27.819064,0 85.544607,27.807796,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C10 -&gt; DB-HE-C12 (0.88 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.544607,27.807796,0 85.538199,27.809285,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C05 -&gt; DB-HE-C16 (5.78 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.581774,27.834357,0 85.624659,27.841056,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-HE-C16 -&gt; DB-HE-C17 (4.38 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.624659,27.841056,0 85.622996,27.811946,0</coordinates></LineString></Placemark>
+<Placemark><name>POP1 -&gt; DB-POP1-C08 (2.18 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.63752691551393,27.885702646495595,0 85.6241,27.877315,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C08 -&gt; DB-POP1-C03 (2.03 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.6241,27.877315,0 85.628923,27.864461,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C03 -&gt; DB-POP1-C06 (2.37 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.628923,27.864461,0 85.636133,27.850038,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C06 -&gt; DB-POP1-C05 (1.02 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.636133,27.850038,0 85.643788,27.850437,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C05 -&gt; DB-POP1-C12 (0.68 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.643788,27.850437,0 85.642639,27.846029,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C06 -&gt; DB-POP1-C04 (2.0 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.636133,27.850038,0 85.622404,27.8445,0</coordinates></LineString></Placemark>
+<Placemark><name>POP1 -&gt; DB-POP1-C14 (2.37 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.63752691551393,27.885702646495595,0 85.632342,27.900815,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C14 -&gt; DB-POP1-C01 (2.09 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.632342,27.900815,0 85.637146,27.914044,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C05 -&gt; DB-POP1-C02 (2.78 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.643788,27.850437,0 85.662495,27.858701,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C02 -&gt; DB-POP1-C13 (1.38 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.662495,27.858701,0 85.672167,27.862008,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C03 -&gt; DB-POP1-C07 (3.03 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.628923,27.864461,0 85.606481,27.860581,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C01 -&gt; DB-POP1-C11 (3.31 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.637146,27.914044,0 85.65934,27.924122,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C11 -&gt; DB-POP1-C09 (1.32 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.65934,27.924122,0 85.668996,27.92192,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP1-C08 -&gt; DB-POP1-C10 (4.47 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.6241,27.877315,0 85.598044,27.896145,0</coordinates></LineString></Placemark>
+<Placemark><name>POP2 -&gt; DB-POP2-C06 (0.28 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.54447626218794,27.850960058830545,0 85.542789,27.849878,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C06 -&gt; DB-POP2-C14 (1.27 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.542789,27.849878,0 85.533838,27.846907,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C14 -&gt; DB-POP2-C16 (1.01 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.533838,27.846907,0 85.538869,27.841894,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C16 -&gt; DB-POP2-C03 (1.09 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.538869,27.841894,0 85.537477,27.834758,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C14 -&gt; DB-POP2-C05 (1.12 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.533838,27.846907,0 85.525533,27.848205,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C16 -&gt; DB-POP2-C15 (1.36 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.538869,27.841894,0 85.549042,27.840865,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C05 -&gt; DB-POP2-C08 (1.53 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.525533,27.848205,0 85.531529,27.856871,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C08 -&gt; DB-POP2-C10 (1.16 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.531529,27.856871,0 85.537549,27.862455,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C03 -&gt; DB-POP2-C01 (1.98 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.537477,27.834758,0 85.541506,27.822071,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C08 -&gt; DB-POP2-C17 (2.1 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.531529,27.856871,0 85.521118,27.867395,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C17 -&gt; DB-POP2-C12 (1.71 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.521118,27.867395,0 85.52928,27.87617,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C12 -&gt; DB-POP2-C13 (1.68 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.52928,27.87617,0 85.541896,27.876732,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C13 -&gt; DB-POP2-C04 (0.75 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.541896,27.876732,0 85.541175,27.881697,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C03 -&gt; DB-POP2-C02 (2.19 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.537477,27.834758,0 85.525281,27.824967,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C13 -&gt; DB-POP2-C11 (2.19 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.541896,27.876732,0 85.55409,27.866885,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C11 -&gt; DB-POP2-C07 (0.7 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.55409,27.866885,0 85.559229,27.867853,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP2-C07 -&gt; DB-POP2-C09 (1.45 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.559229,27.867853,0 85.559836,27.858196,0</coordinates></LineString></Placemark>
+<Placemark><name>POP4 -&gt; DB-POP4-C10 (3.46 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.52522143691486,27.768840004877315,0 85.519241,27.746405,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C10 -&gt; DB-POP4-C03 (2.35 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.519241,27.746405,0 85.533016,27.736574,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C03 -&gt; DB-POP4-C04 (1.68 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.533016,27.736574,0 85.536553,27.725838,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C04 -&gt; DB-POP4-C05 (1.07 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.536553,27.725838,0 85.543435,27.729492,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C05 -&gt; DB-POP4-C06 (1.27 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.543435,27.729492,0 85.55187,27.733409,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C04 -&gt; DB-POP4-C07 (1.98 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.536553,27.725838,0 85.537855,27.71272,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C07 -&gt; DB-POP4-C08 (1.37 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.537855,27.71272,0 85.527698,27.714446,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C08 -&gt; DB-POP4-C01 (1.03 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.527698,27.714446,0 85.520836,27.717659,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C06 -&gt; DB-POP4-C11 (2.96 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.55187,27.733409,0 85.550586,27.753109,0</coordinates></LineString></Placemark>
+<Placemark><name>POP4 -&gt; DB-POP4-C02 (3.72 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.52522143691486,27.768840004877315,0 85.49775,27.764204,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP4-C02 -&gt; DB-POP4-C09 (1.9 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.49775,27.764204,0 85.490121,27.774945,0</coordinates></LineString></Placemark>
+<Placemark><name>POP5 -&gt; DB-POP5-C01 (4.11 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.60296683890036,27.739832022953937,0 85.614795,27.714525,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP5-C01 -&gt; DB-POP5-C02 (1.35 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.614795,27.714525,0 85.606951,27.708827,0</coordinates></LineString></Placemark>
+<Placemark><name>POP6 -&gt; DB-POP6-C01 (0.5 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.44831652699213,27.828876819580096,0 85.448389,27.825552,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP6-C01 -&gt; DB-POP6-C04 (2.42 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.448389,27.825552,0 85.465736,27.820708,0</coordinates></LineString></Placemark>
+<Placemark><name>POP6 -&gt; DB-POP6-C03 (2.57 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.44831652699213,27.828876819580096,0 85.457724,27.843846,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP6-C03 -&gt; DB-POP6-C05 (3.74 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.457724,27.843846,0 85.455838,27.868702,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP6-C01 -&gt; DB-POP6-C02 (7.48 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.448389,27.825552,0 85.432703,27.777671,0</coordinates></LineString></Placemark>
+<Placemark><name>POP7 -&gt; DB-POP7-C04 (0.02 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.54790792673954,27.953790941984032,0 85.547892,27.953659,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C04 -&gt; DB-POP7-C05 (1.93 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.547892,27.953659,0 85.53838,27.943909,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C05 -&gt; DB-POP7-C11 (3.28 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.53838,27.943909,0 85.555719,27.928373,0</coordinates></LineString></Placemark>
+<Placemark><name>POP7 -&gt; DB-POP7-C08 (5.01 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.54790792673954,27.953790941984032,0 85.527062,27.981598,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C08 -&gt; DB-POP7-C07 (0.8 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.527062,27.981598,0 85.521439,27.983438,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C08 -&gt; DB-POP7-C10 (1.43 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.527062,27.981598,0 85.535869,27.987134,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C10 -&gt; DB-POP7-C09 (2.96 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.535869,27.987134,0 85.553763,27.998969,0</coordinates></LineString></Placemark>
+<Placemark><name>POP7 -&gt; DB-POP7-C06 (5.03 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.54790792673954,27.953790941984032,0 85.58584,27.95269,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C06 -&gt; DB-POP7-C03 (1.81 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.58584,27.95269,0 85.595457,27.944146,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C05 -&gt; DB-POP7-C02 (6.03 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.53838,27.943909,0 85.493655,27.936827,0</coordinates></LineString></Placemark>
+<Placemark><name>DB-POP7-C02 -&gt; DB-POP7-C01 (2.95 km est)</name>
+<Style><LineStyle><color>ffae9490</color><width>1.5</width></LineStyle></Style>
+<LineString><tessellate>1</tessellate><coordinates>85.493655,27.936827,0 85.482007,27.953584,0</coordinates></LineString></Placemark>
+</Folder>
+</Document></kml>

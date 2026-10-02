@@ -1,0 +1,10 @@
+{
+ "note": "OSM building ways within 450m of each cluster centroid, in clusters.json order (batch0=clusters[0:25], batch1=[25:50], batch2=[50:75], batch3=[75:77]). pop_ring_km: buildings within radius of POP (coverage potential, rings overlap each other).",
+ "batch0": [180,123,83,160,23,245,75,97,38,28,93,38,264,67,132,76,2,174,190,120,63,42,8,22,114],
+ "batch1": [58,176,545,196,174,105,217,56,206,113,141,252,226,117,144,64,115,170,196,226,78,106,115,44,30],
+ "batch2": [111,161,545,199,331,35,32,294,22,122,74,146,204,194,236,146,157,275,304,160,100,44,58,44,32],
+ "batch3": [212,182],
+ "pop_ring_km": {"HE": [6.0, 19742], "POP1": [5.5, 9887], "POP2": [5.5, 15838], "POP3": [5.5, 10856], "POP4": [5.5, 11859], "POP5": [5.5, 13852], "POP6": [5.5, 8554], "POP7": [6.0, 6099]},
+ "bbox_total_buildings": 93191,
+ "melamchi_bazaar_400m": 76
+}

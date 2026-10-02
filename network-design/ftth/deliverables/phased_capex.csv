@@ -1,0 +1,4 @@
+phase,scope,backbone_km,dist_km,fdcs,fats,homes_passed,olts,est_cost_npr
+Phase1,Ring A shared leg + Ring B + Melamchi/POP4/POP5 DBs,51.4,77.1,77,453,5173,3,31309609
+Phase2,"Ring A+C closure, Thangpal/Haibung DBs, 2nd OLT POP1+POP2",85.5,47.7,33,190,2161,4,34057429
+Phase3,Timbu spur + wireless backup + solar,34.3,31.2,14,65,727,1,13624490

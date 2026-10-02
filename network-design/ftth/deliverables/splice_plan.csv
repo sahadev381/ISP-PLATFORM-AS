@@ -1,0 +1,14 @@
+location,cable/arm,cores,usage,note
+HE ODF,Ring A east arm (to POP2),1-4,POP2 drop/through,all 48 terminate on ODF
+HE ODF,Ring C west arm (to POP3),5-8,POP3 drop/through,separate cable recommended on shared HE-POP2
+HE ODF,Ring B south arm (to POP5),9-12,POP5 drop/through,
+HE ODF,POP7 spur (24F cable),1-4,POP7,wireless = path protection
+HE ODF,Spare dark,13-48,-,future expansion / enterprise lease
+POP2 closure,Ring A: from HE / to POP1,1-4,POP2 x4 drop (2 each arm),"44F express, ~16 splices"
+POP2 closure,Ring C: from HE(2nd) / to POP6,5-8,POP2 x4 drop,44F express
+POP1 closure,Ring A: from POP2 / back to HE,1-8,POP1 x4 drop (cores 3+7... see plan),attenuation check C+ OK
+POP5 closure,Ring B: from HE / to POP4,9-12,POP5 x4 drop,44F express
+POP4 closure,Ring B: from POP5 / back to HE,13-16,POP4 x4 drop,44F express
+POP3 closure,Ring C: from POP2 / to HE side,5-8,POP3 x4 drop,44F express
+POP6 closure,Ring C: from POP3 / to POP2,5-8 alt,POP6 x4 drop,44F express
+POP7 closure,Spur from HE (24F),1-4,POP7 x2 active + 2 spare,20F dark spare

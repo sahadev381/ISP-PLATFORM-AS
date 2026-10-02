@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430">
+<rect width="1000" height="430" fill="#f8fafc"/>
+<text x="500.0" y="20" font-size="15" text-anchor="middle" font-family="Arial" fill="#0f172a">HE (Melamchi) &#8596; POP7 (Timbu) — SRTM 30 m path profile, 14.1 km</text>
+<polygon points="60,377 93,383 125,318 158,251 190,213 223,201 256,184 288,151 321,152 353,178 386,158 419,121 451,83 484,113 516,170 549,190 581,163 614,188 647,183 679,219 712,251 744,272 777,239 810,211 842,254 875,244 907,192 940,203 940,396 60,396" fill="#d6c8b0" stroke="#8b7355" stroke-width="1.5"/>
+<polyline points="60,373 190,206" stroke="#16a34a" stroke-width="2"/>
+<line x1="60" y1="377" x2="60" y2="373" stroke="#16a34a" stroke-width="2.5"/>
+<polyline points="190,206 288,147" stroke="#16a34a" stroke-width="2"/>
+<line x1="190" y1="213" x2="190" y2="206" stroke="#16a34a" stroke-width="2.5"/>
+<polyline points="288,147 451,79" stroke="#16a34a" stroke-width="2"/>
+<line x1="288" y1="151" x2="288" y2="147" stroke="#16a34a" stroke-width="2.5"/>
+<polyline points="451,79 940,195" stroke="#16a34a" stroke-width="2"/>
+<line x1="451" y1="83" x2="451" y2="79" stroke="#16a34a" stroke-width="2.5"/>
+<line x1="940" y1="203" x2="940" y2="195" stroke="#16a34a" stroke-width="2.5"/>
+<polyline points="60,357 940,184" stroke="#dc2626" stroke-width="1.3" stroke-dasharray="5 4"/>
+<text x="190" y="200" font-size="11" fill="#15803d" text-anchor="middle" font-family="Arial">R4 1351m+24</text>
+<text x="288" y="141" font-size="11" fill="#15803d" text-anchor="middle" font-family="Arial">R7 1542m+12</text>
+<text x="451" y="73" font-size="11" fill="#15803d" text-anchor="middle" font-family="Arial">R12 1751m+12</text>
+<text x="60" y="367" font-size="11" fill="#0d9488" font-family="Arial">HE 850m+12</text><text x="940" y="189" font-size="11" fill="#0d9488" text-anchor="end" font-family="Arial">POP7 1382m+24</text><text x="516" y="116" font-size="10.5" fill="#dc2626" font-family="Arial">direct LOS fails (-624 m) with the 1751 m ridge</text>
+<text x="60" y="422" font-size="10" fill="#64748b" font-family="Arial">green = working relay chain (4 hops) | red = direct shot fails | veg 10 m, earth bulge, 60% Fresnel @5.8 GHz included</text>
+</svg>

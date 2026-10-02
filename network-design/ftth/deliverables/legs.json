@@ -1,0 +1,151 @@
+{
+ "note": "Backbone legs. km = actual ROAD distance from OSRM (router.project-osrm.org), 2026-10-02. Geometry fetched live by the map; straight-line fallback embedded in HTML.",
+ "pops": {
+  "HE": {
+   "lat": 27.829537390474155,
+   "lon": 85.57499272608827,
+   "pon": 32,
+   "label": "Melamchi Bazaar (Headend/DC, 32-PON OLT)"
+  },
+  "POP1": {
+   "lat": 27.885702646495595,
+   "lon": 85.63752691551393,
+   "pon": 16,
+   "label": "POP1 - Thangpal/Larke corridor (16-PON)"
+  },
+  "POP2": {
+   "lat": 27.850960058830545,
+   "lon": 85.54447626218794,
+   "pon": 16,
+   "label": "POP2 - North Melamchi, Helambu road (16-PON)"
+  },
+  "POP3": {
+   "lat": 27.827761887767213,
+   "lon": 85.4863487361582,
+   "pon": 16,
+   "label": "POP3 - Haibung/Thakani ridge (16-PON)"
+  },
+  "POP4": {
+   "lat": 27.768840004877315,
+   "lon": 85.52522143691486,
+   "pon": 16,
+   "label": "POP4 - Chauki Bjy/Dubachaur south (16-PON)"
+  },
+  "POP5": {
+   "lat": 27.739832022953937,
+   "lon": 85.60296683890036,
+   "pon": 16,
+   "label": "POP5 - Indrawati/Mandandeupur side (16-PON)"
+  },
+  "POP6": {
+   "lat": 27.828876819580096,
+   "lon": 85.44831652699213,
+   "pon": 16,
+   "label": "POP6 - Chisapani/Haibung west (16-PON)"
+  },
+  "POP7": {
+   "lat": 27.953790941984032,
+   "lon": 85.54790792673954,
+   "pon": 16,
+   "label": "POP7 - Timbu, Helambu (16-PON)"
+  }
+ },
+ "legs": [
+  {
+   "a": "HE",
+   "b": "POP2",
+   "group": "Ring A+C (shared)",
+   "km": 5.85,
+   "core": 48
+  },
+  {
+   "a": "POP2",
+   "b": "POP1",
+   "group": "Ring A",
+   "km": 19.84,
+   "core": 48
+  },
+  {
+   "a": "POP1",
+   "b": "HE",
+   "group": "Ring A",
+   "km": 14.55,
+   "core": 48
+  },
+  {
+   "a": "HE",
+   "b": "POP5",
+   "group": "Ring B",
+   "km": 12.51,
+   "core": 48
+  },
+  {
+   "a": "POP5",
+   "b": "POP4",
+   "group": "Ring B",
+   "km": 13.19,
+   "core": 48
+  },
+  {
+   "a": "POP4",
+   "b": "HE",
+   "group": "Ring B",
+   "km": 19.9,
+   "core": 48
+  },
+  {
+   "a": "HE",
+   "b": "POP3",
+   "group": "Ring C",
+   "km": 17.84,
+   "core": 48
+  },
+  {
+   "a": "POP3",
+   "b": "POP6",
+   "group": "Ring C",
+   "km": 11.01,
+   "core": 48
+  },
+  {
+   "a": "POP6",
+   "b": "POP2",
+   "group": "Ring C",
+   "km": 22.21,
+   "core": 48
+  },
+  {
+   "a": "HE",
+   "b": "POP7",
+   "group": "Spur (fiber 24F) + wireless PTP backup",
+   "km": 34.32,
+   "core": 24
+  }
+ ],
+ "backup_wireless": {
+  "a": "HE",
+  "b": "POP7",
+  "km_straight": 14.1,
+  "note": "POP7 backup: direct wireless HE-POP7 LOS blocked by 1751m ridge (SRTM verified 2026-10-02). Options: POP2-POP7 fiber ring closure 37.9km (~NPR 40 lakh, RECOMMENDED) or 4-hop wireless via 3 solar ridge relays (~NPR 53 lakh). See WIRELESS_BACKUP_POP7.md"
+ },
+ "rejected_options": [
+  {
+   "leg": "POP4-POP6 direct",
+   "road_km": 34.25,
+   "straight_km": 10.09,
+   "comment": "Road detour huge - rejected; Ring C via POP2/POP3 used instead"
+  },
+  {
+   "leg": "POP2-POP7 / POP7-POP1",
+   "road_km": 37.9,
+   "straight_km": 11.5,
+   "comment": "Northern loop by road uneconomic - POP7 kept as protected spur from HE"
+  },
+  {
+   "leg": "POP3-POP2 direct",
+   "road_km": 23.51,
+   "straight_km": 6.27,
+   "comment": "Ridge crossing detour - not needed with Ring C"
+  }
+ ]
+}
