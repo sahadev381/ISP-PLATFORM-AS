@@ -1,28 +1,8 @@
-# POP7 (Timbu) Backup — SRTM Path Analysis (real terrain, 2026-10-02)
+# POP7 (Timbu) Wireless Backup — Path Check HE ↔ POP7
 
-## Verdict
-- **Direct HE &#8596; POP7 (14.1 km): NOT feasible.** Mid-path ridge (1751 m at km 6.3)
-  blocks by ~624 m even with 60 m towers at both ends.
-- Working wireless chain needs **4 hops with 3 relay sites** (solar-powered, no grid on ridges):
-
-## Relay chain (solved from SRTM profile)
-| Hop | From | To | km | Masts | Min clearance |
-|-----|------|----|----|-------|---------------|
-| 1 | HE (Melamchi 850 m) | R4 (1351 m) | 2.1 | 12/24 m | +1.5 m |
-| 2 | Relay 4 (1351 m) | R7 (1542 m) | 1.6 | 24/12 m | +33.2 m |
-| 3 | Relay 7 (1542 m) | R12 (1751 m) | 2.6 | 12/12 m | +46.6 m |
-| 4 | Relay 12 (1751 m) | POP7 (Timbu 1382 m) | 7.8 | 12/24 m | +6.1 m |
-
-Relay coordinates: R4(27.84795,85.57098), R7(27.86175,85.56797), R12(27.88476,85.56295)
-Clearance model: earth bulge (K=4/3), 60% first Fresnel @5.8 GHz, 10 m vegetation. **Field walk survey MANDATORY** before ordering; shave margins with on-site height checks (drone/binocular flare test).
-
-## Cost comparison for POP7 redundancy
-| Option | Est. capex | Notes |
-|--------|-----------|-------|
-| 4-hop wireless relay | ~NPR 53 lakh | 3x solar relay (~13 lakh each incl. mast, shelter, 2 radios), land permission on forest ridgeline (hard), +30-60 m tower at HE |
-| **POP2&#8596;POP7 road fiber ring (37.9 km)** | **~NPR 87 lakh** | closes the full mesh; carries extra villages en-route; no power/permit headaches (NEA poles along road) |
-
-## Recommendation
-Primary POP7 path = 24F spur from HE (in design, Phase 3).
-For redundancy: **prefer the POP2-POP7 fiber ring-closure over multi-relay wireless** — similar money, better SLA, future-proof. Wireless chain only if ridge land comes free/quickly.
-Per-hop radio budget at longest hop (7.8 km): FSPL 126 dB; 2x 30 dBi + 20 dBm TX &#8594; RSL -46 dBm &#8594; margin &#8776; 34 dB.
+- Distance: 14.1 km straight. Terrain: Melamchi khola river corridor (north-south), likely LOS; **walk/drone survey + path profile mandatory** (mid-path saddle check between Melamchi bazaar ~870 m and Timbu ~2000 m).
+- 1st Fresnel radius at mid-path (5.8 GHz): **13.5 m** → require ≥60% clearance = **8.1 m** above obstructions both ends (plan 25-40 m masts/tree clearance).
+- FSPL(5.8 GHz, 14.1 km): 131 dB
+- Budget example (airFiber 5XHD/AF-5G30): TX 20 dBm + 2×30 dBi dish − 131 dB = **RSL ≈ -51 dBm** → fade margin ~29 dB vs −80 dBm sens → excellent (target ≥15-20 dB).
+- Capacity: 400-700 Mbps real (more than POP7's 16×2.5G PON day-1 need aggregated via shaping; run as L3 backup /31 with OSPF cost 100).
+- Alternative: Ubiquiti AF-11X licensed 11 GHz for higher reliability in monsoon (rain fade @5/6 GHz low, 11 GHz moderate).
