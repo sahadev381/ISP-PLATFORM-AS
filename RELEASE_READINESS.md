@@ -157,9 +157,9 @@ Ordered by what I would do first.
    real MySQL 8 in CI. They earned their keep immediately: on their
    first real run they caught a settlement bug that had made the
    entire phase-16 invoice fix a no-op.
-6. **Remove the inline `on*` handlers. 189 -> 151, in progress.**
-   The first 38 are gone and a browser has confirmed each one still
-   works.
+6. **Remove the inline `on*` handlers. 189 -> 106, in progress.**
+   83 are gone, including every one that built JavaScript out of a
+   database value, and a browser has confirmed each one still works.
 
    CI runs every page in Chromium. **1774 report-only CSP violations
    across 137 pages** is the real size of this job - not an estimate
@@ -195,7 +195,7 @@ Ordered by what I would do first.
 
    A budget in `.inline-handler-budget` now fails CI if the count
    rises. Long cleanups lose to new code unless something stops the
-   number going up. It is at **151**, lowered as each batch lands.
+   number going up. It is at **106**, lowered as each batch lands.
 
    **What has been converted.** `assets/js/actions.js` is a single
    delegated listener on `document`; markup opts in with
@@ -208,12 +208,23 @@ Ordered by what I would do first.
    `false` still cancels the default, which the
    `onsubmit="return confirm(...)"` handlers rely on.
 
-   38 of the 51 **bare-call** handlers are done, in the 16 files that
-   provably load the dispatcher. The 13 left are in
-   `network_topology.php`, which includes neither header nor sidebar;
-   it needs the script tag before its handlers can move. The other
-   ~100 handlers carry arguments, inline statements or interpolated
-   PHP and have to be read one at a time.
+   All 51 **bare-call** handlers are done, and so are the 28 that
+   interpolated PHP. The latter were taken first because they are the
+   only part of this cleanup that fixes a live vulnerability rather
+   than enabling a future one - see `AUDIT_REPORT.md` section 33.
+   `action_attr()` in `includes/html.php` emits the attributes and
+   JSON-encodes the arguments, so the two-stage escape that each of
+   those call sites had to get right no longer exists to get wrong.
+
+   `includes/actions_tag.php` is the script tag as an include. Seven
+   pages build their own `<head>` and had no dispatcher at all
+   (`network_topology.php`, the four under `billing/`,
+   `hotspot/admin/index.php` and `blacklist.php`); they include it
+   directly. `network_topology.php` is the first file at zero.
+
+   The remaining 106 carry inline statements or multiple arguments
+   and have to be read one at a time. `map.php` (15), `user_view.php`
+   (11) and `olt_dashboard.php` (9) are the bulk of it.
 
    **The two checks that make this safe**, and neither existed
    before phase 25. Every page is rendered in Chromium, so a page

@@ -2153,3 +2153,117 @@ The CSP count does not fall yet and will not for a while: 1776 is
 dominated by the 1358 `style=""` attributes and 44 inline `<script>`
 blocks, not by the handlers. The number that moved is the one in
 `.inline-handler-budget`.
+
+---
+
+## 33. The handlers that were building JavaScript out of the database (phase 28)
+
+§32 removed 38 handlers to make the Content Security Policy
+tightenable. This batch removes 28 more that were a vulnerability on
+their own terms, CSP or no CSP.
+
+### The pattern
+
+```php
+<button onclick="openWifiModal('<?= e_attr_js($serial) ?>')">
+<button onclick="deleteLead(<?= e($lead['id']) ?>)">
+<button onclick='openEditModal(<?= json_encode($p) ?>)'>
+```
+
+Each of these assembles a line of JavaScript out of a database value
+at render time. Whether that line is safe depends entirely on escaping
+the value correctly, and the correct escaping here is genuinely
+awkward: the browser HTML-decodes the attribute **before** the
+JavaScript parser sees it, so a value has to be JS-escaped first and
+HTML-escaped second. `e()` alone produces `&#39;`, which decodes back
+to a bare quote and closes the string. That is what `e_attr_js()`
+exists for, and it is documented in `includes/html.php` — but it has
+to be remembered at every call site, forever.
+
+Among the 28, `plans.php` passed `json_encode($p)` — an entire
+database row — into an attribute, and `admin.php` built a DOM element
+id by concatenation.
+
+### What replaces it
+
+```php
+<button <?= action_attr('openWifiModal', [$deviceId, $serial]) ?>>
+<button <?= action_attr('deleteLead', [(int) $lead['id']]) ?>>
+```
+
+Arguments are JSON in a `data-args` attribute. A quote is a character
+in a JSON string; the JSON is text in an attribute; nothing is parsed
+as code at any point. **There is no escaping order left to get wrong**,
+which is the real improvement — not that the current code is now
+correct, but that the next person cannot make it incorrect.
+
+The one thing that is not data is the function name, since the
+dispatcher looks it up on `window`. It is validated against
+`/^[A-Za-z_$][A-Za-z0-9_$]*$/` and anything else throws. 14 new
+assertions cover this, including `action_attr('alert(1)')`,
+`action_attr('window.alert')` and a name containing an attribute
+break.
+
+### Three handlers that had no function to point at
+
+```html
+onchange="window.location.href='?type=<?= e($log_type) ?>&date='+this.value"
+```
+
+There was nothing to name in a `data-action`. These became
+`navigateWithValue`, `showElement` and `openInNewTab` in `actions.js`
+— and the value now goes through `encodeURIComponent`, which the
+string concatenation never did.
+
+### The dispatcher had to reach them first
+
+Seven pages build their own `<head>` and include neither
+`includes/header.php` nor `includes/sidebar.php`:
+`network_topology.php`, the four under `billing/`,
+`hotspot/admin/index.php` and `hotspot/admin/blacklist.php`.
+Converting markup on those pages before the dispatcher existed there
+would have produced buttons that silently do nothing — the exact
+failure mode §32 warned about.
+
+The script tag is now `includes/actions_tag.php`, included in one
+line, instead of a tag copied into each header. Three copies had
+already appeared in two phases; a fourth through tenth were about to.
+
+With a dispatcher present, `network_topology.php`'s other 17 handlers
+converted too. It is the first file in the codebase at zero.
+
+### Two live bugs found by reading the code closely enough to convert it
+
+1. `network_topology.php` had
+   `<a id="btnEdit" onclick="return false;">`, while
+   `assets/js/network-topology.js:298` assigns `btnEdit.onclick = …`.
+   A property assignment replaces the attribute handler outright, so
+   the attribute had been dead since the day it was written.
+2. `selectCableType()` read the **implicit global `event`** and called
+   `event.target.classList.add('active')`. `event.target` is whatever
+   was clicked — and the button contains an `<i>` icon, so clicking
+   the icon moved the highlight onto the icon instead of the button.
+   It takes the element as `this` from the dispatcher now, with a
+   `closest()` fallback.
+
+Neither was reported by anyone. Both were found because converting a
+handler forces you to answer "what does this actually do", which
+nobody had asked of this markup since it was written.
+
+### Where the count stands
+
+| | handlers |
+|---|---|
+| census at §4.6 | 189 |
+| after §32 | 151 |
+| after this phase | **106** |
+
+All bare calls and all PHP-interpolated handlers are gone. What
+remains carries inline statements or several arguments and has to be
+read individually: `map.php` 15, `user_view.php` 11,
+`olt_dashboard.php` 9, `mobile_tech.php` 7, `plans.php` 6,
+`work_diary.php` 6.
+
+Verification: run `36949266115` — 137 pages, **0 JS errors**, 1776 CSP
+report-only violations, **0 missing assets**. `tests/run.php`
+**371/371**.
