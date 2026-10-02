@@ -157,9 +157,10 @@ Ordered by what I would do first.
    real MySQL 8 in CI. They earned their keep immediately: on their
    first real run they caught a settlement bug that had made the
    entire phase-16 invoice fix a no-op.
-6. **Remove the inline `on*` handlers. 189 -> 106, in progress.**
-   83 are gone, including every one that built JavaScript out of a
-   database value, and a browser has confirmed each one still works.
+6. **Remove the inline `on*` handlers. 189 -> 67, in progress.**
+   122 are gone - every one that built JavaScript out of a database
+   value, and every delete confirmation - and a browser has confirmed
+   each one still works.
 
    CI runs every page in Chromium. **1774 report-only CSP violations
    across 137 pages** is the real size of this job - not an estimate
@@ -195,7 +196,7 @@ Ordered by what I would do first.
 
    A budget in `.inline-handler-budget` now fails CI if the count
    rises. Long cleanups lose to new code unless something stops the
-   number going up. It is at **106**, lowered as each batch lands.
+   number going up. It is at **67**, lowered as each batch lands.
 
    **What has been converted.** `assets/js/actions.js` is a single
    delegated listener on `document`; markup opts in with
@@ -222,9 +223,11 @@ Ordered by what I would do first.
    `hotspot/admin/index.php` and `blacklist.php`); they include it
    directly. `network_topology.php` is the first file at zero.
 
-   The remaining 106 carry inline statements or multiple arguments
-   and have to be read one at a time. `map.php` (15), `user_view.php`
-   (11) and `olt_dashboard.php` (9) are the bulk of it.
+   `map.php`, `user_view.php` and `network_topology.php` are at zero.
+   The remaining 67 carry inline statements and have to be read one
+   at a time: `olt_dashboard.php` (9), `mobile_tech.php` (7),
+   `work_diary.php` (6), `network_monitoring.php` (5), `plans.php`
+   (5).
 
    **The two checks that make this safe**, and neither existed
    before phase 25. Every page is rendered in Chromium, so a page

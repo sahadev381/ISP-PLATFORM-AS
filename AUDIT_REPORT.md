@@ -2267,3 +2267,89 @@ read individually: `map.php` 15, `user_view.php` 11,
 Verification: run `36949266115` — 137 pages, **0 JS errors**, 1776 CSP
 report-only violations, **0 missing assets**. `tests/run.php`
 **371/371**.
+
+---
+
+## 34. The element, the confirmations, and markup JavaScript builds (phase 29)
+
+106 → 67. Three groups, none of them a find-and-replace.
+
+### Handlers that passed the clicked element
+
+```html
+<button onclick="setMode('add_node', this)" data-type="OLT">
+<button onclick="showTab('overview', this)">   <!-- nine of these -->
+```
+
+The dispatcher calls the handler with the matched element as `this`,
+so the argument is redundant. But these functions also have **internal
+callers**: `closeModal()` calls `setMode(null, null)` deliberately, and
+`map.php` calls `forEach(updateDropdownColor)` to initialise every
+dropdown at load. Dropping the parameter would have broken those.
+
+Each function keeps its parameter and falls back:
+
+```js
+btn = (btn && btn.getAttribute) ? btn : ((this && this.getAttribute) ? this : null);
+```
+
+The duck-type test matters: called through the dispatcher with no
+arguments, the parameter receives the **event object**, which is
+truthy. Testing `if (btn)` would have passed an `Event` where an
+element was expected.
+
+### Every delete confirmation
+
+```html
+<form onsubmit="return confirm('Permanently delete this customer?')">
+```
+
+Thirteen files, plus two in `user_view.php`: admins, branches,
+invoices, tickets, customers, plans, roles, NAS devices, knowledge
+base articles, a device reboot and a session disconnect. These are the
+dialogs standing between a misclick and a deleted customer, so they
+are worth being careful about.
+
+There was nothing to point `data-action` at, so `confirmFirst(message)`
+is now a named function, and the dispatcher's existing rule — a
+handler returning `false` gets `preventDefault()` — does the rest.
+That rule was written in §32 specifically for this case.
+
+### Markup that JavaScript builds
+
+`map.php` assembles map popups and lease rows as template literals and
+inserts them with `innerHTML`:
+
+```js
+`<button onclick="openManager(${num(n.id)}, '${escJs(n.type)}', null)">`
+```
+
+This is a line of JavaScript built out of a database value, inside
+markup built out of a string. Two escaping decisions per value instead
+of one, and attributes created this way are inline handlers as far as
+the CSP is concerned — they are not exempt for having been generated
+by script.
+
+`window.actionAttr(fn, args)` in `actions.js` mirrors the PHP
+`action_attr()`: JSON-encode so the values are data, HTML-escape so the
+JSON cannot terminate the attribute, validate the function name as an
+identifier. Same order, same guarantees, one for each language that
+generates markup here.
+
+### Where the count stands
+
+| | handlers |
+|---|---|
+| census at §4.6 | 189 |
+| after §32 | 151 |
+| after §33 | 106 |
+| after this phase | **67** |
+
+`map.php`, `user_view.php` and `network_topology.php` are at zero. The
+remaining 67 hold inline statements rather than calls:
+`olt_dashboard.php` 9, `mobile_tech.php` 7, `work_diary.php` 6,
+`network_monitoring.php` 5, `plans.php` 5.
+
+Verification: run `36952545821` — 137 pages, **0 JS errors**, 1776 CSP
+report-only violations, **0 missing assets**. `tests/run.php`
+**371/371**.
