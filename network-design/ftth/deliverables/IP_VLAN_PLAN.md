@@ -20,8 +20,11 @@ OSPF costs: wireless spur 100 (backup-only), fiber 10. ECMP off (deterministic p
 - 100 MGMT: OLT/switch mgmt, per-POP /25: HE 10.20.0.0/25, POP1 10.20.1.0/25 ... POP7 10.20.7.0/25
 - 200 VOIP (reserved), 300 IPTV (reserved)
 - Customer (per-PON, per-POP numbered): HE=1000+PON#, POP1=1100+, POP2=1200+, POP3=1300+, POP4=1400+, POP5=1500+, POP6=1600+, POP7=1700+
-  → e.g. DB-POP2 site off PON3 = VLAN 1203; customer PPPoE to central BNG (existing ISP platform has RADIUS/user mgmt).
+  → e.g. DB-POP2 site off PON3 = VLAN 1203. **PPPoE: per-POP BNG** (MikroTik CCR2004, S-VLAN trunks from L3 switch) — central PPPoE at HE is NOT possible over the L3 ring (L2 discovery). RADIUS stays central at HE via existing ISP platform. See `huawei/HUAWEI_L3_GUIDE.md`.
 - OLT side: each PON = S-VLAN (above), C-VLAN 10-20 optional per service; ONU profile: router mode OFF (bridge) — PPPoE from customer router.
+
+## Per-POP BNG addresses
+- BNG (MikroTik CCR2004) loopbacks: POP1..POP7 = 10.10.0.61-67; HE server/RADIUS farm = 10.50.0.0/24 (RADIUS 10.50.0.10)
 
 ## IPv6
 - Example allocation 2400:xxxx::/40: /48 per POP (HE=:0000, POP1=:0001, ...), /64 per VLAN, DHCPv6-PD /56 per customer.

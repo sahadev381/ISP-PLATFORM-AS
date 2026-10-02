@@ -21,7 +21,7 @@ straight-line legs with measured road distances.
 | `deliverables/WIRELESS_BACKUP_POP7.md` `path_profile.svg` | POP7 backup SRTM analysis: direct LOS FAILS (-624 m, 1751 m ridge at km 6.3); 4-hop relay chain solved; POP2-POP7 fiber ring closure recommended |
 | `deliverables/PHASED_CAPEX.md` `phased_capex.csv` | Phase-wise investment (P1 3.13cr / P2 3.41cr / P3 1.36cr+redundancy NPR) |
 | `deliverables/PAYBACK_MODEL.md` `payback_arpu*.csv` | 5-yr cashflow: ARPU 900 → payback ~58 mo; 1100 → ~45 mo; 700 stalls |
-| `deliverables/huawei/` | Huawei MA5800-X2 per-site provisioning configs (8 files) + deployment guide; 2-slot X2 solves POP1/POP2 oversubscription with 2nd GPHF board |
+| `deliverables/huawei/` | **OLT**: MA5800-X2 per-site configs (8x `OLT-*.txt`) + guide. **L3 ring**: S6730/S5735 per-site configs (8x `L3-*.txt`, OSPF+BFD) + `HUAWEI_L3_GUIDE.md` (per-POP MikroTik CCR2004 BNG, central RADIUS) |
 | `deliverables/db_points.csv` | 77 DB/FAT sites: coordinates, locality, buildings, est. homes, FAT count |
 | `deliverables/pops.csv` | Per-POP stats: homes, FATs, PON used/spare, distribution km |
 | `deliverables/pon_allocation.csv` | FDC/PON-port level plan (124 FDCs) |
@@ -51,6 +51,7 @@ python3 make_extras.py    # SQL seed + splice/IP/vlan/wireless/phased docs
 python3 wireless_pop7.py  # SRTM LOS chain solver -> WIRELESS_BACKUP_POP7.md + path_profile.svg
 python3 make_payback.py   # cashflow model -> PAYBACK_MODEL.md + payback_arpu*.csv
 python3 make_huawei.py    # Huawei OLT per-site provisioning scripts -> huawei/
+python3 make_huawei_l3.py # Huawei L3 ring switch scripts per POP -> huawei/L3-*.txt
 ```
 Tunable parameters at top of `build_design.py` (HOME_FACTOR, HOMES_PER_FAT,
 FATS_PER_PON, ROUTE_FACTOR_DIST, take rates).

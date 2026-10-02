@@ -20,7 +20,7 @@ Per-site ready-to-paste scripts in `huawei/OLT-<SITE>.txt` (8 files).
 - Service slots 0/1, 0/2 — GPHF 16x GPON each
 - Per-PON S-VLAN: HE=1001..1031, POP1=1101..1125, POP2=1201..1228, POP4=1401..1414, POP5=1501..1504, POP6=1601..1608, POP7=1701..1714 (from IP_VLAN_PLAN)
 - C-VLAN 10 (internet) translated to S-VLAN at service-port
-- PPPoE from customer router — BNG at HE (existing ISP platform RADIUS)
+- PPPoE from customer router — per-POP MikroTik CCR2004 BNG (see HUAWEI_L3_GUIDE.md); RADIUS central at HE (existing ISP platform)
 
 ## OLT optics: POP7 uses Class C++ SFP (27 dB est. budget); others Class C+ fine
 
