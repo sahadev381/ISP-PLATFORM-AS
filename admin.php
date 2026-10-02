@@ -199,7 +199,7 @@ $isSuper = ($a['role'] === 'superadmin');
 
     <!-- CHANGE PASSWORD (ONLY ONCE) -->
     <button class="btn" style="background:#3498db;color:#fff;"
-        onclick="document.getElementById('changePass<?= e($a['id']) ?>').style.display='block'">
+        <?= action_attr('showElement', ['changePass' . $a['id']]) ?>>
         <i class="fa fa-key"></i> Password
     </button>
 

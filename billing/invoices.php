@@ -270,6 +270,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
         .col-md-4 { width: 33.33%; padding: 10px; }
         .col-md-6 { width: 50%; padding: 10px; }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -402,11 +403,11 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($inv['status'] == 'pending'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('mark_paid', <?= e($inv['id']) ?>)" title="Mark Paid">
+                                            <button class="btn btn-success btn-sm" <?= action_attr('submitAction', ['mark_paid', (int) $inv['id']]) ?> title="Mark Paid">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         <?php endif; ?>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteInvoice(<?= e($inv['id']) ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" <?= action_attr('deleteInvoice', [(int) $inv['id']]) ?> title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>

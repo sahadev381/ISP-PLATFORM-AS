@@ -221,6 +221,7 @@ $total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_tr
         
         code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -348,10 +349,10 @@ $total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_tr
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($t['status'] == 'pending'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('verify_payment', <?= e($t['id']) ?>)" title="Verify">
+                                            <button class="btn btn-success btn-sm" <?= action_attr('submitAction', ['verify_payment', (int) $t['id']]) ?> title="Verify">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button class="btn btn-danger btn-sm" onclick="submitAction('reject_payment', <?= e($t['id']) ?>)" title="Reject">
+                                            <button class="btn btn-danger btn-sm" <?= action_attr('submitAction', ['reject_payment', (int) $t['id']]) ?> title="Reject">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         <?php endif; ?>

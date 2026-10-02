@@ -136,6 +136,61 @@ if (!function_exists('e_href')) {
     }
 }
 
+if (!function_exists('action_attr')) {
+    /**
+     * Build the attributes that hand an element to assets/js/actions.js.
+     *
+     *     <button <?= action_attr('deleteLead', [$lead['id']]) ?>>
+     *
+     * replaces
+     *
+     *     <button onclick="deleteLead(<?= e($lead['id']) ?>)">
+     *
+     * This is not only about the Content Security Policy. The old form
+     * builds a line of JavaScript out of database content, so every
+     * value needs e_attr_js() - escaped for the JS string literal AND
+     * then for the HTML attribute, in that order, because the browser
+     * HTML-decodes before the JS parser runs. Getting that wrong, or
+     * reaching for plain e(), is an XSS hole, and there were several.
+     *
+     * Here the arguments are JSON, so they are data and never parsed as
+     * code. json_encode handles the quoting; e() handles the attribute.
+     * There is no order to get wrong.
+     *
+     * @param string $fn   Global JS function name. Must be a bare
+     *                     identifier - no `obj.method`, no call syntax.
+     * @param array  $args Arguments, JSON-encoded. Keep them scalars or
+     *                     plain arrays; anything with a resource or a
+     *                     closure in it will not survive.
+     * @param string $on   'click' (default), 'change' or 'submit'.
+     */
+    function action_attr(string $fn, array $args = [], string $on = 'click'): string
+    {
+        if (!preg_match('/^[A-Za-z_$][A-Za-z0-9_$]*$/', $fn)) {
+            throw new InvalidArgumentException('action_attr: not a plain function name: ' . $fn);
+        }
+        if (!in_array($on, ['click', 'change', 'submit'], true)) {
+            throw new InvalidArgumentException('action_attr: unsupported event: ' . $on);
+        }
+
+        $out = 'data-action="' . e($fn) . '"';
+        if ($on !== 'click') {
+            $out .= ' data-action-on="' . e($on) . '"';
+        }
+        if ($args !== []) {
+            /* JSON_UNESCAPED_SLASHES keeps URLs readable in the markup;
+               the escaping that matters is e(), below. */
+            $json = json_encode(array_values($args), JSON_UNESCAPED_SLASHES);
+            if ($json === false) {
+                throw new InvalidArgumentException('action_attr: arguments are not JSON-encodable for ' . $fn);
+            }
+            $out .= " data-args=\"" . e($json) . '"';
+        }
+
+        return $out;
+    }
+}
+
 if (!function_exists('generate_wifi_password')) {
     /**
      * A WiFi password the customer has to be able to read off a page and

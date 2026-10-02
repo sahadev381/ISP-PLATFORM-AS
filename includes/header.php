@@ -79,7 +79,7 @@ send_security_headers();
     <!-- Delegated event handling, so markup need not carry script.
          defer: it only needs the DOM, and blocking the parse for it
          would slow every page down for no reason. -->
-    <script src="<?= e(app_base_path()) ?>assets/js/actions.js" defer></script>
+    <?php include_once __DIR__ . '/actions_tag.php'; ?>
 <script>
 /*
  * jQuery is loaded later on some pages, so its hook cannot live in the

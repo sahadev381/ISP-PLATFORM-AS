@@ -263,12 +263,12 @@ include __DIR__ . '/includes/topbar.php';
                     <td style="padding: 12px; color: #64748b; font-size: 13px;"><?= date('M d, Y', strtotime($lead['created_at'])) ?></td>
                     <td style="padding: 12px;">
                         <div style="display: flex; gap: 5px;">
-                            <button class="action-btn btn-view" onclick="viewLead(<?= e($lead['id']) ?>)" title="View"><i class="fa fa-eye"></i></button>
-                            <button class="action-btn btn-edit" onclick="editLead(<?= e($lead['id']) ?>)" title="Edit"><i class="fa fa-edit"></i></button>
+                            <button class="action-btn btn-view" <?= action_attr('viewLead', [(int) $lead['id']]) ?> title="View"><i class="fa fa-eye"></i></button>
+                            <button class="action-btn btn-edit" <?= action_attr('editLead', [(int) $lead['id']]) ?> title="Edit"><i class="fa fa-edit"></i></button>
                             <?php if ($lead['status'] != 'converted'): ?>
-                                <button class="action-btn btn-convert" onclick="convertLead(<?= e($lead['id']) ?>)" title="Convert"><i class="fa fa-user-plus"></i></button>
+                                <button class="action-btn btn-convert" <?= action_attr('convertLead', [(int) $lead['id']]) ?> title="Convert"><i class="fa fa-user-plus"></i></button>
                             <?php endif; ?>
-                            <button class="action-btn btn-delete" onclick="deleteLead(<?= e($lead['id']) ?>)" title="Delete"><i class="fa fa-trash"></i></button>
+                            <button class="action-btn btn-delete" <?= action_attr('deleteLead', [(int) $lead['id']]) ?> title="Delete"><i class="fa fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>

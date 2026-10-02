@@ -348,10 +348,19 @@ function clearConnections() {
 
 // Cable type selection
 let selectedCableType = 'copper';
-function selectCableType(type) {
+function selectCableType(type, event) {
     selectedCableType = type;
     document.querySelectorAll('.cable-type-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    /* Was `event.target` off the implicit global `event`, which is a
+       Chrome-ism and, worse, pointed at the <i> icon whenever someone
+       clicked the icon rather than the button - so the highlight moved
+       to nothing. `this` is the button the dispatcher matched. */
+    const btn = (this && this.classList)
+        ? this
+        : (event && event.target ? event.target.closest('.cable-type-btn') : null);
+    if (btn) {
+        btn.classList.add('active');
+    }
 }
 
 // Drag functionality for devices

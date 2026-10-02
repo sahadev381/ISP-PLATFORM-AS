@@ -275,6 +275,7 @@ $counts = [
             color: #64748b;
         }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -414,16 +415,16 @@ $counts = [
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($sub['status'] == 'active'): ?>
-                                            <button class="btn btn-warning btn-sm" onclick="submitAction('suspend_subscription', <?= e($sub['id']) ?>)" title="Suspend">
+                                            <button class="btn btn-warning btn-sm" <?= action_attr('submitAction', ['suspend_subscription', (int) $sub['id']]) ?> title="Suspend">
                                                 <i class="fas fa-pause"></i>
                                             </button>
                                         <?php elseif ($sub['status'] == 'suspended'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('reactivate_subscription', <?= e($sub['id']) ?>)" title="Reactivate">
+                                            <button class="btn btn-success btn-sm" <?= action_attr('submitAction', ['reactivate_subscription', (int) $sub['id']]) ?> title="Reactivate">
                                                 <i class="fas fa-play"></i>
                                             </button>
                                         <?php endif; ?>
                                         <?php if ($sub['status'] != 'cancelled'): ?>
-                                            <button class="btn btn-danger btn-sm" onclick="submitAction('cancel_subscription', <?= e($sub['id']) ?>)" title="Cancel">
+                                            <button class="btn btn-danger btn-sm" <?= action_attr('submitAction', ['cancel_subscription', (int) $sub['id']]) ?> title="Cancel">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         <?php endif; ?>

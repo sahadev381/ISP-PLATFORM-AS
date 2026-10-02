@@ -172,6 +172,7 @@ if(empty($connections)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="assets/css/network-topology.css">
+<?php include_once __DIR__ . '/includes/actions_tag.php'; ?>
 </head>
 <body>
 
@@ -183,18 +184,18 @@ if(empty($connections)) {
     <div style="display:flex; align-items:center; gap:15px;">
         <!-- Cable Type Selector -->
         <div id="cableTypeSelector" style="display:flex; gap:8px;">
-            <button class="cable-type-btn active" onclick="selectCableType('fiber')" style="padding:6px 14px; border:2px solid #ef4444; background:#ef4444; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
+            <button class="cable-type-btn active" data-action="selectCableType" data-args='["fiber"]' style="padding:6px 14px; border:2px solid #ef4444; background:#ef4444; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
                 <i class="fa fa-bolt"></i> Fiber
             </button>
-            <button class="cable-type-btn" onclick="selectCableType('copper')" style="padding:6px 14px; border:2px solid #f59e0b; background:#f59e0b; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
+            <button class="cable-type-btn" data-action="selectCableType" data-args='["copper"]' style="padding:6px 14px; border:2px solid #f59e0b; background:#f59e0b; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
                 <i class="fa fa-ethernet"></i> Copper
             </button>
-            <button class="cable-type-btn" onclick="selectCableType('wifi')" style="padding:6px 14px; border:2px solid #10b981; background:#10b981; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
+            <button class="cable-type-btn" data-action="selectCableType" data-args='["wifi"]' style="padding:6px 14px; border:2px solid #10b981; background:#10b981; color:#fff; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600;">
                 <i class="fa fa-wifi"></i> WiFi
             </button>
         </div>
         <div class="noc-time" id="currentTime"></div>
-        <button class="fullscreen-btn" onclick="toggleFullscreen()">
+        <button class="fullscreen-btn" data-action="toggleFullscreen">
             <i class="fa fa-expand"></i>
         </button>
     </div>
@@ -246,7 +247,7 @@ if(empty($connections)) {
         </div>
         <div class="device-list" id="deviceList">
             <?php foreach($device_list as $dev): ?>
-            <div class="device-card <?= e($dev['status']) ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" onclick="handleDeviceClick('<?= e_attr_js($dev['id']) ?>', '<?= e_attr_js($dev['name']) ?>', '<?= e_attr_js($dev['type']) ?>', '<?= e_attr_js($dev['ip']) ?>')">
+            <div class="device-card <?= e($dev['status']) ?>" data-model="<?= htmlspecialchars($dev['model'] ?? '') ?>" data-location="<?= htmlspecialchars($dev['location'] ?? '') ?>" <?= action_attr('handleDeviceClick', [$dev['id'], $dev['name'], $dev['type'], $dev['ip']]) ?>>
                 <div class="device-icon-small <?= e($dev['type']) ?>">
                     <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 </div>
@@ -269,14 +270,14 @@ if(empty($connections)) {
     
     <!-- Topology Map -->
     <!-- Mobile Toggle Buttons -->
-    <button class="mobile-toggle" onclick="togglePanel('devicePanel')">
+    <button class="mobile-toggle" data-action="togglePanel" data-args='["devicePanel"]'>
         <i class="fa fa-bars"></i>
     </button>
     
     <div class="mobile-zoom">
-        <button onclick="zoomOut()"><i class="fa fa-minus"></i></button>
-        <button onclick="resetZoom()"><i class="fa fa-compress"></i></button>
-        <button onclick="zoomIn()"><i class="fa fa-plus"></i></button>
+        <button data-action="zoomOut"><i class="fa fa-minus"></i></button>
+        <button data-action="resetZoom"><i class="fa fa-compress"></i></button>
+        <button data-action="zoomIn"><i class="fa fa-plus"></i></button>
     </div>
     
     <div class="map-area" id="mapArea">
@@ -307,7 +308,7 @@ if(empty($connections)) {
              data-id="<?= e($dev['id']) ?>"
              data-status="<?= e($dev['status']) ?>"
              style="left:<?= e($positions[$idx]['x']) ?>px; top:<?= e($positions[$idx]['y']) ?>px; <?= $dev['status'] === 'offline' ? 'opacity: 0.5;' : '' ?>" 
-             onclick="handleDeviceClick('<?= e_attr_js($dev['id']) ?>', '<?= e_attr_js($dev['name']) ?>', '<?= e_attr_js($dev['type']) ?>', '<?= e_attr_js($dev['ip']) ?>')">
+             <?= action_attr('handleDeviceClick', [$dev['id'], $dev['name'], $dev['type'], $dev['ip']]) ?>>
             <div class="node-icon <?= e($dev['type']) ?> <?= e($dev['status']) ?>">
                 <i class="fa fa-<?= $dev['type'] == 'olt' ? 'server' : ($dev['type'] == 'mikrotik' ? 'microchip' : ($dev['type'] == 'switch' ? 'network-wired' : 'router')) ?>"></i>
                 <?php if($dev['status'] === 'offline'): ?>
@@ -324,7 +325,7 @@ if(empty($connections)) {
         <div class="info-panel" id="infoPanel">
             <div class="info-title">
                 <i class="fa fa-server" id="infoIcon"></i> Device Details
-                <button class="close-info" onclick="closeInfoPanel()"><i class="fa fa-times"></i></button>
+                <button class="close-info" data-action="closeInfoPanel"><i class="fa fa-times"></i></button>
             </div>
             <div class="info-row">
                 <span class="info-label">Name</span>
@@ -349,7 +350,7 @@ if(empty($connections)) {
             <div class="info-actions">
                 <a href="#" class="btn btn-primary" id="btnManage"><i class="fa fa-cog"></i> Manage</a>
                 <a href="#" class="btn btn-success" id="btnPing"><i class="fa fa-broadcast-tower"></i> Ping</a>
-                <a href="#" class="btn btn-warning" id="btnEdit" onclick="return false;"><i class="fa fa-edit"></i> Edit</a>
+                <a href="#" class="btn btn-warning" id="btnEdit"><i class="fa fa-edit"></i> Edit</a>
             </div>
         </div>
         
@@ -372,13 +373,13 @@ if(empty($connections)) {
         <!-- Cable Control Panel - Top Right Corner -->
         <div style="position:absolute; top:10px; right:10px; background:rgba(30,41,59,0.95); padding:10px; border-radius:10px; border:1px solid #475569; z-index:250; display:flex; gap:5px; align-items:center;">
             <span style="color:#94a3b8; font-size:11px; margin-right:5px;">CABLE:</span>
-            <button onclick="startCableMode()" id="cableAddBtn" style="width:40px; height:40px; border-radius:8px; background:#3b82f6; border:none; color:white; cursor:pointer; font-size:16px;" title="Add Cable">
+            <button data-action="startCableMode" id="cableAddBtn" style="width:40px; height:40px; border-radius:8px; background:#3b82f6; border:none; color:white; cursor:pointer; font-size:16px;" title="Add Cable">
                 <i class="fa fa-plus"></i>
             </button>
-            <button onclick="startDeleteMode()" id="cableDeleteBtn" style="width:40px; height:40px; border-radius:8px; background:#ef4444; border:none; color:white; cursor:pointer; font-size:16px;" title="Delete Cable">
+            <button data-action="startDeleteMode" id="cableDeleteBtn" style="width:40px; height:40px; border-radius:8px; background:#ef4444; border:none; color:white; cursor:pointer; font-size:16px;" title="Delete Cable">
                 <i class="fa fa-trash"></i>
             </button>
-            <button onclick="cancelMode()" id="cableCancelBtn" style="width:40px; height:40px; border-radius:8px; background:#475569; border:none; color:white; cursor:pointer; font-size:16px; display:none;" title="Cancel">
+            <button data-action="cancelMode" id="cableCancelBtn" style="width:40px; height:40px; border-radius:8px; background:#475569; border:none; color:white; cursor:pointer; font-size:16px; display:none;" title="Cancel">
                 <i class="fa fa-times"></i>
             </button>
         </div>
@@ -416,7 +417,7 @@ if(empty($connections)) {
                 <input type="text" name="snmp_community" class="form-input" placeholder="public">
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn" style="background:#475569; color:#fff;" onclick="closeAddModal()">Cancel</button>
+                <button type="button" class="btn" style="background:#475569; color:#fff;" data-action="closeAddModal">Cancel</button>
                 <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Add Device</button>
             </div>
         </form>
@@ -455,8 +456,8 @@ if(empty($connections)) {
                 <input type="text" name="location" id="editDeviceLocation" class="form-input">
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn" style="background:#ef4444; color:#fff;" onclick="deleteDevice()"><i class="fa fa-trash"></i> Delete</button>
-                <button type="button" class="btn" style="background:#475569; color:#fff;" onclick="closeEditModal()">Cancel</button>
+                <button type="button" class="btn" style="background:#ef4444; color:#fff;" data-action="deleteDevice"><i class="fa fa-trash"></i> Delete</button>
+                <button type="button" class="btn" style="background:#475569; color:#fff;" data-action="closeEditModal">Cancel</button>
                 <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
             </div>
         </form>
@@ -483,8 +484,8 @@ if(empty($connections)) {
                 </select>
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn" style="background:#ef4444; color:#fff;" onclick="deleteCable()"><i class="fa fa-trash"></i> Delete Cable</button>
-                <button type="button" class="btn" style="background:#475569; color:#fff;" onclick="closeCableModal()">Cancel</button>
+                <button type="button" class="btn" style="background:#ef4444; color:#fff;" data-action="deleteCable"><i class="fa fa-trash"></i> Delete Cable</button>
+                <button type="button" class="btn" style="background:#475569; color:#fff;" data-action="closeCableModal">Cancel</button>
                 <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
             </div>
         </form>

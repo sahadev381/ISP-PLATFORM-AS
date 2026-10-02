@@ -67,7 +67,7 @@ include __DIR__ . '/includes/topbar.php';
             <a href="?filter=active" style="padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; <?= $filter=='active'?'background:#3b82f6; color:#fff;':'background:#f1f5f9; color:#64748b;' ?>">Active</a>
             <a href="?filter=resolved" style="padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; <?= $filter=='resolved'?'background:#3b82f6; color:#fff;':'background:#f1f5f9; color:#64748b;' ?>">Resolved</a>
             
-            <select onchange="window.location.href='?filter=<?= e($filter) ?>&severity='+this.value" style="padding:10px 15px; border:1px solid #e2e8f0; border-radius:8px; margin-left:auto;">
+            <select <?= action_attr('navigateWithValue', ['?filter=' . $filter . '&severity='], 'change') ?> style="padding:10px 15px; border:1px solid #e2e8f0; border-radius:8px; margin-left:auto;">
                 <option value="">All Severities</option>
                 <option value="critical" <?= $severity=='critical'?'selected':'' ?>>Critical</option>
                 <option value="warning" <?= $severity=='warning'?'selected':'' ?>>Warning</option>
@@ -129,7 +129,7 @@ include __DIR__ . '/includes/topbar.php';
                         </td>
                         <td style="padding: 15px;">
                             <?php if($alert['status'] == 'active'): ?>
-                            <button onclick="resolveAlert(<?= e($alert['id']) ?>)" class="btn btn-sm" style="background:#dcfce7; color:#16a34a; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;">
+                            <button <?= action_attr('resolveAlert', [(int) $alert['id']]) ?> class="btn btn-sm" style="background:#dcfce7; color:#16a34a; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;">
                                 <i class="fa fa-check"></i> Resolve
                             </button>
                             <?php else: ?>

@@ -220,7 +220,7 @@ include __DIR__ . '/includes/topbar.php';
                         </td>
                         <td><span class="badge" style="background:#f0fdf4; color:#16a34a;">NPR <?= number_format($p['price']) ?></span></td>
                         <td>
-                            <button onclick='openEditModal(<?= json_encode($p) ?>)' class="btn-icon btn-edit"><i class="fa fa-edit"></i></button>
+                            <button <?= action_attr('openEditModal', [$p]) ?> class="btn-icon btn-edit"><i class="fa fa-edit"></i></button>
                             <a href="?del=<?= (int) $p['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" onclick="return confirm('Delete plan?')"><i class="fa fa-trash"></i></a>
                         </td>
                     </tr>

@@ -116,7 +116,7 @@ include __DIR__ . '/includes/topbar.php';
                     <td style="padding: 15px;">
                         <div style="display:flex; gap:5px;">
                             <?php if($i['status'] == 'in_stock'): ?>
-                                <button onclick="openIssueModal(<?= e($i['id']) ?>, '<?= e_attr_js($i['item_name']) ?>')" class="btn-action-sm" style="background:#3b82f6; color:#fff; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Issue</button>
+                                <button <?= action_attr('openIssueModal', [(int) $i['id'], $i['item_name']]) ?> class="btn-action-sm" style="background:#3b82f6; color:#fff; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Issue</button>
                             <?php else: ?>
                                 <a href="?return=<?= e($i['id']) ?>" class="btn-action-sm" style="background:#64748b; color:#fff; padding:5px 8px; border-radius:4px; text-decoration:none; font-size:11px;">Return</a>
                             <?php endif; ?>

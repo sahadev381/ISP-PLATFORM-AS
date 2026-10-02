@@ -17,7 +17,7 @@ $base_path = app_base_path();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= e($base_path) ?>/assets/css/theme.css">
-    <script src="<?= e(app_base_path()) ?>assets/js/actions.js" defer></script>
+    <?php include_once __DIR__ . '/../../../includes/actions_tag.php'; ?>
     <style>
         :root {
             --primary: #3b82f6;

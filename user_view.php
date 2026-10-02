@@ -275,7 +275,7 @@ function showTab(tabId, btn) {
     <div class="nav-tabs">
         <button class="nav-tab active" onclick="showTab('overview', this)"><i class="fa fa-th-large"></i> Overview</button>
         <button class="nav-tab" onclick="showTab('usage_history', this)"><i class="fa fa-chart-area"></i> Usage History</button>
-        <button class="nav-tab" onclick="window.open('map.php?user=<?= e($username) ?>', '_blank')"><i class="fa fa-map-location-dot"></i> Map View</button>
+        <button class="nav-tab" <?= action_attr('openInNewTab', ['map.php?user=' . rawurlencode($username)]) ?>><i class="fa fa-map-location-dot"></i> Map View</button>
         <button class="nav-tab" onclick="showTab('livegraph', this)"><i class="fa fa-chart-line"></i> Live Graph</button>
         <button class="nav-tab" onclick="showTab('tickets', this)"><i class="fa fa-headset"></i> Tickets</button>
         <button class="nav-tab" onclick="showTab('invoices', this)"><i class="fa fa-file-invoice"></i> Invoices</button>

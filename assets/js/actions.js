@@ -28,6 +28,41 @@
  * arguments are parsed as JSON, so nothing here can execute a string.
  */
 
+/*
+ * A few handlers that only ever existed as inline one-liners.
+ *
+ * These were attribute bodies like
+ *     onchange="window.location.href='?type=x&date='+this.value"
+ * which have no function to point data-action at. Rather than leave
+ * them inline, they get a named function here - and in the process
+ * the value finally goes through encodeURIComponent, which the string
+ * concatenation never did.
+ */
+window.showElement = function (id) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.style.display = 'block';
+    } else {
+        console.error('actions.js: showElement("' + id + '") - no such element');
+    }
+};
+
+window.hideElement = function (id) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.style.display = 'none';
+    }
+};
+
+/* `this` is the <select> or <input>; prefix ends with '=' . */
+window.navigateWithValue = function (prefix) {
+    window.location.href = prefix + encodeURIComponent(this.value);
+};
+
+window.openInNewTab = function (url) {
+    window.open(url, '_blank', 'noopener');
+};
+
 (function () {
     'use strict';
 

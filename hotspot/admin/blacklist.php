@@ -263,6 +263,7 @@ while ($row = $stats->fetch_assoc()) {
             color: #64748b;
         }
     </style>
+<?php include_once __DIR__ . '/../../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -403,10 +404,10 @@ while ($row = $stats->fetch_assoc()) {
                                 <td><?= date('M d, Y', strtotime($e['created_at'])) ?></td>
                                 <td>
                                     <div class="btn-group">
-                                        <button class="btn <?= $e['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle', <?= e($e['id']) ?>)" title="<?= $e['is_active'] ? 'Disable' : 'Enable' ?>">
+                                        <button class="btn <?= $e['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" <?= action_attr('submitAction', ['toggle', (int) $e['id']]) ?> title="<?= $e['is_active'] ? 'Disable' : 'Enable' ?>">
                                             <i class="fas <?= $e['is_active'] ? 'fa-ban' : 'fa-check' ?>"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteEntry(<?= e($e['id']) ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" <?= action_attr('deleteEntry', [(int) $e['id']]) ?> title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>

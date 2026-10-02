@@ -94,7 +94,7 @@ $message = '';
                     <p style="margin: 5px 0 0; color: #64748b; font-size: 14px;">Monitor system activities and security events</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <input type="date" class="form-control" value="<?= e($filter_date) ?>" onchange="window.location.href='?type=<?= e($log_type) ?>&date='+this.value" style="width: 180px;">
+                    <input type="date" class="form-control" value="<?= e($filter_date) ?>" <?= action_attr('navigateWithValue', ['?type=' . $log_type . '&date='], 'change') ?> style="width: 180px;">
                     <a href="?type=<?= e($log_type) ?>" class="btn btn-secondary">
                         <i class="fa fa-redo"></i> Reset
                     </a>

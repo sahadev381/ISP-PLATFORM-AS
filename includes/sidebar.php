@@ -14,7 +14,7 @@
 <?php /* Two customer pages include this sidebar and no header at
          all, so the dispatcher is loaded here too. The browser
          ignores the second copy of an identical src. */ ?>
-<script src="<?= e(app_base_path()) ?>assets/js/actions.js" defer></script>
+<?php include_once __DIR__ . '/actions_tag.php'; ?>
 
 <div class="sidebar">
     <div class="sidebar-logo">

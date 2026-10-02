@@ -217,6 +217,7 @@ $stats = $voucherSys->getStats();
             box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
         }
     </style>
+<?php include_once __DIR__ . '/../../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -382,7 +383,7 @@ $stats = $voucherSys->getStats();
                             <td><?= round($p['speed_kbps']/1024) ?> Mbps</td>
                             <td><span class="badge <?= $p['status'] == 'active' ? 'badge-success' : 'badge-secondary' ?>"><?= e($p['status']) ?></span></td>
                             <td>
-                                <button class="btn btn-sm btn-danger" onclick="deleteProfile(<?= e($p['id']) ?>)"><i class="fa fa-trash"></i></button>
+                                <button class="btn btn-sm btn-danger" <?= action_attr('deleteProfile', [(int) $p['id']]) ?>><i class="fa fa-trash"></i></button>
                             </td>
                         </tr>
                         <?php endforeach; ?>

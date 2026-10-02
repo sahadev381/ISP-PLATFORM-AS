@@ -318,6 +318,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
             color: #64748b;
         }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -438,13 +439,13 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                                 </td>
                                 <td>
                                     <div class="btn-group">
-                                        <button class="btn btn-primary btn-sm" onclick="editGateway(<?= (int) $gw['id'] ?>, '<?= e_attr_js($gw['gateway_name']) ?>', '<?= e_attr_js($gw['display_name']) ?>')" title="Edit">
+                                        <button class="btn btn-primary btn-sm" <?= action_attr('editGateway', [(int) $gw['id'], $gw['gateway_name'], $gw['display_name']]) ?> title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle_gateway', <?= e($gw['id']) ?>)" title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
+                                        <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" <?= action_attr('submitAction', ['toggle_gateway', (int) $gw['id']]) ?> title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
                                             <i class="fas <?= $gw['is_active'] ? 'fa-ban' : 'fa-check' ?>"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteGateway(<?= e($gw['id']) ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" <?= action_attr('deleteGateway', [(int) $gw['id']]) ?> title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
