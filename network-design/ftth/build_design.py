@@ -216,9 +216,10 @@ html_tmpl = r"""<!DOCTYPE html>
 <script>
 const DATA = @DATAJSON@;
 const map = L.map('map').setView([27.855, 85.545], 11);
-const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'(c) OpenStreetMap contributors'}).addTo(map);
+const voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'(c) OpenStreetMap contributors (c) CARTO',maxZoom:19}).addTo(map);
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'(c) OpenStreetMap contributors'});
 const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri World Imagery'});
-L.control.layers({"OSM":osm,"Satellite":sat},null).addTo(map);
+L.control.layers({"Voyager (default)":voyager,"OSM":osm,"Satellite":sat},null).addTo(map);
 
 const POPCOL = {HE:'#c62828',POP1:'#6a3fb5',POP2:'#00838f',POP3:'#ad1457',POP4:'#2e7d32',POP5:'#ef6c00',POP6:'#4527a0',POP7:'#0277bd'};
 const grpcol = g => g.startsWith('Ring A')?'#e53935': g.startsWith('Ring B')?'#1e88e5': g.startsWith('Ring C')?'#43a047':'#fb8c00';

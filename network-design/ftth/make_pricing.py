@@ -37,7 +37,7 @@ h2{margin-bottom:2px}.small{color:#555;font-size:12px}
 <div id="map"></div><div id="tbl"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
 const EDGES = @EDGES@;
-const map = L.map('map'); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+const map = L.map('map'); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'(c) OpenStreetMap contributors (c) CARTO'}).addTo(map);
 const bounds=[];
 EDGES.forEach(function(e,i){
   var pl=L.polyline([e.a,e.b],{color:'#e65100',weight:3,dashArray:'6 6'}); pl.addTo(map);
