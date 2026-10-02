@@ -206,7 +206,7 @@ $isSuper = ($a['role'] === 'superadmin');
     <!-- DELETE -->
     <a class="btn" style="background:#e74c3c;color:#fff;"
        href="?del=<?= (int) $a['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>"
-       onclick="return confirm('Delete this admin?')">
+       <?= action_attr('confirmFirst', ['Delete this admin?']) ?>>
        <i class="fa fa-trash"></i>
     </a>
 

@@ -116,7 +116,7 @@ include __DIR__ . '/../includes/topbar.php';
                                 <td>
                                     <div style="display:flex; gap:5px;">
                                         <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($uname) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
-                                        <form action="<?= e($base_path) ?>disconnect_user.php" method="POST" onsubmit="return confirm('Disconnect this user?')">
+                                        <form action="<?= e($base_path) ?>disconnect_user.php" method="POST" <?= action_attr('confirmFirst', ['Disconnect this user?'], 'submit') ?>>
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="username" value="<?= htmlspecialchars($uname) ?>">
                                             <button type="submit" class="btn-action btn-disconnect"><i class="fa fa-power-off"></i></button>

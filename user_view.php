@@ -179,6 +179,9 @@ include __DIR__ . '/includes/topbar.php';
 
 <script>
 function showTab(tabId, btn) {
+    /* The tab buttons passed `this`; the dispatcher supplies it as
+       the calling context instead. */
+    btn = (btn && btn.classList) ? btn : ((this && this.classList) ? this : null);
     var contents = document.querySelectorAll('.tab-content');
     contents.forEach(function(c) {
         c.classList.remove('active');
@@ -263,7 +266,7 @@ function showTab(tabId, btn) {
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="recharge.php?user=<?= urlencode($user['username']) ?>" class="btn-action btn-primary"><i class="fa fa-bolt"></i> Renew Account</a>
-            <form method="POST" onsubmit="return confirm('Disconnect session?')">
+            <form method="POST" <?= action_attr('confirmFirst', ['Disconnect session?'], 'submit') ?>>
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="disconnect">
                 <button type="submit" class="btn-action btn-danger"><i class="fa fa-power-off"></i> Disconnect</button>
@@ -273,16 +276,16 @@ function showTab(tabId, btn) {
 
     <!-- Tabs Navigation -->
     <div class="nav-tabs">
-        <button class="nav-tab active" onclick="showTab('overview', this)"><i class="fa fa-th-large"></i> Overview</button>
-        <button class="nav-tab" onclick="showTab('usage_history', this)"><i class="fa fa-chart-area"></i> Usage History</button>
+        <button class="nav-tab active" <?= action_attr('showTab', ['overview']) ?>><i class="fa fa-th-large"></i> Overview</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['usage_history']) ?>><i class="fa fa-chart-area"></i> Usage History</button>
         <button class="nav-tab" <?= action_attr('openInNewTab', ['map.php?user=' . rawurlencode($username)]) ?>><i class="fa fa-map-location-dot"></i> Map View</button>
-        <button class="nav-tab" onclick="showTab('livegraph', this)"><i class="fa fa-chart-line"></i> Live Graph</button>
-        <button class="nav-tab" onclick="showTab('tickets', this)"><i class="fa fa-headset"></i> Tickets</button>
-        <button class="nav-tab" onclick="showTab('invoices', this)"><i class="fa fa-file-invoice"></i> Invoices</button>
-        <button class="nav-tab" onclick="showTab('grace', this)"><i class="fa fa-gift"></i> Add Grace</button>
-        <button class="nav-tab" onclick="showTab('optical_power', this)"><i class="fa fa-signal"></i> Optical Power</button>
-        <button class="nav-tab" onclick="showTab('acspush', this)"><i class="fa fa-microchip"></i> ACS Push</button>
-        <button class="nav-tab" onclick="showTab('authlog', this)"><i class="fa fa-history"></i> Auth Log</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['livegraph']) ?>><i class="fa fa-chart-line"></i> Live Graph</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['tickets']) ?>><i class="fa fa-headset"></i> Tickets</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['invoices']) ?>><i class="fa fa-file-invoice"></i> Invoices</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['grace']) ?>><i class="fa fa-gift"></i> Add Grace</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['optical_power']) ?>><i class="fa fa-signal"></i> Optical Power</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['acspush']) ?>><i class="fa fa-microchip"></i> ACS Push</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['authlog']) ?>><i class="fa fa-history"></i> Auth Log</button>
     </div>
 
     <!-- TAB: Overview -->
@@ -365,7 +368,7 @@ function showTab(tabId, btn) {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                     <span style="font-size: 12px; color: #64748b; font-weight: 600;"><?= e($percent) ?>% used</span>
-                    <form method="POST" onsubmit="return confirm('Reset FUP usage for this user?');">
+                    <form method="POST" <?= action_attr('confirmFirst', ['Reset FUP usage for this user?'], 'submit') ?>>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="reset_fup">
                         <button type="submit" class="btn-action" style="padding: 4px 10px; font-size: 11px; background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2;">

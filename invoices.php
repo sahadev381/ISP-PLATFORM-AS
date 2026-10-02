@@ -102,7 +102,7 @@ $page_title = "Invoices";
 		<td><?= e($i['admin']) ?></td>
 		<td>
     		<form method="post" style="display:inline"
-       		onsubmit="return confirm('Delete this invoice?')">
+       		<?= action_attr('confirmFirst', ['Delete this invoice?'], 'submit') ?>>
        		<?= csrf_field() ?>
        		<input type="hidden" name="user" value="<?= e($user) ?>">
        		<input type="hidden" name="del" value="<?= (int) $i['id'] ?>">

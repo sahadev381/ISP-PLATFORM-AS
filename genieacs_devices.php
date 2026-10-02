@@ -199,7 +199,7 @@ include __DIR__ . '/includes/topbar.php';
                             <td style="color: #64748b; font-size: 13px;"><?= e($lastInform) ?></td>
                             <td>
                                 <div style="display: flex; gap: 10px;">
-                                    <form method="POST" onsubmit="return confirm('Send Reboot command to this device?');" style="display: inline;">
+                                    <form method="POST" <?= action_attr('confirmFirst', ['Send Reboot command to this device?'], 'submit') ?> style="display: inline;">
 <?= csrf_field() ?>
                                         <input type="hidden" name="deviceId" value="<?= e($deviceId) ?>">
                                         <button type="submit" name="reboot" class="btn-action btn-reboot" title="Reboot Device">

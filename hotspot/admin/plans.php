@@ -231,7 +231,7 @@ include __DIR__ . '/includes/header_hotspot.php';
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_plan">
                                         <input type="hidden" name="plan_id" value="<?= e($p['id']) ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this plan?')">
+                                        <button type="submit" class="btn btn-sm btn-danger" <?= action_attr('confirmFirst', ['Delete this plan?']) ?>>
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>

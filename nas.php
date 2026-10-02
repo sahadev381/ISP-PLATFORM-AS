@@ -176,7 +176,7 @@ include __DIR__ . '/includes/topbar.php';
             <td style="padding: 15px;">
                 <div class="action-buttons" style="display: flex; gap: 8px;">
                     <a href="nas_edit.php?id=<?= e($n['id']) ?>" class="btn-icon btn-edit" title="Edit"><i class="fa fa-edit"></i></a>
-                    <a href="?del=<?= (int) $n['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Delete this device?')"><i class="fa fa-trash"></i></a>
+                    <a href="?del=<?= (int) $n['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" title="Delete" <?= action_attr('confirmFirst', ['Delete this device?']) ?>><i class="fa fa-trash"></i></a>
                 </div>
             </td>
         </tr>

@@ -175,7 +175,7 @@ include __DIR__ . '/includes/topbar.php';
                     <td style="padding: 12px;">
                         <div style="display: flex; gap: 5px;">
                             <a href="ticket_view.php?id=<?= e($ticket['id']) ?>" class="action-btn btn-view" title="View"><i class="fa fa-eye"></i></a>
-                            <a href="?delete=<?= (int) $ticket['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="action-btn btn-delete" title="Delete" onclick="return confirm('Delete this ticket?')"><i class="fa fa-trash"></i></a>
+                            <a href="?delete=<?= (int) $ticket['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="action-btn btn-delete" title="Delete" <?= action_attr('confirmFirst', ['Delete this ticket?']) ?>><i class="fa fa-trash"></i></a>
                         </div>
                     </td>
                 </tr>

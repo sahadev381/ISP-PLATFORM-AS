@@ -223,7 +223,7 @@ include __DIR__ . '/includes/topbar.php';
                                     <a href="user_edit.php?user=<?= urlencode($u['username']) ?>" class="btn-icon btn-edit" title="Edit Customer">
                                         <i class="fa fa-edit"></i>
                                     </a>
-                                    <a href="users.php?del=<?= urlencode($u['username']) ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Permanently delete this customer?')">
+                                    <a href="users.php?del=<?= urlencode($u['username']) ?>" class="btn-icon btn-delete" title="Delete" <?= action_attr('confirmFirst', ['Permanently delete this customer?']) ?>>
                                         <i class="fa fa-trash"></i>
                                     </a>
                                 </div>

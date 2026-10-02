@@ -78,7 +78,7 @@ include __DIR__ . '/includes/sidebar.php';
                         <a href="kb_view.php?id=<?= e($article['id']) ?>" class="btn btn-sm view" target="_blank">
                             <i class="fa fa-eye"></i>
                         </a>
-                        <a href="?del=<?= (int) $article['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn btn-sm danger" onclick="return confirm('Delete this article?')">
+                        <a href="?del=<?= (int) $article['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn btn-sm danger" <?= action_attr('confirmFirst', ['Delete this article?']) ?>>
                             <i class="fa fa-trash"></i>
                         </a>
                     </td>

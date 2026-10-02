@@ -57,7 +57,7 @@ include __DIR__ . '/includes/sidebar.php';
                                     <i class="fa fa-edit"></i>
                                 </a>
                                 <form action="branch_delete.php" method="POST" style="display:inline"
-                                      onsubmit="return confirm('Delete this branch?');">
+                                      <?= action_attr('confirmFirst', ['Delete this branch?'], 'submit') ?>>
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
                                     <button type="submit" class="btn btn-sm danger">

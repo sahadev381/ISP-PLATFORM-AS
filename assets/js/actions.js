@@ -38,6 +38,40 @@
  * the value finally goes through encodeURIComponent, which the string
  * concatenation never did.
  */
+/*
+ * The same thing as action_attr() in includes/html.php, for the markup
+ * that JavaScript builds instead of PHP.
+ *
+ * map.php assembles popups and table rows as template literals and
+ * drops them in with innerHTML. Those strings carried
+ * onclick="openManager(${num(n.id)}, '${escJs(n.type)}', null)" - a
+ * line of JavaScript built out of a database value, inside markup
+ * built out of a string, which is two chances to get the escaping
+ * wrong rather than one.
+ */
+window.actionAttr = function (fn, args) {
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(fn)) {
+        throw new Error('actionAttr: not a plain function name: ' + fn);
+    }
+    var out = 'data-action="' + fn + '"';
+    if (args && args.length) {
+        /* JSON first so the values are data, then HTML-escape so the
+           JSON cannot end the attribute. Same order as the PHP side. */
+        out += ' data-args="' + JSON.stringify(args)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;') + '"';
+    }
+    return out;
+};
+
+/* onsubmit="return confirm('Delete?')" has no function to name. */
+window.confirmFirst = function (message) {
+    return window.confirm(message);
+};
+
 window.showElement = function (id) {
     var el = document.getElementById(id);
     if (el) {

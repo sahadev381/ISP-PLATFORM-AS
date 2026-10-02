@@ -237,7 +237,7 @@ include __DIR__ . '/includes/topbar.php';
                 <td><?= e($h['created_at']) ?></td>
                 <td>
                     <form method="post" style="display:inline"
-                          onsubmit="return confirm('Delete this invoice and roll back the expiry?');">
+                          <?= action_attr('confirmFirst', ['Delete this invoice and roll back the expiry?'], 'submit') ?>>
                         <?= csrf_field() ?>
                         <input type="hidden" name="del_invoice" value="<?= (int) $h['id'] ?>">
                         <input type="hidden" name="user" value="<?= e($username) ?>">

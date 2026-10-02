@@ -142,7 +142,7 @@ while ($p = $perms->fetch_assoc()) {
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_role">
                                         <input type="hidden" name="role_id" value="<?= e($role['id']) ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this role?')">
+                                        <button type="submit" class="btn btn-sm btn-danger" <?= action_attr('confirmFirst', ['Delete this role?']) ?>>
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
