@@ -1,16 +1,18 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/cors.php';
 
-include_once '../../config.php';
-include_once '../../includes/payment_gateway.php';
+// This endpoint used to answer every origin with a wildcard. Gateway
+// callbacks are server-to-server and our own pages are same-origin, so
+// neither needs CORS; anything else must be listed in
+// CORS_ALLOWED_ORIGINS. Also handles the preflight.
+cors_apply(['POST', 'GET']);
+require_once __DIR__ . '/../../includes/payment_gateway.php';
+
+require_once __DIR__ . '/../../includes/api_auth.php';
+require_once __DIR__ . '/../../includes/billing.php';
 
 $paymentGateway = new PaymentGateway();
 
@@ -25,9 +27,11 @@ $action = $input['action'] ?? '';
 
 switch ($action) {
     case 'initiate':
+        api_require_payment_caller();
         initiatePayment($input);
         break;
     case 'verify':
+        api_require_payment_caller();
         verifyPayment($input);
         break;
     case 'webhook':
@@ -51,8 +55,34 @@ function initiatePayment($data) {
         echo json_encode(['success' => false, 'error' => 'Missing required parameters']);
         return;
     }
-    
-    $gateway = $conn->query("SELECT * FROM payment_gateways WHERE type = 'khalti' AND status = 'active' LIMIT 1")->fetch_assoc();
+
+    // The amount must come from the invoice, not from the request body —
+    // otherwise a caller can settle a Rs 5000 invoice by posting amount=1.
+    $invoice = invoice_find($conn, $invoice_id);
+    if (!$invoice) {
+        echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+        return;
+    }
+
+    // A customer may only pay their own invoice; an admin or API key
+    // caller may act for anyone.
+    $caller_customer_id = api_customer_id();
+    if ($caller_customer_id !== null && !api_is_logged_in() && !api_has_valid_key()
+        && (int) $invoice['customer_id'] !== $caller_customer_id) {
+        echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+        return;
+    }
+    if ($invoice['status'] === 'paid') {
+        echo json_encode(['success' => false, 'error' => 'Invoice is already paid']);
+        return;
+    }
+    // `invoices` calls this column `amount`; billing_invoices called it
+    // total_amount. Reading the old name here would have silently
+    // produced an amount of 0.00 on every payment.
+    $amount = (float) $invoice['amount'];
+    $customer_id = (int) $invoice['customer_id'];
+
+    $gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE type = 'khalti' AND status = 'active' LIMIT 1");
     
     if (!$gateway) {
         echo json_encode(['success' => false, 'error' => 'Khalti gateway not configured']);
@@ -75,8 +105,9 @@ function initiatePayment($data) {
         ]
     ];
     
-    $conn->query("INSERT INTO payment_transactions (transaction_id, gateway_id, customer_id, invoice_id, amount, status, created_at) 
-                  VALUES ('$transaction_id', {$gateway['id']}, $customer_id, $invoice_id, $amount, 'pending', NOW())");
+    db_exec($conn, "INSERT INTO payment_transactions (transaction_id, gateway_id, customer_id, invoice_id, amount, status, created_at)
+                  VALUES (?, ?, ?, ?, ?, 'pending', NOW())",
+        [$transaction_id, (int) $gateway['id'], $customer_id, $invoice_id, $amount]);
     
     echo json_encode([
         'success' => true,
@@ -101,14 +132,20 @@ function verifyPayment($data) {
         return;
     }
     
-    $transaction = $conn->query("SELECT * FROM payment_transactions WHERE transaction_id = '$transaction_id'")->fetch_assoc();
-    
+    $transaction = db_one($conn, "SELECT * FROM payment_transactions WHERE transaction_id = ?", [$transaction_id]);
+
     if (!$transaction) {
         echo json_encode(['success' => false, 'error' => 'Transaction not found']);
         return;
     }
-    
-    $gateway = $conn->query("SELECT * FROM payment_gateways WHERE id = {$transaction['gateway_id']}")->fetch_assoc();
+
+    // Never re-credit an already completed transaction.
+    if ($transaction['status'] === 'completed') {
+        echo json_encode(['success' => true, 'message' => 'Payment already verified']);
+        return;
+    }
+
+    $gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE id = ?", [(int) $transaction['gateway_id']]);
     
     $url = 'https://khalti.com/api/v2/payment/verify/';
     $data = [
@@ -132,25 +169,38 @@ function verifyPayment($data) {
     
     $result = json_decode($response, true);
     
-    if (isset($result['success']) && $result['success'] === true) {
-        $conn->query("UPDATE payment_transactions SET 
-                      status = 'completed', 
-                      gateway_response = '" . $conn->real_escape_string($response) . "',
+    // Khalti echoes back the amount it actually captured (in paisa). Trusting
+    // only $result['success'] lets a caller settle a large invoice with a tiny
+    // payment, so the captured amount must match what we asked for.
+    $expected_paisa = (int) round($transaction['amount'] * 100);
+    $captured_paisa = (int) ($result['amount'] ?? 0);
+    $verified = isset($result['success']) && $result['success'] === true
+        && $captured_paisa >= $expected_paisa;
+
+    if ($verified) {
+        db_exec($conn, "UPDATE payment_transactions SET
+                      status = 'completed',
+                      gateway_response = ?,
                       verified_at = NOW(),
                       updated_at = NOW()
-                      WHERE id = {$transaction['id']}");
-        
+                      WHERE id = ? AND status <> 'completed'",
+            [$response, (int) $transaction['id']]);
+
         if ($transaction['invoice_id']) {
-            $conn->query("UPDATE billing_invoices SET status = 'paid', paid_at = NOW() WHERE id = {$transaction['invoice_id']}");
+            $settled = invoice_settle($conn, (int) $transaction['invoice_id'], (string) ($data['token'] ?? ''));
+            if (!$settled['ok']) {
+                error_log('khalti verify: payment verified but settlement failed for invoice '
+                    . $transaction['invoice_id']);
+            }
         }
-        
+
         echo json_encode(['success' => true, 'message' => 'Payment verified successfully']);
     } else {
-        $conn->query("UPDATE payment_transactions SET 
+        db_exec($conn, "UPDATE payment_transactions SET
                       status = 'failed',
-                      gateway_response = '" . $conn->real_escape_string($response) . "'
-                      WHERE id = {$transaction['id']}");
-        
+                      gateway_response = ?
+                      WHERE id = ?", [$response, (int) $transaction['id']]);
+
         echo json_encode(['success' => false, 'error' => 'Payment verification failed']);
     }
 }
@@ -163,22 +213,58 @@ function handleWebhook($data) {
     
     if ($event === 'payment.success') {
         $token = $data['token'] ?? '';
-        
-        $transaction = $conn->query("SELECT * FROM payment_transactions WHERE transaction_id = '$transaction_id'")->fetch_assoc();
-        
-        if ($transaction && $transaction['status'] == 'pending') {
-            $conn->query("UPDATE payment_transactions SET 
-                          status = 'completed',
-                          gateway_response = '" . $conn->real_escape_string(json_encode($data)) . "',
-                          verified_at = NOW()
-                          WHERE id = {$transaction['id']}");
-            
-            if ($transaction['invoice_id']) {
-                $conn->query("UPDATE billing_invoices SET status = 'paid', paid_at = NOW() WHERE id = {$transaction['invoice_id']}");
+
+        $transaction = db_one($conn, "SELECT * FROM payment_transactions WHERE transaction_id = ?", [$transaction_id]);
+
+        // The webhook body is attacker-controllable: this endpoint is public and
+        // the payload carries no signature. Previously any POST of
+        // {"event":"payment.success","transaction_id":"..."} marked the invoice
+        // paid. Re-verify the token against Khalti before trusting the event.
+        if ($transaction && $transaction['status'] === 'pending' && $token !== '') {
+            $gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE id = ?", [(int) $transaction['gateway_id']]);
+            $expected_paisa = (int) round($transaction['amount'] * 100);
+
+            $ch = curl_init('https://khalti.com/api/v2/payment/verify/');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+                'token' => $token,
+                'amount' => $expected_paisa,
+            ]));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Key ' . ($gateway['api_secret'] ?? ''),
+                'Content-Type: application/json',
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $result = json_decode((string) $response, true);
+            $verified = is_array($result)
+                && ($result['success'] ?? null) === true
+                && (int) ($result['amount'] ?? 0) >= $expected_paisa;
+
+            if ($verified) {
+                db_exec($conn, "UPDATE payment_transactions SET
+                              status = 'completed',
+                              gateway_response = ?,
+                              verified_at = NOW()
+                              WHERE id = ? AND status = 'pending'",
+                    [$response, (int) $transaction['id']]);
+
+                if ($transaction['invoice_id']) {
+                    $settled = invoice_settle($conn, (int) $transaction['invoice_id'], (string) $token);
+                    if (!$settled['ok']) {
+                        error_log('khalti webhook: payment verified but settlement failed for invoice '
+                            . $transaction['invoice_id']);
+                    }
+                }
+            } else {
+                error_log('Khalti webhook rejected for transaction ' . $transaction['transaction_id'] . ': verification failed');
             }
         }
     }
-    
+
     http_response_code(200);
     echo json_encode(['received' => true]);
 }

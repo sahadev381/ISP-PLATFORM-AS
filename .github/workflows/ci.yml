@@ -1,0 +1,501 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  lint:
+    name: PHP lint & security grep
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, curl, json
+          coverage: none
+
+      - name: Syntax check every PHP file
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' f; do
+            if ! php -l "$f" > /dev/null; then
+              php -l "$f" || true
+              fail=1
+            fi
+          done < <(find . -name '*.php' -not -path './vendor/*' -print0)
+          exit $fail
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Unit tests
+        run: php tests/run.php
+
+      - name: JavaScript syntax
+        run: |
+          set -e
+          # A syntax error anywhere in a script block stops the whole
+          # block from running, silently. Two shipped files were broken
+          # this way before this check existed.
+          for f in $(git ls-files 'assets/js/*.js'); do
+            node --check "$f" || { echo "::error file=$f::JavaScript syntax error"; exit 1; }
+          done
+          echo "All assets/js files parse."
+
+      - name: CSRF coverage
+        run: php scripts/check_csrf.php
+
+      # The schema job does this properly against MySQL, but that job
+      # takes minutes and needs a database. This parses schema.sql, so it
+      # fails here within seconds and can be run on a laptop.
+      - name: Schema covers every table the code writes to
+        run: php scripts/check_schema.php
+
+      # A shebang before declare(strict_types=1) is a fatal error that
+      # token_get_all() parses happily, so the lint step above cannot
+      # see it. Four backup scripts shipped that way.
+      - name: CLI scripts actually run
+        run: php scripts/check_cli_scripts.php
+
+      # These particular secrets are already in the git history and
+      # cannot be taken out of it. Re-adding one does not make things
+      # slightly worse - it makes the rotation that fixes them
+      # pointless. See ROTATION.md.
+      - name: No credentials in code
+        run: php scripts/check_secrets.php
+
+      # Every on* attribute is a reason script-src must keep
+      # 'unsafe-inline'. The budget can only go down.
+      - name: Inline event handlers are not increasing
+        run: php scripts/check_inline_handlers.php
+
+      - name: Migration files are well formed
+        run: |
+          set -e
+          # A migration that has been applied anywhere must never be
+          # edited - the runner records filenames, so an edited file does
+          # not re-run and two databases silently diverge. Duplicate
+          # numbers have the same effect, because apply order then
+          # depends on the rest of the name.
+          # A migration that is not committed does not exist for anyone
+          # else. .gitignore has a blanket *.sql rule, and the negation
+          # that un-ignores database/ only matched one level deep, so a
+          # commit once shipped the migration runner with no migrations
+          # in it. Compare what is on disk against what git tracks.
+          on_disk=$(ls database/migrations/*.sql 2>/dev/null | sort || true)
+          tracked=$(git ls-files 'database/migrations/*.sql' | sort)
+          if [ "$on_disk" != "$tracked" ]; then
+            echo "::error::migration files on disk are not all tracked by git"
+            diff <(echo "$on_disk") <(echo "$tracked") || true
+            exit 1
+          fi
+
+          dupes=$(echo "$tracked" | xargs -r -n1 basename | cut -c1-3 | sort | uniq -d || true)
+          if [ -n "$dupes" ]; then
+            echo "::error::duplicate migration numbers: $dupes"
+            exit 1
+          fi
+          for f in database/migrations/*.sql; do
+            [ -e "$f" ] || continue
+            case "$(basename "$f")" in
+              [0-9][0-9][0-9]_*.sql) ;;
+              *) echo "::error::$f must be named NNN_description.sql"; exit 1 ;;
+            esac
+          done
+          echo "Migration files are well formed."
+
+      - name: Block hand-rolled session_start()
+        run: |
+          set -e
+          # The hardened cookie flags (HttpOnly/Secure/SameSite) can only be
+          # applied before the session starts. Any file that calls
+          # session_start() itself gets the PHP defaults instead, and
+          # session_set_cookie_params() in config.php then does nothing.
+          # Everything must go through session_boot().
+          hits=$(grep -rn --include='*.php' -E '^[^*/]*\bsession_start\s*\(' . \
+                 | grep -v '^./includes/session.php:' \
+                 | grep -v '^./vendor/' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::call session_boot() (includes/session.php) instead of session_start()"
+            exit 1
+          fi
+          echo "All entry points use session_boot()."
+
+      - name: Block working-directory-relative includes
+        run: |
+          set -e
+          # include 'config.php' only resolves when the process happens to
+          # be running from the right directory, so it breaks under cron,
+          # CLI and some FPM setups. Every include must be __DIR__-relative.
+          if git grep -nE "(include|require)(_once)?[[:space:]]*\(?[[:space:]]*['\"][^/$.\"']" -- '*.php' \
+               | grep -vE ':[[:space:]]*(\*|//|#|/\*)' ; then
+            echo "::error::relative include found - use __DIR__ . '/...' instead"
+            exit 1
+          fi
+
+          # Same bug wearing a variable: $base_path is a URL prefix and
+          # must never be used to build a filesystem path.
+          if git grep -nE "(include|require)(_once)?[[:space:]]+\\$base_path" -- '*.php'; then
+            echo "::error::include via \$base_path - use __DIR__ . '/...' instead"
+            exit 1
+          fi
+          if git grep -nE "(file_exists|file_get_contents|file_put_contents|fopen|is_readable|unlink)[^;]*\\$base_path" -- '*.php'; then
+            echo "::error::\$base_path used as a filesystem path - it is a URL prefix"
+            exit 1
+          fi
+
+          # chdir() in a request handler papers over exactly these bugs.
+          if git grep -n "chdir(" -- '*.php'; then
+            echo "::error::chdir() found - make the path absolute instead"
+            exit 1
+          fi
+          echo "All includes and filesystem paths are __DIR__-relative."
+
+      - name: Block committed secrets
+        run: |
+          set -e
+          bad=0
+
+          # Real config / env files must never be committed
+          for f in config.php .env cookies.txt; do
+            if git ls-files --error-unmatch "$f" > /dev/null 2>&1; then
+              echo "::error::$f must not be committed"
+              bad=1
+            fi
+          done
+
+          # Editor swap files and backups
+          if git ls-files | grep -E '\.sw[a-p]$|\.sv[a-z]$|\.bak[0-9]*$|\.zip$'; then
+            echo "::error::swap/backup/archive files are committed"
+            bad=1
+          fi
+
+          # Hardcoded database credentials
+          if git grep -nE 'new mysqli\(\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]*"' -- '*.php' \
+              | grep -v 'config.php.example'; then
+            echo "::error::hardcoded database credentials found — use env()"
+            bad=1
+          fi
+
+          exit $bad
+
+      - name: Warn on raw SQL interpolation
+        continue-on-error: true
+        run: |
+          echo "Files still interpolating variables into SQL strings:"
+          git grep -nE '(query|exec)\("[^"]*\$' -- '*.php' | grep -v vendor || echo "  none 🎉"
+
+  schema:
+    name: Database schema
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci
+          MYSQL_DATABASE: isp_platform
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -pci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli
+
+      # The schema was reconstructed from the application's queries, so
+      # the useful check is that MySQL actually accepts it and that every
+      # column the PHP writes to really exists.
+      - name: Load schema and seed
+        run: |
+          set -e
+          mysql -h127.0.0.1 -uroot -pci isp_platform < database/schema.sql
+          mysql -h127.0.0.1 -uroot -pci isp_platform < database/seed.sql
+
+      - name: Schema is idempotent
+        run: mysql -h127.0.0.1 -uroot -pci isp_platform < database/schema.sql
+
+      # A new column has to be added twice: to schema.sql so new installs
+      # get it, and as a migration so existing installs get it. Forgetting
+      # either is how a migration system drifts. Build the same database
+      # both ways and compare.
+      - name: New install and upgraded install produce the same schema
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: ci
+        run: |
+          set -e
+
+          # Path A - a new install: schema.sql, then record the migrations
+          # as applied without running them.
+          mysql -h127.0.0.1 -uroot -pci -e "DROP DATABASE IF EXISTS fresh; CREATE DATABASE fresh;"
+          mysql -h127.0.0.1 -uroot -pci fresh < database/schema.sql
+          DB_NAME=fresh php scripts/migrate.php baseline
+
+          # Path B - an existing install at v0.9.0, brought forward by the
+          # migrations. Strip the columns migration 002 adds so the
+          # starting point really is the older schema.
+          mysql -h127.0.0.1 -uroot -pci -e "DROP DATABASE IF EXISTS upgraded; CREATE DATABASE upgraded;"
+          mysql -h127.0.0.1 -uroot -pci upgraded < database/schema.sql
+          mysql -h127.0.0.1 -uroot -pci upgraded -e \
+            "ALTER TABLE invoices DROP COLUMN paid_at, DROP COLUMN payment_reference;"
+          # ... and the columns migration 003 adds, for the same reason.
+          # Every migration needs its columns removed here, or the
+          # migration runs against a database that already has them and
+          # this job stops testing the thing it exists to test.
+          mysql -h127.0.0.1 -uroot -pci upgraded -e \
+            "ALTER TABLE kb_categories DROP COLUMN sort_order;
+             ALTER TABLE hotspot_voucher_types DROP COLUMN status;"
+          DB_NAME=upgraded php scripts/migrate.php up
+
+          dump_cols () {
+            mysql -h127.0.0.1 -uroot -pci -N -B -e \
+              "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+               FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$1'
+               ORDER BY TABLE_NAME, COLUMN_NAME"
+          }
+          dump_cols fresh    > /tmp/fresh.txt
+          dump_cols upgraded > /tmp/upgraded.txt
+
+          if ! diff -u /tmp/fresh.txt /tmp/upgraded.txt; then
+            echo "::error::schema.sql and the migrations disagree - a change was added to one but not the other"
+            exit 1
+          fi
+          echo "A new install and an upgraded install have identical schemas."
+
+      - name: Migrations are idempotent
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: ci
+          DB_NAME: upgraded
+        run: |
+          set -e
+          php scripts/migrate.php up | tee /tmp/again.txt
+          grep -q "Nothing to do" /tmp/again.txt
+
+      - name: Integration tests against MySQL
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: ci
+          DB_NAME: isp_platform
+        run: php tests/integration/run.php
+
+      - name: Every column used by the code exists
+        run: |
+          python3 - <<'PY'
+          import re, subprocess, os, sys
+          from collections import defaultdict
+
+          cols = subprocess.run(
+              ["mysql", "-h127.0.0.1", "-uroot", "-pci", "-N", "-B", "-e",
+               "SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS "
+               "WHERE TABLE_SCHEMA='isp_platform'"],
+              capture_output=True, text=True, check=True).stdout
+
+          schema = defaultdict(set)
+          for line in cols.strip().split("\n"):
+              t, c = line.split("\t")
+              schema[t.lower()].add(c.lower())
+
+          files = [f for f in subprocess.run(["git", "ls-files", "*.php"],
+                   capture_output=True, text=True).stdout.split()
+                   if "vendor/" not in f and os.path.exists(f)]
+
+          problems = defaultdict(set)
+          for f in files:
+              s = open(f, encoding="utf-8", errors="replace").read()
+              for m in re.finditer(r"INSERT\s+(?:IGNORE\s+)?INTO\s+`?(\w+)`?\s*\(([^)]*)\)", s, re.I | re.S):
+                  t = m.group(1).lower()
+                  if t not in schema:
+                      problems["<missing table>"].add(f"{t} ({f})")
+                      continue
+                  for c in m.group(2).split(","):
+                      c = c.strip().strip("`").lower()
+                      if re.fullmatch(r"[a-z_]\w*", c) and c not in schema[t]:
+                          problems[t].add(f"INSERT {c} ({f})")
+              for m in re.finditer(r"UPDATE\s+`?(\w+)`?\s+SET\s+(.*?)(?:\bWHERE\b|\")", s, re.I | re.S):
+                  t = m.group(1).lower()
+                  if t not in schema:
+                      continue
+                  for c in re.findall(r"(?:^|,)\s*`?([a-z_]\w*)`?\s*=", m.group(2), re.I | re.M):
+                      if c.lower() not in schema[t]:
+                          problems[t].add(f"UPDATE {c.lower()} ({f})")
+
+          for t in sorted(problems):
+              print(f"::error::{t}")
+              for c in sorted(problems[t]):
+                  print(f"    {c}")
+          sys.exit(1 if problems else 0)
+          PY
+
+  # ------------------------------------------------------------------
+  # The gap RELEASE_READINESS called "the one that matters most":
+  # nothing in this repository had ever loaded a page. Every other
+  # check is static - parsers, scanners, unit tests over pure helpers.
+  # A file parses perfectly and still dies on the first request when a
+  # column was renamed or an include is missing, and phases 6 and 11
+  # each found pages that had been broken for a long time that way.
+  #
+  # This runs the real application against a real MySQL, logs in as a
+  # real admin and requests every page. It is not a substitute for a
+  # staging deploy against production-shaped data - the seed is small
+  # and clean - but it does mean "it renders" is now a fact rather
+  # than an assumption.
+  # ------------------------------------------------------------------
+  pages:
+    name: Every page loads
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci
+          MYSQL_DATABASE: isp_platform
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -pci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, curl, json
+
+      # monitoring/twilio.php requires vendor/autoload.php. Without the
+      # dependencies installed the page is a fatal error, which says
+      # nothing about the code and hides the failures that do.
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Load schema and seed
+        run: |
+          set -e
+          mysql -h127.0.0.1 -uroot -pci isp_platform < database/schema.sql
+          mysql -h127.0.0.1 -uroot -pci isp_platform < database/seed.sql
+
+      - name: Configure the application
+        run: |
+          set -e
+          cp config.php.example config.php
+          cat > .env <<'ENV'
+          APP_DEBUG=false
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_USER=root
+          DB_PASS=ci
+          DB_NAME=isp_platform
+          MON_DB_HOST=127.0.0.1
+          MON_DB_USER=root
+          MON_DB_PASS=ci
+          MON_DB_NAME=isp_platform
+          ENV
+
+      # create_admin.php prompts on stdin by design - a password in a
+      # command line argument lands in `ps` and in shell history. For
+      # CI the row goes in directly.
+      - name: Create an administrator
+        run: |
+          php -r '
+            require "config.php";
+            $hash = password_hash("ci-smoke-password", PASSWORD_DEFAULT);
+            $conn->query("DELETE FROM admins WHERE username = \"smoke\"");
+            /* role is ENUM(superadmin,manager,support) and the flag is
+               `active`, not `status`. superadmin so branch_scope() does
+               not filter the crawl down to one branch. */
+            $stmt = $conn->prepare("INSERT INTO admins (username, password, role, active) VALUES (?, ?, \"superadmin\", 1)");
+            $stmt->bind_param("ss", $u, $hash);
+            $u = "smoke";
+            $stmt->execute();
+            echo "admin created\n";
+          '
+
+      - name: Start the application
+        run: |
+          php -S 127.0.0.1:8080 -t . > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8080/index.php; then
+              echo "server up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the built-in server never became ready"
+          cat /tmp/server.log
+          exit 1
+
+      - name: Load every page
+        run: php scripts/smoke_test.php --url=http://127.0.0.1:8080 --user=smoke --pass=ci-smoke-password
+
+      # The PHP crawler proves a page renders. It does not execute a
+      # line of the JavaScript on it, and a syntax error in an inline
+      # <script> disables that whole block silently - two files shipped
+      # that way before anyone read them. A real browser is also what
+      # makes the inline-handler cleanup in RELEASE_READINESS 4.6
+      # possible to attempt: converting 189 handlers blind was refused
+      # because nothing could tell whether a converted button worked.
+      # The download is ~130 MB and the apt dependencies take minutes.
+      # Without the cache this one step was most of a ten-minute job.
+      - name: Cache the browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.49.1-${{ runner.os }}
+
+      - name: Install a browser
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Run every page in a browser
+        run: |
+          set -e
+          php scripts/smoke_test.php --url=http://127.0.0.1:8080 --list --json > /tmp/pages.json
+          node scripts/browser_check.mjs \
+            --url=http://127.0.0.1:8080 --user=smoke --pass=ci-smoke-password \
+            --pages=/tmp/pages.json
+
+      # The crawler reads the response body. The server log catches
+      # anything that was written to stderr instead - a fatal after
+      # output has started, for example, which still returns a
+      # partially rendered page with a 200.
+      - name: No fatals in the server log
+        if: always()
+        run: |
+          echo "--- server log ---"
+          cat /tmp/server.log || true
+          # includes/errors.php catches exceptions, so a failure that
+          # used to read "PHP Fatal error" now arrives as a JSON record
+          # on stderr. Match both, and annotate - on a network that
+          # cannot reach the Actions blob storage the annotations are
+          # the only readable output.
+          pattern='PHP (Fatal|Parse) error|Uncaught|"level":"(fatal|exception|error)"'
+          if grep -qE "$pattern" /tmp/server.log; then
+            grep -hE "$pattern" /tmp/server.log | cut -c1-600 | head -20 \
+              | sed 's/^/::error::/'
+            exit 1
+          fi

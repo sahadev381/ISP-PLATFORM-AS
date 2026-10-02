@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Network Observability & Performance";
 $active = "nas";
@@ -22,9 +22,9 @@ foreach($server_metrics as $m) {
     if($m['metric_type'] == 'MEM') $mem_data[] = $m['metric_value'];
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 25px;">
@@ -67,14 +67,14 @@ include 'includes/topbar.php';
                 <?php 
                 $olts = $conn->query("SELECT * FROM nas WHERE device_type='olt'");
                 while($o = $olts->fetch_assoc()): 
-                    include_once 'includes/olt_api.php';
+                    include_once __DIR__ . '/includes/olt_api.php';
                     $driver = new OLT_Driver($o);
                     $h = $driver->getHealth();
                 ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 15px;"><b><?= $o['nasname'] ?></b><br><small><?= $o['ip_address'] ?></small></td>
-                    <td style="padding: 15px; font-weight:700;"><?= $h['cpu'] ?>%</td>
-                    <td style="padding: 15px;"><?= $h['temp'] ?>°C</td>
+                    <td style="padding: 15px;"><b><?= e($o['nasname']) ?></b><br><small><?= e($o['ip_address']) ?></small></td>
+                    <td style="padding: 15px; font-weight:700;"><?= e($h['cpu']) ?>%</td>
+                    <td style="padding: 15px;"><?= e($h['temp']) ?>°C</td>
                     <td style="padding: 15px;"><span class="badge active">HEALTHY</span></td>
                 </tr>
                 <?php endwhile; ?>
@@ -120,4 +120,4 @@ include 'includes/topbar.php';
     });
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

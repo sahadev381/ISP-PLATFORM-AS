@@ -1,13 +1,14 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
+session_boot();
 $page_title = "Hotspot Portal";
 
-chdir(__DIR__ . '/../..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
-include_once 'hotspot/includes/voucher.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+include_once __DIR__ . '/../includes/voucher.php';
 
 $voucherSys = new VoucherSystem();
 
@@ -19,15 +20,16 @@ if (!isset($_SESSION['user_id'])) {
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+    csrf_check();
     if ($_POST['action'] == 'generate_pins') {
-        $profileId = $_POST['profile_id'] ?? 1;
-        $count = $_POST['count'] ?? 10;
+        $profileId = (int) ($_POST['profile_id'] ?? 1);
+        $count = min(1000, max(1, (int) ($_POST['count'] ?? 10)));
         $pins = $voucherSys->generatePins($profileId, $count);
         $message = "Generated " . count($pins) . " PINs: " . implode(', ', $pins);
     }
     
     if ($_POST['action'] == 'delete_profile' && isset($_POST['profile_id'])) {
-        $conn->query("DELETE FROM hotspot_profiles WHERE id = " . intval($_POST['profile_id']));
+        db_exec($conn, "DELETE FROM hotspot_profiles WHERE id = ?", [(int) $_POST['profile_id']]);
         $message = "Profile deleted";
     }
 }
@@ -40,7 +42,7 @@ $stats = $voucherSys->getStats();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -215,6 +217,7 @@ $stats = $voucherSys->getStats();
             box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
         }
     </style>
+<?php include_once __DIR__ . '/../../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -253,14 +256,14 @@ $stats = $voucherSys->getStats();
                 <i class="fa fa-arrow-left"></i> Back to Main
             </a>
             <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1)) ?>
+                <?= e(strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
             </div>
         </div>
     </nav>
     
     <div class="main-content">
         <?php if ($message): ?>
-            <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= $message ?></div>
+            <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= e($message) ?></div>
         <?php endif; ?>
         
         <!-- Stats Cards -->
@@ -276,14 +279,14 @@ $stats = $voucherSys->getStats();
                 <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
                 <div>
                     <div class="stat-label">Available</div>
-                    <div class="stat-value"><?= $stats['available'] ?? 0 ?></div>
+                    <div class="stat-value"><?= e($stats['available'] ?? 0) ?></div>
                 </div>
             </div>
             <div class="stat-card" style="border-left: 4px solid var(--info);">
                 <div class="stat-icon cyan"><i class="fa fa-user-check"></i></div>
                 <div>
                     <div class="stat-label">Used</div>
-                    <div class="stat-value"><?= $stats['used'] ?? 0 ?></div>
+                    <div class="stat-value"><?= e($stats['used'] ?? 0) ?></div>
                 </div>
             </div>
             <div class="stat-card" style="border-left: 4px solid var(--warning);">
@@ -303,12 +306,13 @@ $stats = $voucherSys->getStats();
                 </div>
                 <div class="card-body">
                     <form method="POST" style="display: flex; gap: 15px; align-items: flex-end;">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="generate_pins">
                         <div style="flex: 1;">
                             <label style="font-size: 13px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Select Profile</label>
                             <select name="profile_id" class="form-select" style="width: 100%;">
                                 <?php foreach ($profiles as $p): ?>
-                                    <option value="<?= $p['id'] ?>"><?= $p['name'] ?> - Rs.<?= $p['price'] ?></option>
+                                    <option value="<?= e($p['id']) ?>"><?= e($p['name']) ?> - Rs.<?= e($p['price']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -371,15 +375,15 @@ $stats = $voucherSys->getStats();
                     <tbody>
                         <?php foreach ($profiles as $p): ?>
                         <tr>
-                            <td><strong><?= $p['name'] ?></strong></td>
-                            <td><span class="badge <?= $p['type'] == 'data' ? 'badge-primary' : 'badge-info' ?>"><?= ucfirst($p['type']) ?></span></td>
-                            <td><?= $p['data_limit_mb'] > 0 ? $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
-                            <td><?= $p['validity_hours'] ?> hours</td>
-                            <td><strong>Rs.<?= $p['price'] ?></strong></td>
+                            <td><strong><?= e($p['name']) ?></strong></td>
+                            <td><span class="badge <?= $p['type'] == 'data' ? 'badge-primary' : 'badge-info' ?>"><?= e(ucfirst($p['type'])) ?></span></td>
+                            <td><?= $p['data_limit_mb'] > 0 ? (int) $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
+                            <td><?= e($p['validity_hours']) ?> hours</td>
+                            <td><strong>Rs.<?= e($p['price']) ?></strong></td>
                             <td><?= round($p['speed_kbps']/1024) ?> Mbps</td>
-                            <td><span class="badge <?= $p['status'] == 'active' ? 'badge-success' : 'badge-secondary' ?>"><?= $p['status'] ?></span></td>
+                            <td><span class="badge <?= $p['status'] == 'active' ? 'badge-success' : 'badge-secondary' ?>"><?= e($p['status']) ?></span></td>
                             <td>
-                                <button class="btn btn-sm btn-danger" onclick="deleteProfile(<?= $p['id'] ?>)"><i class="fa fa-trash"></i></button>
+                                <button class="btn btn-sm btn-danger" <?= action_attr('deleteProfile', [(int) $p['id']]) ?>><i class="fa fa-trash"></i></button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -416,8 +420,8 @@ $stats = $voucherSys->getStats();
                     <tbody>
                         <?php while ($v = $vouchers->fetch_assoc()): ?>
                         <tr>
-                            <td><code><?= $v['pin_code'] ?></code></td>
-                            <td><?= $v['plan_name'] ?></td>
+                            <td><code><?= e($v['pin_code']) ?></code></td>
+                            <td><?= e($v['plan_name']) ?></td>
                             <td>
                                 <?php if($v['status'] == 'available'): ?>
                                     <span class="badge badge-success">Available</span>
@@ -427,7 +431,7 @@ $stats = $voucherSys->getStats();
                                     <span class="badge badge-secondary">Expired</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?= $v['used_by'] ?: '-' ?></td>
+                            <td><?= e($v['used_by'] ?: '-') ?></td>
                             <td><?= date('M d, H:i', strtotime($v['generated_at'])) ?></td>
                             <td><?= date('M d, H:i', strtotime($v['expires_at'])) ?></td>
                         </tr>
@@ -443,6 +447,7 @@ $stats = $voucherSys->getStats();
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" action="add_profile.php">
+                    <?= csrf_field() ?>
                     <div class="modal-header">
                         <h5>Add Profile</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

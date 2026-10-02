@@ -1,16 +1,17 @@
 <?php
-ini_set('display_errors',1);
-ini_set('display_startup_errors',1);
-error_reporting(E_ALL);
 
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Network Devices";
 $active = "nas";
 
 /* ADD NETWORK DEVICE */
 if(isset($_POST['add'])){
+    // This branch writes; the token must be checked before it does.
+    csrf_check();
+
     $nasname = $_POST['nasname'];
     $shortname = $_POST['shortname'];
     $secret = $_POST['secret'];
@@ -36,16 +37,18 @@ if(isset($_POST['add'])){
 
 /* DELETE DEVICE */
 if(isset($_GET['del'])){
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = intval($_GET['del']);
-    $conn->query("DELETE FROM nas WHERE id=$id");
+    db_exec($conn, "DELETE FROM nas WHERE id = ?", [(int) $id]);
 }
 
 /* FETCH DEVICES */
 $bng = $conn->query("SELECT * FROM nas ORDER BY id DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main">
@@ -57,6 +60,7 @@ include 'includes/topbar.php';
             <h3><i class="fa fa-plus"></i> Add Network Device</h3>
         </div>
         <form method="post">
+<?= csrf_field() ?>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px;">
                 <div class="form-group">
                     <label class="form-label">Device Name</label>
@@ -76,7 +80,7 @@ include 'includes/topbar.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">RADIUS Secret (For Mikrotik)</label>
-                    <input type="text" name="secret" class="form-control">
+                    <input type="password" name="secret" class="form-control" autocomplete="new-password">
                 </div>
                 
                 <!-- SNMP Settings -->
@@ -157,7 +161,7 @@ include 'includes/topbar.php';
             </td>
             <td style="padding: 15px;">
                 <span style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                    <i class="fa <?= $type_icon ?>"></i> <?= strtoupper($n['device_type']) ?>
+                    <i class="fa <?= e($type_icon) ?>"></i> <?= e(strtoupper($n['device_type'])) ?>
                 </span>
             </td>
             <td style="padding: 15px;">
@@ -165,14 +169,14 @@ include 'includes/topbar.php';
                 <div style="font-size: 11px; color: #64748b;"><b>Ver:</b> <?= htmlspecialchars($n['snmp_version']) ?></div>
             </td>
             <td style="padding: 15px;">
-                <span id="status-<?= $n['id'] ?>" class="badge <?= $n['status'] ? 'active' : 'inactive' ?>">
+                <span id="status-<?= e($n['id']) ?>" class="badge <?= $n['status'] ? 'active' : 'inactive' ?>">
                     <?= $n['status'] ? 'Online' : 'Offline' ?>
                 </span>
             </td>
             <td style="padding: 15px;">
                 <div class="action-buttons" style="display: flex; gap: 8px;">
-                    <a href="nas_edit.php?id=<?= $n['id'] ?>" class="btn-icon btn-edit" title="Edit"><i class="fa fa-edit"></i></a>
-                    <a href="?del=<?= $n['id'] ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Delete this device?')"><i class="fa fa-trash"></i></a>
+                    <a href="nas_edit.php?id=<?= e($n['id']) ?>" class="btn-icon btn-edit" title="Edit"><i class="fa fa-edit"></i></a>
+                    <a href="?del=<?= (int) $n['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" title="Delete" <?= action_attr('confirmFirst', ['Delete this device?']) ?>><i class="fa fa-trash"></i></a>
                 </div>
             </td>
         </tr>
@@ -210,4 +214,4 @@ setInterval(pollDevices, 15000); // Update every 15 seconds
 pollDevices(); // Initial check
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

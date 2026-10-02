@@ -1,10 +1,10 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "Edit Network Device";
 $active = "nas";
@@ -35,7 +35,12 @@ if (!$nas) {
 if (isset($_POST['update'])) {
     $nasname = $_POST['nasname'];
     $shortname = $_POST['shortname'];
-    $secret = $_POST['secret'];
+    // Blank means "keep the existing secret" - the form no longer
+    // carries the current value, so an empty field is not a clear.
+    $secret = $_POST['secret'] ?? '';
+    if ($secret === '') {
+        $secret = (string) db_value($conn, "SELECT secret FROM nas WHERE id = ?", [$id], '');
+    }
     $device_type = $_POST['device_type'];
     $ports = intval($_POST['ports'] ?: 1812);
     $ip_address = $_POST['ip_address'];
@@ -64,9 +69,9 @@ if (isset($_POST['update'])) {
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -97,7 +102,7 @@ include 'includes/topbar.php';
 <div class="edit-container">
     
     <?php if($msg): ?>
-        <div class="alert alert-<?= $msg_type ?>">
+        <div class="alert alert-<?= e($msg_type) ?>">
             <i class="fa <?= $msg_type == 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
         </div>
@@ -111,6 +116,7 @@ include 'includes/topbar.php';
         
         <div class="card-body">
             <form method="POST">
+<?= csrf_field() ?>
                 
                 <!-- Section 1: Device Info -->
                 <div class="form-section">
@@ -145,7 +151,9 @@ include 'includes/topbar.php';
                     <div class="form-grid">
                         <div class="form-group">
                             <label>RADIUS Secret</label>
-                            <input type="text" name="secret" class="form-control" value="<?= htmlspecialchars($nas['secret'] ?? '') ?>">
+                            <input type="password" name="secret" class="form-control" autocomplete="new-password"
+                                   placeholder="<?= !empty($nas['secret']) ? 'unchanged - type to replace' : 'not set' ?>">
+                            <small class="text-muted">The shared secret is never sent back to the browser. Leave blank to keep it.</small>
                         </div>
                         <div class="form-group">
                             <label>RADIUS Port</label>
@@ -206,7 +214,7 @@ include 'includes/topbar.php';
                             <label>Longitude</label>
                             <input type="text" name="lng" id="lng" class="form-control" value="<?= htmlspecialchars($nas['lng'] ?? '') ?>" placeholder="e.g. 85.3240">
                         </div>
-                        <button type="button" onclick="getLocation()" class="btn-save" style="background:#64748b; padding: 10px 15px;">
+                        <button type="button" data-action="getLocation" class="btn-save" style="background:#64748b; padding: 10px 15px;">
                             <i class="fa fa-crosshairs"></i> Get Current
                         </button>
                     </div>
@@ -241,4 +249,4 @@ function getLocation() {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

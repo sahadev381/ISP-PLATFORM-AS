@@ -1,0 +1,166 @@
+/*
+ * Delegated event handling, so markup does not have to carry script.
+ *
+ * WHY
+ *
+ * Every onclick="..." in the HTML is a reason script-src must keep
+ * 'unsafe-inline', and 'unsafe-inline' is the reason the Content
+ * Security Policy is not an XSS defence. An attacker who gets markup
+ * into a page can run script, whatever the policy says.
+ *
+ * HOW
+ *
+ *     <button onclick="toggleSidebar()">            becomes
+ *     <button data-action="toggleSidebar">
+ *
+ *     <button onclick="setMode('add_node', this)">  becomes
+ *     <button data-action="setMode" data-args='["add_node"]'>
+ *
+ * One listener on document handles every element, including ones
+ * added to the page later - which the old attributes could not do
+ * without the code that created them remembering to attach a handler.
+ *
+ * NO eval(), EVER
+ *
+ * The obvious implementation of this is eval(el.dataset.onclick),
+ * which would require 'unsafe-eval' and leave the page no safer than
+ * it started. The function is looked up by name on window and the
+ * arguments are parsed as JSON, so nothing here can execute a string.
+ */
+
+/*
+ * A few handlers that only ever existed as inline one-liners.
+ *
+ * These were attribute bodies like
+ *     onchange="window.location.href='?type=x&date='+this.value"
+ * which have no function to point data-action at. Rather than leave
+ * them inline, they get a named function here - and in the process
+ * the value finally goes through encodeURIComponent, which the string
+ * concatenation never did.
+ */
+/*
+ * The same thing as action_attr() in includes/html.php, for the markup
+ * that JavaScript builds instead of PHP.
+ *
+ * map.php assembles popups and table rows as template literals and
+ * drops them in with innerHTML. Those strings carried
+ * onclick="openManager(${num(n.id)}, '${escJs(n.type)}', null)" - a
+ * line of JavaScript built out of a database value, inside markup
+ * built out of a string, which is two chances to get the escaping
+ * wrong rather than one.
+ */
+window.actionAttr = function (fn, args) {
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(fn)) {
+        throw new Error('actionAttr: not a plain function name: ' + fn);
+    }
+    var out = 'data-action="' + fn + '"';
+    if (args && args.length) {
+        /* JSON first so the values are data, then HTML-escape so the
+           JSON cannot end the attribute. Same order as the PHP side. */
+        out += ' data-args="' + JSON.stringify(args)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;') + '"';
+    }
+    return out;
+};
+
+/* onsubmit="return confirm('Delete?')" has no function to name. */
+window.confirmFirst = function (message) {
+    return window.confirm(message);
+};
+
+window.showElement = function (id) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.style.display = 'block';
+    } else {
+        console.error('actions.js: showElement("' + id + '") - no such element');
+    }
+};
+
+window.hideElement = function (id) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.style.display = 'none';
+    }
+};
+
+/* `this` is the <select> or <input>; prefix ends with '=' . */
+window.navigateWithValue = function (prefix) {
+    window.location.href = prefix + encodeURIComponent(this.value);
+};
+
+window.openInNewTab = function (url) {
+    window.open(url, '_blank', 'noopener');
+};
+
+(function () {
+    'use strict';
+
+    var EVENTS = ['click', 'change', 'submit'];
+
+    function parseArgs(el) {
+        var raw = el.getAttribute('data-args');
+        if (!raw) {
+            return [];
+        }
+        try {
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+            console.error('actions.js: data-args is not valid JSON on', el, raw);
+            return [];
+        }
+    }
+
+    function run(el, event) {
+        var name = el.getAttribute('data-action');
+        if (!name) {
+            return;
+        }
+
+        var fn = window[name];
+        if (typeof fn !== 'function') {
+            /* Loud on purpose. The silent version of this bug is a
+               button that does nothing, which gets reported months
+               later as "the panel is broken sometimes". */
+            console.error('actions.js: no function named "' + name + '" for', el);
+            return;
+        }
+
+        /* `this` is the element, matching what an inline handler got.
+           The event is passed as the last argument for the handlers
+           that want it. */
+        var result = fn.apply(el, parseArgs(el).concat([event]));
+
+        /* An inline handler returning false cancels the default -
+           `onsubmit="return confirm(...)"` depends on it. */
+        if (result === false) {
+            event.preventDefault();
+        }
+    }
+
+    EVENTS.forEach(function (type) {
+        document.addEventListener(type, function (event) {
+            var el = event.target;
+            /* closest() so a click on an icon inside the button still
+               finds the button. */
+            if (el && el.closest) {
+                el = el.closest('[data-action-on-' + type + '], [data-action]');
+            }
+            if (!el) {
+                return;
+            }
+            /* An element opts into one event type. data-action alone
+               means click, which is 164 of the 189 cases. */
+            var wants = el.getAttribute('data-action-on') || 'click';
+            if (wants !== type) {
+                return;
+            }
+            run(el, event);
+        }, false);
+    });
+})();

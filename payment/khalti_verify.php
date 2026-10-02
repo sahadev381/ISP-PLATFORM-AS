@@ -1,12 +1,22 @@
 <?php
-session_start();
-include '../config.php';
+require_once __DIR__ . '/../includes/session.php';
+session_boot();
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/customer.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Reached both as a POST (khalti_pay.php) and as a GET navigation
+// (recharge_wallet.php), so accept the token from either.
+csrf_check_request();
 
 $token = $_POST['token'] ?? '';
-$amount = $_POST['amount'] ?? 0;
-$username = $_POST['username'] ?? '';
+$amount = (float) ($_POST['amount'] ?? 0);
 
-if(empty($token) || empty($amount) || empty($username)){
+// The username used to be taken from the POST body on an endpoint with no
+// login check, so anyone could credit any account's wallet. It must come
+// from the authenticated session instead.
+$username = db_value($conn, "SELECT username FROM customers WHERE id = ?", [(int) $_SESSION['customer_id']]);
+
+if(empty($token) || $amount <= 0 || empty($username)){
     die("Invalid request. <a href='khalti_pay.php'>Go Back</a>");
 }
 
@@ -36,17 +46,37 @@ $res = json_decode($response, true);
 if(isset($res['idx']) && $res['idx']){
     $amount_val = floatval($amount);
     $txn_id = $res['idx'];
-    
-    $conn->query("
-        UPDATE customers 
-        SET wallet = wallet + $amount_val 
-        WHERE username = '$username'
-    ");
-    
-    $conn->query("
-        INSERT INTO wallet_transactions (username, amount, gateway, status, txn_id)
-        VALUES ('$username', $amount_val, 'khalti', 'success', '$txn_id')
-    ");
+
+    // Khalti reports the captured amount in paisa; crediting the requested
+    // amount without checking it lets a caller top up more than they paid.
+    $captured = (int) ($res['amount'] ?? 0);
+    if ($captured < (int) round($amount_val * 100)) {
+        die("Payment amount mismatch. <a href='khalti_pay.php'>Go Back</a>");
+    }
+
+    // Guard against the same idx being submitted twice (refresh/replay).
+    $already = db_value($conn, "SELECT COUNT(*) FROM wallet_transactions WHERE txn_id = ? AND gateway = 'khalti'", [$txn_id], 0);
+    if ($already == 0) {
+        $conn->begin_transaction();
+        try {
+            db_exec($conn, "
+                UPDATE customers
+                SET wallet = wallet + ?
+                WHERE username = ?
+            ", [$amount_val, $username]);
+
+            db_exec($conn, "
+                INSERT INTO wallet_transactions (username, amount, gateway, status, txn_id)
+                VALUES (?, ?, 'khalti', 'success', ?)
+            ", [$username, $amount_val, $txn_id]);
+
+            $conn->commit();
+        } catch (Throwable $e) {
+            $conn->rollback();
+            error_log('khalti_verify credit failed: ' . $e->getMessage());
+            die("Could not record the payment. Please contact support.");
+        }
+    }
     
     echo "<!DOCTYPE html>
     <html>
@@ -106,7 +136,7 @@ if(isset($res['idx']) && $res['idx']){
             </div>
             <h2>Payment Successful!</h2>
             <p>Your wallet has been recharged successfully.</p>
-            <div class='amount'>NPR $amount_val</div>
+            <div class='amount'>NPR " . number_format((float) $amount_val, 2) . "</div>
             <br>
             <a href='../dashboard.php' class='btn'>
                 <i class='fa fa-home'></i> Go to Dashboard
@@ -115,10 +145,10 @@ if(isset($res['idx']) && $res['idx']){
     </body>
     </html>";
 } else {
-    $conn->query("
+    db_exec($conn, "
         INSERT INTO wallet_transactions (username, amount, gateway, status, txn_id)
-        VALUES ('$username', $amount, 'khalti', 'failed', '".($res['idx'] ?? 'failed')."')
-    ");
+        VALUES (?, ?, 'khalti', 'failed', ?)
+    ", [$username, $amount, $res['idx'] ?? 'failed']);
     
     echo "<!DOCTYPE html>
     <html>

@@ -1,13 +1,13 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session.php';
+session_boot();
 $page_title = "Billing Dashboard";
 
-chdir(__DIR__ . '/..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
-include_once 'includes/payment_gateway.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/auth.php';
+include_once __DIR__ . '/../includes/payment_gateway.php';
 
 $paymentGateway = new PaymentGateway();
 
@@ -56,7 +56,7 @@ $recentInvoices = $conn->query("
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -296,7 +296,7 @@ $recentInvoices = $conn->query("
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -318,7 +318,7 @@ $recentInvoices = $conn->query("
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -330,7 +330,7 @@ $recentInvoices = $conn->query("
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-label">Total Customers</div>
-                        <div class="stat-value"><?= $stats['total_customers'] ?></div>
+                        <div class="stat-value"><?= e($stats['total_customers']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -339,7 +339,7 @@ $recentInvoices = $conn->query("
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-label">Active Subscriptions</div>
-                        <div class="stat-value"><?= $stats['active_subscriptions'] ?></div>
+                        <div class="stat-value"><?= e($stats['active_subscriptions']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -348,7 +348,7 @@ $recentInvoices = $conn->query("
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-label">Pending Payments</div>
-                        <div class="stat-value"><?= $stats['pending_payments'] ?></div>
+                        <div class="stat-value"><?= e($stats['pending_payments']) ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -382,8 +382,8 @@ $recentInvoices = $conn->query("
                                 <tbody>
                                     <?php while ($r = $upcomingRenewals->fetch_assoc()): ?>
                                     <tr>
-                                        <td><?= $r['full_name'] ?></td>
-                                        <td><?= $r['plan_name'] ?></td>
+                                        <td><?= e($r['full_name']) ?></td>
+                                        <td><?= e($r['plan_name']) ?></td>
                                         <td>Rs.<?= number_format($r['plan_price'], 2) ?></td>
                                         <td><?= date('M d, Y', strtotime($r['next_billing_date'])) ?></td>
                                     </tr>
@@ -416,15 +416,15 @@ $recentInvoices = $conn->query("
                                 <tbody>
                                     <?php while ($inv = $recentInvoices->fetch_assoc()): ?>
                                     <tr>
-                                        <td><?= $inv['invoice_number'] ?></td>
-                                        <td><?= $inv['full_name'] ?></td>
+                                        <td><?= e($inv['invoice_number']) ?></td>
+                                        <td><?= e($inv['full_name']) ?></td>
                                         <td>Rs.<?= number_format($inv['total_amount'], 2) ?></td>
                                         <td>
                                             <span class="badge <?= 
                                                 $inv['status'] == 'paid' ? 'badge-success' : 
                                                 ($inv['status'] == 'pending' ? 'badge-warning' : 'badge-danger')
                                             ?>">
-                                                <?= ucfirst($inv['status']) ?>
+                                                <?= e(ucfirst($inv['status'])) ?>
                                             </span>
                                         </td>
                                     </tr>
@@ -459,16 +459,16 @@ $recentInvoices = $conn->query("
                         <tbody>
                             <?php while ($t = $recentTransactions->fetch_assoc()): ?>
                             <tr>
-                                <td><code><?= substr($t['transaction_id'], 0, 12) ?>...</code></td>
-                                <td><?= $t['full_name'] ?></td>
-                                <td><?= $t['gateway_name'] ?: 'Direct' ?></td>
+                                <td><code><?= e(substr($t['transaction_id'], 0, 12)) ?>...</code></td>
+                                <td><?= e($t['full_name']) ?></td>
+                                <td><?= e($t['gateway_name'] ?: 'Direct') ?></td>
                                 <td>Rs.<?= number_format($t['amount'], 2) ?></td>
                                 <td>
                                     <span class="badge <?= 
                                         $t['status'] == 'completed' ? 'badge-success' : 
                                         ($t['status'] == 'pending' ? 'badge-warning' : 'badge-danger')
                                     ?>">
-                                        <?= ucfirst($t['status']) ?>
+                                        <?= e(ucfirst($t['status'])) ?>
                                     </span>
                                 </td>
                                 <td><?= date('M d, H:i', strtotime($t['created_at'])) ?></td>

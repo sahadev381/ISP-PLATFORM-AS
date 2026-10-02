@@ -1,5 +1,5 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
 // session_start(); removed as it's in config.php
 
 if (!isset($_SESSION['customer_user'])) {
@@ -10,14 +10,20 @@ if (!isset($_SESSION['customer_user'])) {
 $username = $_SESSION['customer_user'];
 
 // Fetch detailed customer info
-$user = $conn->query("
+$user = db_one($conn, "
     SELECT c.*, p.name as plan_name, p.speed as plan_speed,
     COALESCE(du.used_quota, 0) as used_quota
     FROM customers c
     LEFT JOIN plans p ON c.plan_id = p.id
     LEFT JOIN data_usage du ON c.username = du.username
-    WHERE c.username = '$username'
-")->fetch_assoc();
+    WHERE c.username = ?
+", [$username]);
+
+if (!$user) {
+    session_destroy();
+    header("Location: index.php");
+    exit;
+}
 
 function formatBytes($bytes, $precision = 2) {
     $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -33,7 +39,7 @@ $page_title = "Customer Dashboard";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; padding: 0; color: #1e293b; }
@@ -65,7 +71,7 @@ $page_title = "Customer Dashboard";
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
                 <h1 style="margin:0;">Hi, <?= htmlspecialchars($user['full_name']) ?></h1>
-                <p style="opacity:0.7;">Account ID: <?= $user['username'] ?></p>
+                <p style="opacity:0.7;">Account ID: <?= e($user['username']) ?></p>
             </div>
             <div style="text-align:right;">
                 <div style="font-size:12px; opacity:0.7;">WALLET BALANCE</div>
@@ -78,8 +84,8 @@ $page_title = "Customer Dashboard";
         <!-- Subscription -->
         <div class="stat-card">
             <h4 style="margin:0; color:#64748b; font-size:12px; text-transform:uppercase;">Current Plan</h4>
-            <div style="font-size:20px; font-weight:700; margin:10px 0;"><?= $user['plan_name'] ?></div>
-            <div style="font-size:14px; color:#10b981; font-weight:600;"><i class="fa fa-gauge-high"></i> Speed: <?= $user['plan_speed'] ?></div>
+            <div style="font-size:20px; font-weight:700; margin:10px 0;"><?= e($user['plan_name']) ?></div>
+            <div style="font-size:14px; color:#10b981; font-weight:600;"><i class="fa fa-gauge-high"></i> Speed: <?= e($user['plan_speed']) ?></div>
             <div style="font-size:13px; color:#ef4444; margin-top:10px;">Expires: <?= date('M d, Y', strtotime($user['expiry'])) ?></div>
             <a href="../payment/recharge_wallet.php" class="action-btn" style="width:100%; box-sizing:border-box; justify-content:center;">Recharge Now</a>
         </div>

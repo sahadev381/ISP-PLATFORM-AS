@@ -1,12 +1,13 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
+session_boot();
 $page_title = "Access Logs";
 $page = 'logs';
 $base_path = '.';
 
-chdir(__DIR__ . '/../..');
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -39,7 +40,7 @@ $stats = $conn->query("
     GROUP BY action, status
 ")->fetch_all(MYSQLI_ASSOC);
 
-include 'includes/header_hotspot.php';
+include __DIR__ . '/includes/header_hotspot.php';
 ?>
 
 <div class="container-fluid p-4">
@@ -76,11 +77,11 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="col-md-2">
                     <label>From Date</label>
-                    <input type="date" name="date_from" class="form-control" value="<?= $dateFrom ?>">
+                    <input type="date" name="date_from" class="form-control" value="<?= e($dateFrom) ?>">
                 </div>
                 <div class="col-md-2">
                     <label>To Date</label>
-                    <input type="date" name="date_to" class="form-control" value="<?= $dateTo ?>">
+                    <input type="date" name="date_to" class="form-control" value="<?= e($dateTo) ?>">
                 </div>
                 <div class="col-md-2">
                     <label>&nbsp;</label>
@@ -113,16 +114,16 @@ include 'includes/header_hotspot.php';
                     <tr>
                         <td><?= date('M d, H:i:s', strtotime($log['created_at'])) ?></td>
                         <td><?= htmlspecialchars($log['username'] ?? '-') ?></td>
-                        <td><code><?= $log['ip_address'] ?? '-' ?></code></td>
-                        <td><code><?= $log['mac_address'] ?? '-' ?></code></td>
-                        <td><?= $log['action'] ?></td>
-                        <td><?= $log['auth_method'] ?? '-' ?></td>
+                        <td><code><?= e($log['ip_address'] ?? '-') ?></code></td>
+                        <td><code><?= e($log['mac_address'] ?? '-') ?></code></td>
+                        <td><?= e($log['action']) ?></td>
+                        <td><?= e($log['auth_method'] ?? '-') ?></td>
                         <td>
                             <span class="badge bg-<?= 
                                 $log['status'] == 'success' ? 'success' : 
                                 ($log['status'] == 'failed' ? 'warning' : 'danger')
                             ?>">
-                                <?= $log['status'] ?>
+                                <?= e($log['status']) ?>
                             </span>
                         </td>
                         <td><small><?= htmlspecialchars($log['message'] ?? '-') ?></small></td>

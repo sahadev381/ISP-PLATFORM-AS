@@ -1,12 +1,15 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session.php';
+session_boot();
 $page_title = "Invoice Management";
 
-chdir(__DIR__ . '/..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -19,17 +22,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $invoice_id = intval($_POST['invoice_id'] ?? 0);
     
     if ($_POST['action'] == 'mark_paid') {
-        $conn->query("UPDATE billing_invoices SET status = 'paid', paid_at = NOW(), updated_at = NOW() WHERE id = $invoice_id");
+        db_exec($conn, "UPDATE billing_invoices SET status = 'paid', paid_at = NOW(), updated_at = NOW() WHERE id = ?", [(int) $invoice_id]);
         $message = 'Invoice marked as paid';
     }
     
     if ($_POST['action'] == 'cancel_invoice') {
-        $conn->query("UPDATE billing_invoices SET status = 'cancelled', updated_at = NOW() WHERE id = $invoice_id");
+        db_exec($conn, "UPDATE billing_invoices SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [(int) $invoice_id]);
         $message = 'Invoice cancelled';
     }
     
     if ($_POST['action'] == 'delete_invoice') {
-        $conn->query("DELETE FROM billing_invoices WHERE id = $invoice_id");
+        db_exec($conn, "DELETE FROM billing_invoices WHERE id = ?", [(int) $invoice_id]);
         $message = 'Invoice deleted';
     }
 }
@@ -54,7 +57,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -267,6 +270,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
         .col-md-4 { width: 33.33%; padding: 10px; }
         .col-md-6 { width: 50%; padding: 10px; }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -295,7 +299,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -316,7 +320,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -328,7 +332,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-label">Pending</div>
-                        <div class="stat-value"><?= $pending_count ?></div>
+                        <div class="stat-value"><?= e($pending_count) ?></div>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -337,7 +341,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                             <i class="fas fa-check"></i>
                         </div>
                         <div class="stat-label">Paid</div>
-                        <div class="stat-value"><?= $paid_count ?></div>
+                        <div class="stat-value"><?= e($paid_count) ?></div>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -346,7 +350,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-label">Overdue</div>
-                        <div class="stat-value"><?= $overdue_count ?></div>
+                        <div class="stat-value"><?= e($overdue_count) ?></div>
                     </div>
                 </div>
             </div>
@@ -378,10 +382,10 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                             <?php while ($inv = $invoices->fetch_assoc()): ?>
                             <?php $is_overdue = $inv['status'] == 'pending' && strtotime($inv['due_date']) < time(); ?>
                             <tr>
-                                <td><code><?= $inv['invoice_number'] ?></code></td>
+                                <td><code><?= e($inv['invoice_number']) ?></code></td>
                                 <td>
-                                    <strong><?= $inv['full_name'] ?></strong><br>
-                                    <small style="color: #64748b;"><?= $inv['username'] ?></small>
+                                    <strong><?= e($inv['full_name']) ?></strong><br>
+                                    <small style="color: #64748b;"><?= e($inv['username']) ?></small>
                                 </td>
                                 <td>Rs.<?= number_format($inv['subtotal'], 2) ?></td>
                                 <td>Rs.<?= number_format($inv['tax_amount'], 2) ?></td>
@@ -393,17 +397,17 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                                         $inv['status'] == 'paid' ? 'badge-success' : 
                                         ($inv['status'] == 'pending' ? ($is_overdue ? 'badge-danger' : 'badge-warning') : 'badge-secondary')
                                     ?>">
-                                        <?= ucfirst($inv['status']) ?>
+                                        <?= e(ucfirst($inv['status'])) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($inv['status'] == 'pending'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('mark_paid', <?= $inv['id'] ?>)" title="Mark Paid">
+                                            <button class="btn btn-success btn-sm" <?= action_attr('submitAction', ['mark_paid', (int) $inv['id']]) ?> title="Mark Paid">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         <?php endif; ?>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteInvoice(<?= $inv['id'] ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" <?= action_attr('deleteInvoice', [(int) $inv['id']]) ?> title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -428,6 +432,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                 <button class="close" onclick="document.getElementById('createModal').style.display='none'">&times;</button>
             </div>
             <form method="POST" action="">
+<?= csrf_field() ?>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="create_invoice">
                     <div class="form-group">
@@ -437,7 +442,7 @@ $overdue_count = $conn->query("SELECT COUNT(*) as c FROM billing_invoices WHERE 
                             <?php
                             $customers = $conn->query("SELECT id, username, full_name FROM customers ORDER BY username");
                             while ($c = $customers->fetch_assoc()): ?>
-                                <option value="<?= $c['id'] ?>"><?= $c['username'] ?> - <?= $c['full_name'] ?></option>
+                                <option value="<?= e($c['id']) ?>"><?= e($c['username']) ?> - <?= e($c['full_name']) ?></option>
                             <?php endwhile; ?>
                         </select>
                     </div>

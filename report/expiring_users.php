@@ -1,7 +1,7 @@
 <?php
 $base_path = '../';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "Expiring Soon (7 Days)";
 $active = "reports";
@@ -27,9 +27,9 @@ $query = "
 ";
 $result = $conn->query($query);
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -53,6 +53,7 @@ include $base_path . 'includes/topbar.php';
         <div class="card-header">
             <h2>Expiring Soon (<?= $result ? $result->num_rows : 0 ?>)</h2>
             <form method="post" action="export_expiring_users.php">
+<?= csrf_field() ?>
                 <button type="submit" style="background:#f59e0b; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
         </div>
@@ -78,11 +79,11 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= htmlspecialchars($row['plan_name'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($row['phone'] ?? '-') ?></td>
                                 <td style="font-weight: 600; color: #f59e0b;"><?= date('M d, Y', strtotime($row['expiry'])) ?></td>
-                                <td><span class="badge-warning"><?= $days_left ?> Days Left</span></td>
+                                <td><span class="badge-warning"><?= e($days_left) ?> Days Left</span></td>
                                 <td>
                                     <div style="display:flex; gap:5px;">
-                                        <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
-                                        <a href="<?= $base_path ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew"><i class="fa fa-bolt"></i> Renew</a>
+                                        <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i></a>
+                                        <a href="<?= e($base_path) ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew"><i class="fa fa-bolt"></i> Renew</a>
                                     </div>
                                 </td>
                             </tr>
@@ -95,4 +96,4 @@ include $base_path . 'includes/topbar.php';
         </div>
     </div>
 </div>
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

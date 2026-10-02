@@ -1,12 +1,14 @@
 <?php
-include 'config.php';
-include 'includes/security.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $security = new Security($conn);
 $error = '';
 $remainingAttempts = 0;
 
 if (isset($_POST['login'])) {
+    csrf_check();
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     
@@ -25,12 +27,16 @@ if (isset($_POST['login'])) {
                 // Login successful
                 $security->recordLoginAttempt($username, true);
                 $security->logActivity($row['id'], $username, 'login', 'Admin login successful');
-                
+
+                // Prevent session fixation: issue a brand new session id
+                session_regenerate_id(true);
+
                 $_SESSION['user_id']   = (int)$row['id'];
                 $_SESSION['username'] = $row['username'];
                 $_SESSION['role']     = $row['role'] ?? '';
                 $_SESSION['branch_id']= $row['branch_id'] ?? null;
-                $_SESSION['login_time'] = time();
+                $_SESSION['login_time']    = time();
+                $_SESSION['last_activity'] = time();
                 
                 header("Location: dashboard.php");
                 exit;
@@ -321,7 +327,7 @@ if ($config) {
     <div class="login-wrapper">
         <div class="login-left">
             <div class="login-logo">
-                <?php if(!empty($logo) && file_exists('uploads/'.$logo)): ?>
+                <?php if(!empty($logo) && file_exists(__DIR__ . '/uploads/' . $logo)): ?>
                     <img src="uploads/<?= htmlspecialchars($logo) ?>" alt="ISP SYSTEM">
                 <?php else: ?>
                     <i class="fa fa-wifi" style="font-size: 48px; color: var(--primary);"></i>
@@ -339,6 +345,7 @@ if ($config) {
             <?php endif; ?>
             
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label>Username</label>
                     <div class="input-wrapper">

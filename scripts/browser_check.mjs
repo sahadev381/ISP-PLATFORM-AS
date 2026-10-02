@@ -1,0 +1,281 @@
+/**
+ * Load every page in a real browser and report what the JavaScript does.
+ *
+ *     node scripts/browser_check.mjs --url=http://127.0.0.1:8080 \
+ *                                    --user=smoke --pass=... [--budget=N]
+ *
+ * WHY THIS EXISTS AS WELL AS smoke_test.php
+ *
+ * The PHP crawler proves a page renders. It does not run a single line
+ * of the JavaScript on it, and this project has 44 inline <script>
+ * blocks, 189 inline on* handlers and 1358 style attributes. A syntax
+ * error in one inline block disables that whole block silently - phase
+ * 13 found two files shipped that way, and the only reason they were
+ * found is that somebody read them.
+ *
+ * This also makes the CSP work in RELEASE_READINESS 4.6 possible to
+ * attempt. Converting 189 handlers blind was refused because nothing
+ * could tell whether a converted button still worked. A browser can.
+ *
+ * WHAT IT FAILS ON
+ *
+ * Uncaught JavaScript errors, measured against a budget that can only
+ * go down - the same ratchet as the inline handlers, for the same
+ * reason: a long cleanup loses to new code unless something holds the
+ * line.
+ *
+ * Requests to third-party CDNs are allowed through, because blocking
+ * them would turn every page into a cascade of ReferenceErrors for
+ * jQuery and Bootstrap and tell us nothing about this codebase.
+ */
+
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { chromium } from 'playwright';
+
+const args = Object.fromEntries(
+  process.argv.slice(2)
+    .filter(a => a.startsWith('--'))
+    .map(a => {
+      const [k, ...v] = a.slice(2).split('=');
+      return [k, v.length ? v.join('=') : true];
+    })
+);
+
+const base = String(args.url || 'http://127.0.0.1:8080').replace(/\/$/, '');
+const user = String(args.user || '');
+const pass = String(args.pass || '');
+const budgetFile = '.browser-error-budget';
+const budget = args.budget !== undefined
+  ? Number(args.budget)
+  : (existsSync(budgetFile) ? Number(readFileSync(budgetFile, 'utf8').trim()) : Infinity);
+
+const pages = JSON.parse(readFileSync(args.pages || '/tmp/pages.json', 'utf8'));
+
+const inCI = process.env.GITHUB_ACTIONS === 'true';
+const annotate = (file, msg) =>
+  inCI && console.log(`::error${file ? ` file=${file}` : ''}::${msg.replace(/\s+/g, ' ').slice(0, 400)}`);
+
+const browser = await chromium.launch();
+const context = await browser.newContext({ ignoreHTTPSErrors: true });
+const page = await context.newPage();
+
+/* ---- log in ------------------------------------------------------ */
+
+await page.goto(`${base}/index.php`, { waitUntil: 'domcontentloaded' });
+await page.fill('input[name="username"]', user);
+await page.fill('input[name="password"]', pass);
+await Promise.all([
+  page.waitForLoadState('domcontentloaded'),
+  page.click('button[type="submit"], input[type="submit"]'),
+]);
+
+if (/name="password"/i.test(await page.content())) {
+  annotate('', 'browser check could not log in');
+  console.error('Login failed - still on the login form.');
+  await browser.close();
+  process.exit(1);
+}
+
+console.log(`Logged in. Visiting ${pages.length} pages in Chromium.\n`);
+
+/* ---- visit ------------------------------------------------------- */
+
+const findings = [];   // { page, kind, detail }
+let visited = 0;
+
+for (const rel of pages) {
+  const errors = [];
+  const missing = [];
+  const csp = [];
+
+  const onPageError = e => errors.push(String(e.message || e));
+  const onConsole = m => {
+    if (m.type() !== 'error') return;
+    const t = m.text();
+    /* A failed network request also logs a console error; the
+       response handler below reports those with more detail. */
+    if (/Failed to load resource/i.test(t)) return;
+    /* Content-Security-Policy-Report-Only violations arrive as console
+       errors, but nothing is broken - that is the header working
+       exactly as intended. They are the inline-script work list for
+       RELEASE_READINESS 4.6, so they are counted separately. Leaving
+       them in the error bucket would bury the real errors under
+       sixteen hundred expected messages. */
+    if (/^\[Report Only\]/i.test(t)) {
+      csp.push(t);
+      return;
+    }
+    errors.push(t);
+  };
+  const onResponse = r => {
+    if (r.status() !== 404 || !r.url().startsWith(base)) return;
+    const path = r.url().slice(base.length);
+    /* The page's own document is not a missing asset. Several pages
+       need ?id= and answer rbac_deny(404) without one, which is the
+       behaviour we want - turning an IDOR into a 404 - and the PHP
+       crawler already accounts for it. */
+    if (path === `/${rel}` || path.split('?')[0] === `/${rel}`) return;
+    missing.push(path);
+  };
+
+  page.on('pageerror', onPageError);
+  page.on('console', onConsole);
+  page.on('response', onResponse);
+
+  try {
+    const resp = await page.goto(`${base}/${rel}`, { waitUntil: 'load', timeout: 20000 });
+    /* A 204 has no body, so Chromium aborts the navigation rather than
+       rendering anything. csp_report.php always answers 204. That is
+       the endpoint behaving correctly, not a page that failed. */
+    if (resp && [204, 205, 304].includes(resp.status())) {
+      page.off('pageerror', onPageError);
+      page.off('console', onConsole);
+      page.off('response', onResponse);
+      visited++;
+      continue;
+    }
+    /* Give deferred scripts and DOMContentLoaded handlers a moment to
+       throw. Most of this codebase's JavaScript runs at parse time,
+       but the DataTables and chart initialisers do not. */
+    await page.waitForTimeout(250);
+  } catch (e) {
+    /* Same case as above when the abort happens before a response
+       object is returned. */
+    if (/ERR_ABORTED/.test(e.message)) {
+      // nothing rendered because there was nothing to render
+    } else {
+      errors.push(`navigation: ${e.message}`);
+    }
+  }
+
+  page.off('pageerror', onPageError);
+  page.off('console', onConsole);
+  page.off('response', onResponse);
+
+  /* Every data-action must name a function that exists. This is the
+     one way the inline-handler conversion can fail silently: the
+     attribute is spelled right, the dispatcher runs, and the target
+     was never in scope - so the button does nothing at all, with no
+     error, until somebody clicks it. Checked on load instead. */
+  try {
+    const unresolved = await page.evaluate(() => {
+      const bad = [];
+      document.querySelectorAll('[data-action]').forEach(el => {
+        const name = el.getAttribute('data-action');
+        if (typeof window[name] !== 'function') bad.push(name);
+      });
+      return [...new Set(bad)];
+    });
+    for (const name of unresolved) {
+      errors.push(`data-action="${name}" does not resolve to a function`);
+    }
+  } catch { /* page already navigated away or closed */ }
+
+  visited++;
+  for (const e of new Set(errors)) findings.push({ page: rel, kind: 'js', detail: e });
+  for (const m of new Set(missing)) findings.push({ page: rel, kind: '404', detail: m });
+  for (const c of new Set(csp)) findings.push({ page: rel, kind: 'csp', detail: c });
+
+  process.stdout.write(`\r[${visited}/${pages.length}] ${rel.slice(0, 60).padEnd(62)}`);
+}
+
+process.stdout.write('\r'.padEnd(80) + '\r');
+await browser.close();
+
+/* ---- report ------------------------------------------------------ */
+
+const js = findings.filter(f => f.kind === 'js');
+const notFound = findings.filter(f => f.kind === '404');
+const cspViolations = findings.filter(f => f.kind === 'csp');
+
+const group = list => {
+  const by = new Map();
+  for (const f of list) {
+    if (!by.has(f.page)) by.set(f.page, []);
+    by.get(f.page).push(f.detail);
+  }
+  return by;
+};
+
+console.log('='.repeat(72));
+console.log(`Browser check: ${visited} pages`);
+console.log('='.repeat(72));
+
+if (js.length) {
+  console.log(`\nUncaught JavaScript errors (${js.length}) on ${group(js).size} pages\n`);
+  for (const [p, details] of group(js)) {
+    console.log(`  ${p}`);
+    for (const d of details) console.log(`      ${d.replace(/\s+/g, ' ').slice(0, 160)}`);
+  }
+}
+
+if (notFound.length) {
+  /* A missing asset is not a crash, so it never fails the build - but
+     it is how a stylesheet quietly stops being applied. */
+  console.log(`\nAssets returning 404 (${notFound.length}) - not fatal, but worth fixing\n`);
+  for (const [p, details] of group(notFound)) {
+    console.log(`  ${p}`);
+    for (const d of [...new Set(details)].slice(0, 5)) console.log(`      ${d}`);
+  }
+}
+
+if (cspViolations.length) {
+  /* The strict policy is sent report-only precisely so this list
+     exists. It is the measured size of RELEASE_READINESS 4.6 - not an
+     estimate from grepping the source, but what a browser actually
+     refuses. */
+  const kinds = new Map();
+  for (const v of cspViolations) {
+    const k = /directive: "([a-z-]+)/.exec(v.detail)?.[1] ?? 'unknown';
+    kinds.set(k, (kinds.get(k) ?? 0) + 1);
+  }
+  console.log(`\nCSP (report-only) would block ${cspViolations.length} things`
+    + ` on ${group(cspViolations).size} pages - this is the 4.6 work list\n`);
+  for (const [k, n] of [...kinds].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${String(n).padStart(5)}  ${k}`);
+  }
+  console.log('\n  Nothing is broken by these: the policy is report-only.');
+  console.log('  They are what would break if it were enforced today.');
+}
+
+console.log(`\n${visited} pages, ${js.length} JavaScript errors,`
+  + ` ${cspViolations.length} CSP violations, ${notFound.length} missing assets.`);
+
+/* A warning rather than an error: this line is informational, and it
+   must survive even on a green run. The job log is only reachable
+   from a machine that can talk to the Actions blob storage, so the
+   annotation is sometimes the only way to read the number. */
+if (inCI) {
+  console.log(`::warning::browser check: ${visited} pages, ${js.length} JS errors`
+    + ` on ${group(js).size} pages, ${cspViolations.length} CSP report-only violations,`
+    + ` ${notFound.length} missing assets (budget ${budget})`);
+  for (const [p, details] of [...group(js)].slice(0, 25)) {
+    console.log(`::warning file=${p}::${details[0].replace(/\s+/g, ' ').slice(0, 300)}`);
+  }
+  for (const [p, details] of [...group(notFound)].slice(0, 25)) {
+    console.log(`::warning file=${p}::missing: ${[...new Set(details)].join(' ').slice(0, 300)}`);
+  }
+}
+
+writeFileSync('/tmp/browser-findings.json', JSON.stringify(findings, null, 2));
+
+if (!Number.isFinite(budget)) {
+  console.log(`\nNo budget recorded. Write ${js.length} to ${budgetFile} to start the ratchet.`);
+  process.exit(0);
+}
+
+if (js.length > budget) {
+  for (const [p, details] of group(js)) annotate(p, details[0]);
+  console.error(`\nJavaScript errors: ${js.length}, budget ${budget}.`);
+  console.error('New uncaught errors have been introduced.');
+  process.exit(1);
+}
+
+if (js.length < budget) {
+  console.log(`\n${budget - js.length} fewer than the budget of ${budget}. Lower it:`);
+  console.log(`  echo ${js.length} > ${budgetFile}`);
+  process.exit(1);
+}
+
+console.log(`\nJavaScript errors: ${js.length}, at budget.`);
+process.exit(0);

@@ -1,12 +1,13 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
+session_boot();
 $page_title = "Hotel Management";
 $page = 'hotel';
 $base_path = '.';
 
-chdir(__DIR__ . '/../..');
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -17,74 +18,76 @@ $message = '';
 
 // Handle hotel actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
-    
+
     // Add/Update hotel
     if ($action == 'save_hotel') {
-        $hotelId = (int)($_POST['hotel_id'] ?? 0);
-        $name = $conn->real_escape_string($_POST['name']);
-        $code = $conn->real_escape_string($_POST['code']);
-        $address = $conn->real_escape_string($_POST['address']);
-        $phone = $conn->real_escape_string($_POST['phone']);
-        $email = $conn->real_escape_string($_POST['email']);
-        $contact = $conn->real_escape_string($_POST['contact_person']);
-        $checkoutTime = $_POST['checkout_time'];
-        $gracePeriod = (int)$_POST['grace_period'];
-        
+        $hotelId      = (int)($_POST['hotel_id'] ?? 0);
+        $name         = trim($_POST['name'] ?? '');
+        $code         = trim($_POST['code'] ?? '');
+        $address      = trim($_POST['address'] ?? '');
+        $phone        = trim($_POST['phone'] ?? '');
+        $email        = trim($_POST['email'] ?? '');
+        $contact      = trim($_POST['contact_person'] ?? '');
+        $checkoutTime = $_POST['checkout_time'] ?? null;
+        $gracePeriod  = (int)($_POST['grace_period'] ?? 0);
+
         if ($hotelId > 0) {
-            $conn->query("UPDATE hotspot_hotels SET 
-                name='$name', code='$code', address='$address', phone='$phone', 
-                email='$email', contact_person='$contact', checkout_time='$checkoutTime', 
-                grace_period_mins=$gracePeriod WHERE id=$hotelId");
+            db_exec($conn, "UPDATE hotspot_hotels SET
+                name = ?, code = ?, address = ?, phone = ?,
+                email = ?, contact_person = ?, checkout_time = ?,
+                grace_period_mins = ? WHERE id = ?",
+                [$name, $code, $address, $phone, $email, $contact, $checkoutTime, $gracePeriod, $hotelId]);
             $message = "Hotel updated!";
         } else {
-            $conn->query("INSERT INTO hotspot_hotels (name, code, address, phone, email, contact_person, checkout_time, grace_period_mins) 
-                VALUES ('$name', '$code', '$address', '$phone', '$email', '$contact', '$checkoutTime', $gracePeriod)");
+            db_exec($conn, "INSERT INTO hotspot_hotels (name, code, address, phone, email, contact_person, checkout_time, grace_period_mins)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [$name, $code, $address, $phone, $email, $contact, $checkoutTime, $gracePeriod]);
             $message = "Hotel created!";
         }
     }
-    
+
     // Add room
     if ($action == 'add_room') {
-        $hotelId = (int)$_POST['hotel_id'];
-        $roomNumber = $conn->real_escape_string($_POST['room_number']);
-        $floor = $conn->real_escape_string($_POST['floor']);
-        $macAddress = $conn->real_escape_string($_POST['mac_address']);
-        
-        $conn->query("INSERT INTO hotspot_rooms (hotel_id, room_number, floor, mac_address) 
-            VALUES ($hotelId, '$roomNumber', '$floor', '$macAddress')");
+        db_exec($conn, "INSERT INTO hotspot_rooms (hotel_id, room_number, floor, mac_address)
+            VALUES (?, ?, ?, ?)", [
+            (int)($_POST['hotel_id'] ?? 0),
+            trim($_POST['room_number'] ?? ''),
+            trim($_POST['floor'] ?? ''),
+            trim($_POST['mac_address'] ?? ''),
+        ]);
         $message = "Room added!";
     }
-    
+
     // Check-in guest
     if ($action == 'checkin') {
-        $roomId = (int)$_POST['room_id'];
-        $guestName = $conn->real_escape_string($_POST['guest_name']);
-        $guestPhone = $conn->real_escape_string($_POST['guest_phone']);
-        $guestId = $conn->real_escape_string($_POST['guest_id_proof']);
-        $planId = (int)$_POST['plan_id'];
-        
-        $conn->query("UPDATE hotspot_rooms SET 
-            status='occupied', guest_name='$guestName', guest_phone='$guestPhone', 
-            guest_id_proof='$guestId', plan_id=$planId, checkin_time=NOW() 
-            WHERE id=$roomId");
+        db_exec($conn, "UPDATE hotspot_rooms SET
+            status = 'occupied', guest_name = ?, guest_phone = ?,
+            guest_id_proof = ?, plan_id = ?, checkin_time = NOW()
+            WHERE id = ?", [
+            trim($_POST['guest_name'] ?? ''),
+            trim($_POST['guest_phone'] ?? ''),
+            trim($_POST['guest_id_proof'] ?? ''),
+            (int)($_POST['plan_id'] ?? 0),
+            (int)($_POST['room_id'] ?? 0),
+        ]);
         $message = "Guest checked in!";
     }
-    
+
     // Check-out guest
     if ($action == 'checkout' && isset($_POST['room_id'])) {
-        $roomId = (int)$_POST['room_id'];
-        $conn->query("UPDATE hotspot_rooms SET 
-            status='available', guest_name=NULL, guest_phone=NULL, guest_id_proof=NULL, 
-            checkin_time=NULL, checkout_time=NOW() WHERE id=$roomId");
+        db_exec($conn, "UPDATE hotspot_rooms SET
+            status = 'available', guest_name = NULL, guest_phone = NULL, guest_id_proof = NULL,
+            checkin_time = NULL, checkout_time = NOW() WHERE id = ?", [(int)$_POST['room_id']]);
         $message = "Guest checked out!";
     }
-    
+
     // Delete hotel
     if ($action == 'delete_hotel' && isset($_POST['hotel_id'])) {
         $hotelId = (int)$_POST['hotel_id'];
-        $conn->query("DELETE FROM hotspot_rooms WHERE hotel_id=$hotelId");
-        $conn->query("DELETE FROM hotspot_hotels WHERE id=$hotelId");
+        db_exec($conn, "DELETE FROM hotspot_rooms WHERE hotel_id = ?", [$hotelId]);
+        db_exec($conn, "DELETE FROM hotspot_hotels WHERE id = ?", [$hotelId]);
         $message = "Hotel deleted";
     }
 }
@@ -95,7 +98,7 @@ $hotels = $conn->query("SELECT * FROM hotspot_hotels WHERE status='active'");
 // Get plans for dropdown
 $plans = $conn->query("SELECT * FROM hotspot_profiles WHERE status='active'");
 
-include 'includes/header_hotspot.php';
+include __DIR__ . '/includes/header_hotspot.php';
 ?>
 
 <div class="container-fluid p-4">
@@ -106,7 +109,7 @@ include 'includes/header_hotspot.php';
     </div>
 
     <?php if ($message): ?>
-        <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= $message ?></div>
+        <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= e($message) ?></div>
     <?php endif; ?>
 
     <!-- Tabs -->
@@ -124,10 +127,10 @@ include 'includes/header_hotspot.php';
 
             <div class="row">
                 <?php while ($hotel = $hotels->fetch_assoc()): 
-                    $roomStats = $conn->query("
-                        SELECT status, COUNT(*) as cnt FROM hotspot_rooms 
-                        WHERE hotel_id = {$hotel['id']} GROUP BY status
-                    ")->fetch_all(MYSQLI_ASSOC);
+                    $roomStats = db_all($conn, "
+                        SELECT status, COUNT(*) as cnt FROM hotspot_rooms
+                        WHERE hotel_id = ? GROUP BY status
+                    ", [(int) $hotel['id']]);
                     $occupied = 0; $available = 0;
                     foreach ($roomStats as $s) {
                         if ($s['status'] == 'occupied') $occupied = $s['cnt'];
@@ -138,25 +141,25 @@ include 'includes/header_hotspot.php';
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><?= htmlspecialchars($hotel['name']) ?></h5>
-                            <span class="badge bg-primary"><?= $hotel['code'] ?></span>
+                            <span class="badge bg-primary"><?= e($hotel['code']) ?></span>
                         </div>
                         <div class="card-body">
                             <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($hotel['address'] ?? 'N/A') ?></p>
-                            <p><i class="fas fa-phone"></i> <?= $hotel['phone'] ?? 'N/A' ?></p>
+                            <p><i class="fas fa-phone"></i> <?= e($hotel['phone'] ?? 'N/A') ?></p>
                             <div class="row text-center mt-3">
                                 <div class="col-6">
-                                    <h4 class="text-success"><?= $available ?></h4>
+                                    <h4 class="text-success"><?= e($available) ?></h4>
                                     <small>Available</small>
                                 </div>
                                 <div class="col-6">
-                                    <h4 class="text-danger"><?= $occupied ?></h4>
+                                    <h4 class="text-danger"><?= e($occupied) ?></h4>
                                     <small>Occupied</small>
                                 </div>
                             </div>
                         </div>
                         <div class="card-footer">
                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#roomModal" 
-                                data-hotel-id="<?= $hotel['id'] ?>" data-hotel-name="<?= $hotel['name'] ?>">
+                                data-hotel-id="<?= e($hotel['id']) ?>" data-hotel-name="<?= e($hotel['name']) ?>">
                                 <i class="fas fa-door-open"></i> Manage Rooms
                             </button>
                         </div>
@@ -198,31 +201,32 @@ include 'includes/header_hotspot.php';
                             while ($room = $allRooms->fetch_assoc()): 
                             ?>
                             <tr>
-                                <td><?= $room['hotel_name'] ?></td>
-                                <td><?= $room['room_number'] ?></td>
-                                <td><?= $room['floor'] ?? '-' ?></td>
-                                <td><code><?= $room['mac_address'] ?? '-' ?></code></td>
-                                <td><?= $room['guest_name'] ?? '-' ?></td>
-                                <td><?= $room['guest_phone'] ?? '-' ?></td>
+                                <td><?= e($room['hotel_name']) ?></td>
+                                <td><?= e($room['room_number']) ?></td>
+                                <td><?= e($room['floor'] ?? '-') ?></td>
+                                <td><code><?= e($room['mac_address'] ?? '-') ?></code></td>
+                                <td><?= e($room['guest_name'] ?? '-') ?></td>
+                                <td><?= e($room['guest_phone'] ?? '-') ?></td>
                                 <td><?= $room['checkin_time'] ? date('M d, H:i', strtotime($room['checkin_time'])) : '-' ?></td>
                                 <td>
                                     <span class="badge bg-<?= 
                                         $room['status'] == 'occupied' ? 'danger' : 
                                         ($room['status'] == 'available' ? 'success' : 'warning')
                                     ?>">
-                                        <?= $room['status'] ?>
+                                        <?= e($room['status']) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <?php if ($room['status'] == 'available'): ?>
                                         <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#checkinModal"
-                                            data-room-id="<?= $room['id'] ?>" data-room-number="<?= $room['room_number'] ?>">
+                                            data-room-id="<?= e($room['id']) ?>" data-room-number="<?= e($room['room_number']) ?>">
                                             <i class="fas fa-sign-in-alt"></i> Check-in
                                         </button>
                                     <?php else: ?>
                                         <form method="POST" style="display:inline">
+                                            <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="checkout">
-                                            <input type="hidden" name="room_id" value="<?= $room['id'] ?>">
+                                            <input type="hidden" name="room_id" value="<?= e($room['id']) ?>">
                                             <button type="submit" class="btn btn-sm btn-warning">
                                                 <i class="fas fa-sign-out-alt"></i> Check-out
                                             </button>
@@ -244,6 +248,7 @@ include 'includes/header_hotspot.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST">
+                <?= csrf_field() ?>
                 <input type="hidden" name="action" value="save_hotel">
                 <input type="hidden" name="hotel_id" id="hotel_id">
                 <div class="modal-header">
@@ -309,6 +314,7 @@ include 'includes/header_hotspot.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST">
+                <?= csrf_field() ?>
                 <input type="hidden" name="action" value="add_room">
                 <input type="hidden" name="hotel_id" id="room_hotel_id">
                 <div class="modal-header">
@@ -342,6 +348,7 @@ include 'includes/header_hotspot.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST">
+                <?= csrf_field() ?>
                 <input type="hidden" name="action" value="checkin">
                 <input type="hidden" name="room_id" id="checkin_room_id">
                 <div class="modal-header">
@@ -365,7 +372,7 @@ include 'includes/header_hotspot.php';
                         <label>Plan</label>
                         <select name="plan_id" class="form-select">
                             <?php while ($plan = $plans->fetch_assoc()): ?>
-                                <option value="<?= $plan['id'] ?>"><?= $plan['name'] ?> - Rs.<?= $plan['price'] ?></option>
+                                <option value="<?= e($plan['id']) ?>"><?= e($plan['name']) ?> - Rs.<?= e($plan['price']) ?></option>
                             <?php endwhile; ?>
                         </select>
                     </div>

@@ -6,8 +6,12 @@
  */
 
 header('Content-Type: application/json');
-include_once '../config.php';
-include_once '../includes/mikrotik_api.php';
+
+require_once __DIR__ . '/../includes/api_auth.php';
+api_require_auth();
+api_csrf_check();
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/mikrotik_api.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -30,7 +34,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');
@@ -82,8 +86,8 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID and OLT ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id AND device_type = 'olt'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'olt'", [(int) $olt_id]);
         
         if (!$mikrotik || !$olt) {
             jsonResponse(false, 'MikroTik or OLT not found');
@@ -119,7 +123,7 @@ switch ($action) {
         $api->disconnect();
         
         // Also try to get ONT data directly from OLT
-        include_once '../includes/olt_api.php';
+        include_once __DIR__ . '/../includes/olt_api.php';
         $olt_driver = new OLT_Driver($olt);
         $direct_onus = $olt_driver->getAllOnus();
         
@@ -140,7 +144,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');
@@ -175,7 +179,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');
@@ -203,7 +207,7 @@ switch ($action) {
             jsonResponse(false, 'MikroTik ID required');
         }
         
-        $mikrotik = $conn->query("SELECT * FROM nas WHERE id = $mikrotik_id AND device_type = 'mikrotik'")->fetch_assoc();
+        $mikrotik = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'mikrotik'", [(int) $mikrotik_id]);
         
         if (!$mikrotik) {
             jsonResponse(false, 'MikroTik not found');

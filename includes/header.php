@@ -1,21 +1,114 @@
 <?php
-if(!isset($base_path)) {
-    $base_path = '';
-}
+/* Derived, not declared. Pages set $base_path by hand and disagreed
+   with each other - billing/ and hotspot/admin/ both produced URLs
+   that 404ed - so whatever a page asked for is overridden here. */
+require_once __DIR__ . '/paths.php';
+$base_path = app_base_path();
+require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/http_headers.php';
+
+/* CSP and friends. Must go out before any markup; see http_headers.php
+   for what the policy can and cannot protect against. */
+send_security_headers();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><?= $page_title ?? 'ISP System' ?></title>
+    <title><?= e($page_title ?? 'ISP System') ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES) ?>">
+    <script>
+    /*
+     * Attach the CSRF token to every same-origin state-changing request.
+     *
+     * The panel makes AJAX calls from dozens of pages via both fetch()
+     * and XMLHttpRequest. Rather than edit every call site - and rely on
+     * whoever writes the next one remembering - the token is attached
+     * here, once, for anything that is not a safe method and not going
+     * to another origin.
+     */
+    (function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var token = meta ? meta.getAttribute('content') : '';
+        if (!token) { return; }
+
+        var SAFE = { GET: 1, HEAD: 1, OPTIONS: 1, TRACE: 1 };
+
+        function sameOrigin(url) {
+            try {
+                return new URL(url, window.location.href).origin === window.location.origin;
+            } catch (e) {
+                return false;   // unparseable - treat as foreign, send nothing
+            }
+        }
+
+        var nativeFetch = window.fetch;
+        if (nativeFetch) {
+            window.fetch = function (input, init) {
+                init = init || {};
+                var url = (typeof input === 'string') ? input : (input && input.url) || '';
+                var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+                if (!SAFE[method] && sameOrigin(url)) {
+                    var headers = new Headers(init.headers || (input && input.headers) || {});
+                    if (!headers.has('X-CSRF-Token')) { headers.set('X-CSRF-Token', token); }
+                    init = Object.assign({}, init, { headers: headers });
+                }
+                return nativeFetch.call(this, input, init);
+            };
+        }
+
+        var open = XMLHttpRequest.prototype.open;
+        var send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function (method, url) {
+            this.__csrfNeeded = !SAFE[String(method).toUpperCase()] && sameOrigin(url);
+            return open.apply(this, arguments);
+        };
+        XMLHttpRequest.prototype.send = function () {
+            if (this.__csrfNeeded) { this.setRequestHeader('X-CSRF-Token', token); }
+            return send.apply(this, arguments);
+        };
+    })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_path ?>assets/css/theme.css">
+    <link rel="stylesheet" href="<?= e($base_path) ?>assets/css/theme.css">
+    <!-- Delegated event handling, so markup need not carry script.
+         defer: it only needs the DOM, and blocking the parse for it
+         would slow every page down for no reason. -->
+    <?php include_once __DIR__ . '/actions_tag.php'; ?>
 <script>
+/*
+ * jQuery is loaded later on some pages, so its hook cannot live in the
+ * block above. Same rule applies: same-origin requests only. The
+ * previous version of this block re-wrapped window.fetch a second time
+ * without an origin check, which sent the CSRF token to every
+ * third-party host the panel talked to.
+ */
+(function () {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    window.CSRF_TOKEN = meta ? meta.getAttribute('content') : '';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.jQuery || !window.CSRF_TOKEN) { return; }
+        window.jQuery.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (settings.crossDomain) { return; }
+                try {
+                    var target = new URL(settings.url, window.location.href);
+                    if (target.origin !== window.location.origin) { return; }
+                } catch (e) {
+                    return;
+                }
+                xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+            }
+        });
+    });
+})();
+
 function toggleSidebar() {
     document.querySelector('.sidebar').classList.toggle('show');
     document.querySelector('.sidebar-overlay').classList.toggle('show');
@@ -26,7 +119,7 @@ function toggleHotspotMenu() {
     var submenu = document.getElementById('hotspot-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleHotspotMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleHotspotMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -40,7 +133,7 @@ function toggleNetworkMenu() {
     var submenu = document.getElementById('network-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleNetworkMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleNetworkMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -54,7 +147,7 @@ function toggleCustomerMenu() {
     var submenu = document.getElementById('customer-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleCustomerMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleCustomerMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -68,7 +161,7 @@ function toggleTicketMenu() {
     var submenu = document.getElementById('ticket-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleTicketMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleTicketMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -82,7 +175,7 @@ function toggleReportMenu() {
     var submenu = document.getElementById('report-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleReportMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleReportMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -96,7 +189,7 @@ function toggleLeadMenu() {
     var submenu = document.getElementById('lead-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleLeadMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleLeadMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -110,7 +203,7 @@ function toggleOperationMenu() {
     var submenu = document.getElementById('operation-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleOperationMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleOperationMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -124,7 +217,7 @@ function toggleSettingsMenu() {
     var submenu = document.getElementById('settings-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleSettingsMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleSettingsMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -138,7 +231,7 @@ function toggleFinanceMenu() {
     var submenu = document.getElementById('finance-submenu');
     
     for (var i = 0; i < toggleBtns.length; i++) {
-        if (toggleBtns[i].getAttribute('onclick') === 'toggleFinanceMenu()') {
+        if (toggleBtns[i].getAttribute('data-action') === 'toggleFinanceMenu') {
             toggleBtns[i].classList.toggle('expanded');
             break;
         }
@@ -164,7 +257,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleNetworkMenu()') {
+            /* These used to read the onclick attribute to find the
+               right menu button. The handlers are data-action now,
+               so this had to move with them - a converted attribute
+               that something else was reading by name is the quiet
+               way this refactor breaks. */
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleNetworkMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -177,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleHotspotMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleHotspotMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -195,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleSettingsMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleSettingsMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -214,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleCustomerMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleCustomerMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -227,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleTicketMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleTicketMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -240,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleReportMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleReportMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -253,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleLeadMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleLeadMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -269,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleOperationMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleOperationMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }
@@ -284,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggleBtns = document.querySelectorAll('.menu-toggle-item');
         if (submenu) submenu.classList.add('show');
         for (var i = 0; i < toggleBtns.length; i++) {
-            if (toggleBtns[i].getAttribute('onclick') === 'toggleFinanceMenu()') {
+            if (toggleBtns[i].getAttribute('data-action') === 'toggleFinanceMenu') {
                 toggleBtns[i].classList.add('expanded');
                 break;
             }

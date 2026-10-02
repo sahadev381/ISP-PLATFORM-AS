@@ -1,7 +1,5 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-include 'db.php';
+include __DIR__ . '/db.php';
 
 // Check if 'id' parameter is provided
 if (!isset($_GET['id'])) {

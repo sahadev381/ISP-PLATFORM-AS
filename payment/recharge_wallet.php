@@ -1,15 +1,15 @@
 <?php
 $base_path = '../';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "Recharge Wallet";
 $username = $_SESSION['username'] ?? '';
 $public_key = defined('KHALTI_PUBLIC_KEY') ? KHALTI_PUBLIC_KEY : '';
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -34,19 +34,19 @@ include $base_path . 'includes/topbar.php';
 
         <div class="gateway-grid">
             <!-- Khalti -->
-            <div class="gateway-card" onclick="payWithKhalti()">
+            <div class="gateway-card" data-action="payWithKhalti">
                 <img src="https://khalti.s3.ap-south-1.amazonaws.com/KPG/dist/resources/img/khalti-logo.png">
                 <span>Khalti</span>
             </div>
             
             <!-- eSewa -->
-            <div class="gateway-card" onclick="payWithEsewa()">
+            <div class="gateway-card" data-action="payWithEsewa">
                 <img src="https://blog.esewa.com.np/wp-content/uploads/2021/12/esewa_logo.png">
                 <span>eSewa</span>
             </div>
 
             <!-- connectIPS -->
-            <div class="gateway-card" onclick="payWithConnectIPS()">
+            <div class="gateway-card" data-action="payWithConnectIPS">
                 <img src="https://www.connectips.com/wp-content/uploads/2020/07/connectips-logo.png">
                 <span>connectIPS</span>
             </div>
@@ -58,16 +58,19 @@ include $base_path . 'includes/topbar.php';
                 <thead><tr style="text-align:left; color:#94a3b8;"><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
                 <tbody>
                     <?php
-                    $txns = $conn->query("SELECT * FROM wallet_transactions WHERE username='$username' ORDER BY created_at DESC LIMIT 5");
-                    while($t = $txns->fetch_assoc()):
+                    /* db_all() returns an array, not a mysqli_result.
+                       The ->fetch_assoc() left over from the raw-query
+                       version was a fatal error on every page load. */
+                    $txns = db_all($conn, "SELECT * FROM wallet_transactions WHERE username = ? ORDER BY created_at DESC LIMIT 5", [$username]);
+                    foreach ($txns as $t):
                     ?>
                     <tr style="border-bottom:1px solid #f8fafc;">
                         <td style="padding:10px 0;"><?= date('M d, h:i A', strtotime($t['created_at'])) ?></td>
-                        <td><?= $t['gateway'] ?></td>
+                        <td><?= e($t['gateway']) ?></td>
                         <td style="font-weight:600;">NPR <?= number_format($t['amount'], 2) ?></td>
-                        <td><span style="color:<?= $t['status']=='completed'?'#10b981':'#ef4444' ?>; font-weight:700;"><?= strtoupper($t['status']) ?></span></td>
+                        <td><span style="color:<?= $t['status']=='completed'?'#10b981':'#ef4444' ?>; font-weight:700;"><?= e(strtoupper($t['status'])) ?></span></td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -76,6 +79,7 @@ include $base_path . 'includes/topbar.php';
 
 <!-- Hidden eSewa Form -->
 <form id="hiddenEsewaForm" method="POST" action="esewa_pay.php">
+<?= csrf_field() ?>
     <input type="hidden" name="amount" id="esewa_amt">
 </form>
 
@@ -99,12 +103,14 @@ function payWithKhalti() {
     let amt = getAmount();
     if(amt) {
         let config = {
-            "publicKey": "<?= $public_key ?>",
-            "productIdentity": "wallet-<?= $username ?>",
+            "publicKey": <?= e_js($public_key) ?>,
+            "productIdentity": "wallet-" + <?= e_js($username) ?>,
             "productName": "ISP Wallet Recharge",
             "eventHandler": {
                 onSuccess: function(payload) {
-                    location.href = `khalti_verify.php?token=${payload.token}&amount=${amt}&username=<?= $username ?>`;
+                    location.href = `khalti_verify.php?token=${payload.token}&amount=${amt}`
+                        + `&username=${encodeURIComponent(<?= e_js($username) ?>)}`
+                        + `&_csrf=${encodeURIComponent(<?= e_js(csrf_token()) ?>)}`;
                 },
                 onError: (e) => alert("Khalti Payment Failed")
             }
@@ -119,4 +125,4 @@ function payWithConnectIPS() {
 }
 </script>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

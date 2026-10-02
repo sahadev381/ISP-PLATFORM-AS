@@ -1,8 +1,11 @@
 <?php
 $base_path = './';
-include "config.php";
-include "includes/auth.php";
-include "includes/genieacs_api.php";
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/genieacs_api.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "TR-069 Device Management";
 $active = "operations";
@@ -66,9 +69,9 @@ if ($total_devices > 0) {
     }
 }
 
-include "includes/header.php";
-include "includes/sidebar.php";
-include "includes/topbar.php";
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -118,7 +121,7 @@ include "includes/topbar.php";
 <div class="acs-container">
     
     <?php if ($msg): ?>
-        <div class="alert alert-<?= $msg_type ?>">
+        <div class="alert alert-<?= e($msg_type) ?>">
             <i class="fa fa-<?= $msg_type == 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
         </div>
@@ -193,16 +196,17 @@ include "includes/topbar.php";
                                     <small><?= htmlspecialchars($model) ?></small>
                                 </div>
                             </td>
-                            <td style="color: #64748b; font-size: 13px;"><?= $lastInform ?></td>
+                            <td style="color: #64748b; font-size: 13px;"><?= e($lastInform) ?></td>
                             <td>
                                 <div style="display: flex; gap: 10px;">
-                                    <form method="POST" onsubmit="return confirm('Send Reboot command to this device?');" style="display: inline;">
-                                        <input type="hidden" name="deviceId" value="<?= $deviceId ?>">
+                                    <form method="POST" <?= action_attr('confirmFirst', ['Send Reboot command to this device?'], 'submit') ?> style="display: inline;">
+<?= csrf_field() ?>
+                                        <input type="hidden" name="deviceId" value="<?= e($deviceId) ?>">
                                         <button type="submit" name="reboot" class="btn-action btn-reboot" title="Reboot Device">
                                             <i class="fa fa-power-off"></i>
                                         </button>
                                     </form>
-                                    <button onclick="openWifiModal('<?= $deviceId ?>', '<?= htmlspecialchars($serial) ?>')" class="btn-action btn-wifi" title="Configure WiFi">
+                                    <button <?= action_attr('openWifiModal', [$deviceId, $serial]) ?> class="btn-action btn-wifi" title="Configure WiFi">
                                         <i class="fa fa-wifi"></i>
                                     </button>
                                 </div>
@@ -223,10 +227,11 @@ include "includes/topbar.php";
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="modalTitle">Set Wi-Fi Details</h3>
-            <span style="cursor:pointer; font-size: 24px; color: #94a3b8;" onclick="closeWifiModal()">&times;</span>
+            <span style="cursor:pointer; font-size: 24px; color: #94a3b8;" data-action="closeWifiModal">&times;</span>
         </div>
         <div class="modal-body">
             <form method="POST">
+<?= csrf_field() ?>
                 <input type="hidden" name="deviceId" id="modalDeviceId">
                 <div class="form-group">
                     <label>Wi-Fi Name (SSID)</label>
@@ -278,4 +283,4 @@ window.onclick = function(event) {
 }
 </script>
 
-<?php include "includes/footer.php"; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

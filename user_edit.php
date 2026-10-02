@@ -1,10 +1,10 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "Edit Customer";
 $active = "users";
@@ -26,6 +26,9 @@ function sendToACS($deviceId, $data) {
    FETCH USER
 ========================= */
 $username = $_GET['user'] ?? '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 if (!$username) die("No user specified.");
 
 $stmt = $conn->prepare("SELECT * FROM customers WHERE username=? LIMIT 1");
@@ -37,14 +40,16 @@ if ($result->num_rows === 0) die("User not found.");
 $user = $result->fetch_assoc();
 
 // Fetch current cleartext password from radcheck
-$rad_pass_res = $conn->query("SELECT value FROM radcheck WHERE username='$username' AND attribute='Cleartext-Password' LIMIT 1");
-$current_rad_pass = ($rad_pass_res->num_rows > 0) ? $rad_pass_res->fetch_assoc()['value'] : 'N/A';
+// RADIUS needs this password in the clear for CHAP/MSCHAP, so it cannot
+// be hashed - which is exactly why it must not be rendered into a page.
+// Only report whether one exists.
+$current_rad_pass_is_set = db_value($conn, "SELECT value FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password' LIMIT 1", [$username], '') !== '';
 
 /* =========================
    FETCH PLANS & BRANCHES
 ========================= */
-$plans_list = $conn->query("SELECT * FROM plans")->fetch_all(MYSQLI_ASSOC);
-$branches_list = $conn->query("SELECT * FROM branches WHERE status='active'")->fetch_all(MYSQLI_ASSOC);
+$plans_list = db_all($conn, "SELECT * FROM plans");
+$branches_list = db_all($conn, "SELECT * FROM branches WHERE status = 'active'");
 
 /* =========================
    HANDLE FORM SUBMIT
@@ -122,18 +127,21 @@ if (isset($_POST['save_user'])) {
         $stmt->execute();
 
         /* ===== Update RADIUS (PPP) ===== */
-        if (!empty($password)) {
-            $conn->query("
-                INSERT INTO radcheck (username, attribute, op, value) 
-                VALUES ('$username_new', 'Cleartext-Password', ':=', '$password')
-                ON DUPLICATE KEY UPDATE value='$password', username='$username_new'
-            ");
+        // Rename first, then write the password, otherwise the INSERT below
+        // creates a row under the new name while the rename still targets the
+        // old one and the account ends up with two Cleartext-Password rows.
+        if ($username !== $username_new) {
+            db_exec($conn, "UPDATE radcheck SET username = ? WHERE username = ?", [$username_new, $username]);
+            db_exec($conn, "UPDATE radreply SET username = ? WHERE username = ?", [$username_new, $username]);
+            db_exec($conn, "UPDATE radusergroup SET username = ? WHERE username = ?", [$username_new, $username]);
         }
 
-        if ($username !== $username_new) {
-            $conn->query("UPDATE radcheck SET username='$username_new' WHERE username='$username'");
-            $conn->query("UPDATE radreply SET username='$username_new' WHERE username='$username'");
-            $conn->query("UPDATE radusergroup SET username='$username_new' WHERE username='$username'");
+        if (!empty($password)) {
+            db_exec($conn, "
+                INSERT INTO radcheck (username, attribute, op, value)
+                VALUES (?, 'Cleartext-Password', ':=', ?)
+                ON DUPLICATE KEY UPDATE value = VALUES(value)
+            ", [$username_new, $password]);
         }
 
         /* ===== TR-069 DEVICE UPDATE ===== */
@@ -169,9 +177,9 @@ if (isset($_POST['save_user'])) {
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -232,7 +240,7 @@ include 'includes/topbar.php';
 <div class="edit-container">
     
     <?php if($msg): ?>
-        <div class="alert alert-<?= $msg_type ?>">
+        <div class="alert alert-<?= e($msg_type) ?>">
             <i class="fa <?= $msg_type == 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
         </div>
@@ -246,6 +254,7 @@ include 'includes/topbar.php';
         
         <div class="card-body">
             <form method="post">
+<?= csrf_field() ?>
                 
                 <!-- Section 1: Identity -->
                 <div class="form-section">
@@ -294,7 +303,7 @@ include 'includes/topbar.php';
                             <label>Longitude</label>
                             <input type="text" name="lng" id="lng" class="form-control" value="<?= htmlspecialchars($user['lng'] ?? '') ?>" placeholder="e.g. 85.3240">
                         </div>
-                        <button type="button" onclick="getLocation()" class="btn-submit" style="padding: 12px 15px; background: #64748b;">
+                        <button type="button" data-action="getLocation" class="btn-submit" style="padding: 12px 15px; background: #64748b;">
                             <i class="fa fa-crosshairs"></i> Get Current
                         </button>
                     </div>
@@ -364,8 +373,8 @@ include 'includes/topbar.php';
                             <label>Internet Plan</label>
                             <select name="plan_id" class="form-control">
                                 <?php foreach($plans_list as $p): ?>
-                                    <option value="<?= $p['id'] ?>" <?= ($user['plan_id']==$p['id'])?'selected':'' ?>>
-                                        <?= htmlspecialchars($p['name']) ?> (<?= $p['speed'] ?>)
+                                    <option value="<?= e($p['id']) ?>" <?= ($user['plan_id']==$p['id'])?'selected':'' ?>>
+                                        <?= htmlspecialchars($p['name']) ?> (<?= e($p['speed']) ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -375,7 +384,7 @@ include 'includes/topbar.php';
                             <select name="branch_id" class="form-control">
                                 <option value="">Global / No Branch</option>
                                 <?php foreach($branches_list as $b): ?>
-                                    <option value="<?= $b['id'] ?>" <?= ($user['branch_id']==$b['id'])?'selected':'' ?>>
+                                    <option value="<?= e($b['id']) ?>" <?= ($user['branch_id']==$b['id'])?'selected':'' ?>>
                                         <?= htmlspecialchars($b['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -390,9 +399,10 @@ include 'includes/topbar.php';
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Current PPPoE Password</label>
-                            <div style="padding: 12px; background: #f1f5f9; border-radius: 10px; font-family: monospace; font-weight: bold; color: #1e293b; border: 1px solid #e2e8f0;">
-                                <?= htmlspecialchars($current_rad_pass) ?>
+                            <div style="padding: 12px; background: #f1f5f9; border-radius: 10px; font-family: monospace; color: #64748b; border: 1px solid #e2e8f0;">
+                                <?= $current_rad_pass_is_set ? '•••••••• (set)' : 'not set' ?>
                             </div>
+                            <small style="color:#94a3b8;">RADIUS stores this in the clear, so it is not printed here. Set a new one below to change it.</small>
                         </div>
                         <div class="form-group">
                             <label>Set New Password <small style="color: #94a3b8; font-weight: normal;">(Leave empty to keep current)</small></label>
@@ -461,4 +471,4 @@ document.getElementById('togglePass').addEventListener('click', function() {
 });
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

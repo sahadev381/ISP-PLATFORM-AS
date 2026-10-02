@@ -4,6 +4,9 @@
  */
 
 header('Content-Type: application/json');
+require_once __DIR__ . '/includes/api_auth.php';
+api_require_auth();
+
 
 $host = $_GET['host'] ?? '192.168.5.20';
 $community = $_GET['community'] ?? 'public';
@@ -23,7 +26,7 @@ if (!function_exists('snmpget')) {
 }
 
 try {
-    include 'includes/mikrotik_snmp.php';
+    include __DIR__ . '/includes/mikrotik_snmp.php';
     
     $snmp = new MikrotikSNMP($host, $community);
     $response['data'] = $snmp->getAll();

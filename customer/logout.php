@@ -1,12 +1,12 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session.php';
+session_boot();
 
 // Destroy all session data
-session_unset();
-session_destroy();
+session_kill();
 
 // Redirect to login page
-header("Location: login.php");
+header("Location: index.php");
 exit;
 ?>
 

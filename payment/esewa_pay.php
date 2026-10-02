@@ -1,6 +1,10 @@
 <?php
-include '../config.php';
-include '../includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
+
 
 // Fetch Settings
 $esewa_merchant = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='esewa_merchant_id'")->fetch_assoc()['setting_value'] ?? 'EPAYTEST';
@@ -20,7 +24,7 @@ $success_url = $base_url . "/esewa_verify.php";
 $failure_url = $base_url . "/khalti_pay.php?msg=failed";
 
 $page_title = "Processing eSewa Payment";
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="main-content-inner" style="display:flex; justify-content:center; align-items:center; height:80vh;">
@@ -30,16 +34,19 @@ include '../includes/header.php';
         <p style="color:#64748b;">Redirecting to eSewa gateway...</p>
         <div style="font-size:24px; font-weight:700; margin:20px 0; color:#1e293b;">NPR <?= number_format($amount, 2) ?></div>
         
-        <form id="esewaForm" method="POST" action="<?= $esewa_url ?>">
-            <input type="hidden" name="amt" value="<?= $amount ?>">
+        <!-- Deliberately no csrf_field() here: this form posts to eSewa,
+             and our token must not be handed to a third party. The POST
+             that reaches *this* page is verified by csrf_check() above. -->
+        <form id="esewaForm" method="POST" action="<?= e($esewa_url) ?>">
+            <input type="hidden" name="amt" value="<?= e($amount) ?>">
             <input type="hidden" name="pdc" value="0">
             <input type="hidden" name="psc" value="0">
             <input type="hidden" name="txAmt" value="0">
-            <input type="hidden" name="tAmt" value="<?= $amount ?>">
-            <input type="hidden" name="pid" value="<?= $txn_id ?>">
-            <input type="hidden" name="scd" value="<?= $esewa_merchant ?>">
-            <input type="hidden" name="su" value="<?= $success_url ?>">
-            <input type="hidden" name="fu" value="<?= $failure_url ?>">
+            <input type="hidden" name="tAmt" value="<?= e($amount) ?>">
+            <input type="hidden" name="pid" value="<?= e($txn_id) ?>">
+            <input type="hidden" name="scd" value="<?= e($esewa_merchant) ?>">
+            <input type="hidden" name="su" value="<?= e($success_url) ?>">
+            <input type="hidden" name="fu" value="<?= e($failure_url) ?>">
             
             <div style="padding:20px; border-top:1px solid #eee;">
                 <p style="font-size:12px; color:#94a3b8;">Please do not close this window.</p>
@@ -54,4 +61,4 @@ include '../includes/header.php';
     }, 2000);
 </script>
 
-<?php include '../includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

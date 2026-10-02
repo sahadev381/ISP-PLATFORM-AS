@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Online Users";
 $active = "online";
@@ -17,9 +17,9 @@ $q = $conn->query("
     ORDER BY radacct.acctstarttime DESC
 ");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 $page_title = "Online Users";
 ?>
 
@@ -57,8 +57,8 @@ $page_title = "Online Users";
                 <td><?= htmlspecialchars($u['speed']) ?></td>
                 <td><?= htmlspecialchars($u['callingstationid']) ?></td>
                 <td><?= htmlspecialchars($u['callingstationid']) ?></td>
-                <td><?= $u['acctstarttime'] ?></td>
-                <td><?= sprintf("%02d:%02d:%02d", $hours, $mins, $secs) ?></td>
+                <td><?= e($u['acctstarttime']) ?></td>
+                <td><?= e(sprintf("%02d:%02d:%02d", $hours, $mins, $secs)) ?></td>
                 <td>
                     <span class="badge active" id="status-<?= htmlspecialchars($u['username']) ?>"></span>
                     <button type="button"
@@ -95,5 +95,5 @@ $('.disconnect-btn').on('click', function(){
 });
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

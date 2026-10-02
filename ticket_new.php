@@ -1,16 +1,22 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
+
 
 $page_title = "Create Ticket";
 $active = "tickets";
 
 if(isset($_POST['submit'])){
     $customer_id = (int)$_POST['customer_id'];
-    $subject     = $conn->real_escape_string($_POST['subject']);
-    $message     = $conn->real_escape_string($_POST['message']);
-    $priority    = $conn->real_escape_string($_POST['priority']);
+    // These go into a prepared statement below, so escaping them here just
+    // stored literal backslashes in the ticket text.
+    $subject     = (string) ($_POST['subject'] ?? '');
+    $message     = (string) ($_POST['message'] ?? '');
+    $priority    = (string) ($_POST['priority'] ?? '');
     $branch_id   = $_SESSION['branch_id'] ?? 1;
 
     $stmt = $conn->prepare("
@@ -27,9 +33,9 @@ if(isset($_POST['submit'])){
 
 $customers = $conn->query("SELECT id, full_name, username FROM customers ORDER BY username ASC");
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -61,12 +67,13 @@ include $base_path . 'includes/topbar.php';
         
         <div class="card-body">
             <form method="POST">
+<?= csrf_field() ?>
                 <div class="form-group">
                     <label>Select Customer</label>
                     <select name="customer_id" class="form-control" required>
                         <option value="">-- Search Customer --</option>
                         <?php while($c = $customers->fetch_assoc()): ?>
-                            <option value="<?= $c['id'] ?>">
+                            <option value="<?= e($c['id']) ?>">
                                 <?= htmlspecialchars($c['full_name']) ?> (<?= htmlspecialchars($c['username']) ?>)
                             </option>
                         <?php endwhile; ?>
@@ -107,4 +114,4 @@ include $base_path . 'includes/topbar.php';
     </div>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

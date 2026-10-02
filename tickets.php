@@ -1,38 +1,61 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Support Tickets";
 $active = "tickets";
 
 if (!isset($conn)) { die("Database connection failed."); }
 
+// Non-superadmins are confined to their own branch throughout this page.
+[$branch_sql, $branch_params] = branch_scope('t');
+[$branch_sql_bare, ] = branch_scope();
+
 if (isset($_GET['delete'])) {
     $ticket_id = (int) $_GET['delete'];
-    $stmt = $conn->prepare("DELETE FROM tickets WHERE id = ?");
-    $stmt->bind_param("i", $ticket_id);
-    if ($stmt->execute()) {
-        header("Location: tickets.php?msg=deleted");
-        exit;
+
+    // Deleting used to be a bare GET: any ticket id, any branch, no token.
+    csrf_check_request();
+
+    $owner = db_one($conn, "SELECT branch_id FROM tickets WHERE id = ?", [$ticket_id]);
+    if (!$owner) {
+        rbac_deny(404, 'Ticket not found.');
     }
+    require_branch_access($owner);
+
+    db_exec($conn, "DELETE FROM tickets WHERE id = ?", [$ticket_id]);
+    header("Location: tickets.php?msg=deleted");
+    exit;
 }
 
-$total_tickets = $conn->query("SELECT COUNT(*) as c FROM tickets")->fetch_assoc()['c'];
-$open_tickets = $conn->query("SELECT COUNT(*) as c FROM tickets WHERE status='Open'")->fetch_assoc()['c'];
-$inprogress_tickets = $conn->query("SELECT COUNT(*) as c FROM tickets WHERE status='In Progress'")->fetch_assoc()['c'];
-$closed_tickets = $conn->query("SELECT COUNT(*) as c FROM tickets WHERE status='Closed'")->fetch_assoc()['c'];
+$counts = db_one($conn, "
+    SELECT
+        COUNT(*) AS total,
+        SUM(status = 'Open') AS open_count,
+        SUM(status = 'In Progress') AS inprogress,
+        SUM(status = 'Closed') AS closed
+    FROM tickets
+    WHERE 1=1 $branch_sql_bare
+", $branch_params) ?: [];
 
-$tickets = $conn->query("
+$total_tickets      = (int) ($counts['total'] ?? 0);
+$open_tickets       = (int) ($counts['open_count'] ?? 0);
+$inprogress_tickets = (int) ($counts['inprogress'] ?? 0);
+$closed_tickets     = (int) ($counts['closed'] ?? 0);
+
+$tickets = db_all($conn, "
     SELECT t.*, c.username, c.full_name
-    FROM tickets t 
-    LEFT JOIN customers c ON t.customer_id = c.id 
+    FROM tickets t
+    LEFT JOIN customers c ON t.customer_id = c.id
+    WHERE 1=1 $branch_sql
     ORDER BY t.created_at DESC
-");
+", $branch_params);
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -89,28 +112,28 @@ include $base_path . 'includes/topbar.php';
     <div class="ticket-grid">
         <div class="ticket-card total">
             <h4><i class="fa fa-ticket-alt"></i> Total Tickets</h4>
-            <div class="num"><?= $total_tickets ?></div>
+            <div class="num"><?= e($total_tickets) ?></div>
         </div>
         <div class="ticket-card open">
             <h4><i class="fa fa-envelope-open"></i> Open</h4>
-            <div class="num"><?= $open_tickets ?></div>
+            <div class="num"><?= e($open_tickets) ?></div>
         </div>
         <div class="ticket-card progress">
             <h4><i class="fa fa-spinner"></i> In Progress</h4>
-            <div class="num"><?= $inprogress_tickets ?></div>
+            <div class="num"><?= e($inprogress_tickets) ?></div>
         </div>
         <div class="ticket-card closed">
             <h4><i class="fa fa-check-circle"></i> Closed</h4>
-            <div class="num"><?= $closed_tickets ?></div>
+            <div class="num"><?= e($closed_tickets) ?></div>
         </div>
     </div>
     
     <!-- Filter Links -->
     <div class="filter-links">
-        <a href="tickets.php" class="active">All (<?= $total_tickets ?>)</a>
-        <a href="tickets.php?status=Open">Open (<?= $open_tickets ?>)</a>
-        <a href="tickets.php?status=In+Progress">In Progress (<?= $inprogress_tickets ?>)</a>
-        <a href="tickets.php?status=Closed">Closed (<?= $closed_tickets ?>)</a>
+        <a href="tickets.php" class="active">All (<?= e($total_tickets) ?>)</a>
+        <a href="tickets.php?status=Open">Open (<?= e($open_tickets) ?>)</a>
+        <a href="tickets.php?status=In+Progress">In Progress (<?= e($inprogress_tickets) ?>)</a>
+        <a href="tickets.php?status=Closed">Closed (<?= e($closed_tickets) ?>)</a>
         <a href="ticket_new.php" class="btn-new" style="float: right;"><i class="fa fa-plus"></i> New Ticket</a>
     </div>
 
@@ -132,34 +155,34 @@ include $base_path . 'includes/topbar.php';
                 </tr>
             </thead>
             <tbody>
-                <?php while ($ticket = $tickets->fetch_assoc()): ?>
+                <?php foreach ($tickets as $ticket): ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 12px;">#<?= $ticket['id'] ?></td>
+                    <td style="padding: 12px;">#<?= e($ticket['id']) ?></td>
                     <td style="padding: 12px;">
                         <strong><?= htmlspecialchars($ticket['full_name'] ?: $ticket['username'] ?: 'N/A') ?></strong>
                         <?php if($ticket['username']): ?>
-                        <br><small style="color: #64748b;">@<?= $ticket['username'] ?></small>
+                        <br><small style="color: #64748b;">@<?= e($ticket['username']) ?></small>
                         <?php endif; ?>
                     </td>
                     <td style="padding: 12px;"><?= htmlspecialchars($ticket['subject']) ?></td>
                     <td style="padding: 12px;">
-                        <span class="badge priority-<?= strtolower($ticket['priority']) ?>"><?= $ticket['priority'] ?></span>
+                        <span class="badge priority-<?= e(strtolower($ticket['priority'])) ?>"><?= e($ticket['priority']) ?></span>
                     </td>
                     <td style="padding: 12px;">
-                        <span class="badge badge-<?= strtolower(str_replace(' ', '', $ticket['status'])) ?>"><?= $ticket['status'] ?></span>
+                        <span class="badge badge-<?= e(strtolower(str_replace(' ', '', $ticket['status']))) ?>"><?= e($ticket['status']) ?></span>
                     </td>
                     <td style="padding: 12px; color: #64748b; font-size: 13px;"><?= date('M d, Y H:i', strtotime($ticket['created_at'])) ?></td>
                     <td style="padding: 12px;">
                         <div style="display: flex; gap: 5px;">
-                            <a href="ticket_view.php?id=<?= $ticket['id'] ?>" class="action-btn btn-view" title="View"><i class="fa fa-eye"></i></a>
-                            <a href="?delete=<?= $ticket['id'] ?>" class="action-btn btn-delete" title="Delete" onclick="return confirm('Delete this ticket?')"><i class="fa fa-trash"></i></a>
+                            <a href="ticket_view.php?id=<?= e($ticket['id']) ?>" class="action-btn btn-view" title="View"><i class="fa fa-eye"></i></a>
+                            <a href="?delete=<?= (int) $ticket['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="action-btn btn-delete" title="Delete" <?= action_attr('confirmFirst', ['Delete this ticket?']) ?>><i class="fa fa-trash"></i></a>
                         </div>
                     </td>
                 </tr>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "User Reports";
 $active = "reports";
@@ -45,19 +45,25 @@ while($row = $users->fetch_assoc()){
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?= $page_title ?></title>
-    <link rel="stylesheet" href="css/style.css">
+    <title><?= e($page_title) ?></title>
+    <?php require_once __DIR__ . '/includes/paths.php'; ?>
+    <!-- css/style.css does not exist and never has. The stylesheet
+         this page wants is the shared theme. -->
+    <link rel="stylesheet" href="<?= e(app_base_path()) ?>assets/css/theme.css">
 </head>
 <body>
-<h1><?= $page_title ?></h1>
+<h1><?= e($page_title) ?></h1>
 
 <h2>New Users (<?= count($new_users) ?>)</h2>
 <div>
@@ -65,10 +71,10 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Status</th></tr>
     <?php foreach($new_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
-        <td><?= $u['status'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
+        <td><?= e($u['status']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
@@ -80,10 +86,10 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Expiry Date</th></tr>
     <?php foreach($expiring_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
-        <td><?= $u['expiry'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
+        <td><?= e($u['expiry']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
@@ -95,10 +101,10 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Expiry Date</th></tr>
     <?php foreach($expired_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
-        <td><?= $u['expiry'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
+        <td><?= e($u['expiry']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
@@ -109,15 +115,16 @@ include 'includes/topbar.php';
     <tr><th>Username</th><th>Plan</th><th>Speed</th><th>Status</th></tr>
     <?php foreach($active_users as $u): ?>
     <tr>
-        <td><?= $u['username'] ?></td>
-        <td><?= $u['plan_name'] ?></td>
-        <td><?= $u['speed'] ?></td>
+        <td><?= e($u['username']) ?></td>
+        <td><?= e($u['plan_name']) ?></td>
+        <td><?= e($u['speed']) ?></td>
         <td><?= ($u['online']>0)?"Online":"Offline" ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
 </div>
 <form method="post" action="export_report.php">
+<?= csrf_field() ?>
     <input type="submit" name="export" value="Export CSV">
 </form>
 </body>

@@ -5,7 +5,11 @@
  */
 
 header('Content-Type: application/json');
-include_once '../config.php';
+
+require_once __DIR__ . '/../includes/api_auth.php';
+api_require_auth();
+api_csrf_check();
+include_once __DIR__ . '/../config.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -35,7 +39,7 @@ switch ($action) {
         }
         
         // Get OLT details
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id AND device_type = 'olt'")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ? AND device_type = 'olt'", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -55,17 +59,12 @@ switch ($action) {
             jsonResponse(false, 'Serial number required');
         }
         
-        $history = $conn->query("
-            SELECT * FROM olt_onu_signal 
-            WHERE onu_serial = '$serial'
-            ORDER BY recorded_at DESC 
+        $data = db_all($conn, "
+            SELECT * FROM olt_onu_signal
+            WHERE onu_serial = ?
+            ORDER BY recorded_at DESC
             LIMIT 100
-        ");
-        
-        $data = [];
-        while ($row = $history->fetch_assoc()) {
-            $data[] = $row;
-        }
+        ", [$serial]);
         
         jsonResponse(true, '', $data);
         break;
@@ -79,7 +78,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID and Serial required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -91,8 +90,8 @@ switch ($action) {
         // Log action
         $userId = $_SESSION['user_id'] ?? 0;
         $oltName = $olt['nasname'] ?? 'Unknown';
-        $conn->query("INSERT INTO activity_log (user_id, action, details, created_at) 
-            VALUES ($userId, 'ont_reboot', 'Reboot ONT $serial on OLT $oltName', NOW())");
+        db_exec($conn, "INSERT INTO activity_log (user_id, action, details, created_at)
+            VALUES (?, 'ont_reboot', ?, NOW())", [(int) $userId, "Reboot ONT $serial on OLT $oltName"]);
         
         jsonResponse($result['success'], $result['message']);
         break;
@@ -106,7 +105,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID and Serial required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -116,8 +115,8 @@ switch ($action) {
         
         $userId = $_SESSION['user_id'] ?? 0;
         $oltName = $olt['nasname'] ?? 'Unknown';
-        $conn->query("INSERT INTO activity_log (user_id, action, details, created_at) 
-            VALUES ($userId, 'ont_disable', 'Disable ONT $serial on OLT $oltName', NOW())");
+        db_exec($conn, "INSERT INTO activity_log (user_id, action, details, created_at)
+            VALUES (?, 'ont_disable', ?, NOW())", [(int) $userId, "Disable ONT $serial on OLT $oltName"]);
         
         jsonResponse($result['success'], $result['message']);
         break;
@@ -131,7 +130,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID and Serial required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -141,8 +140,8 @@ switch ($action) {
         
         $userId = $_SESSION['user_id'] ?? 0;
         $oltName = $olt['nasname'] ?? 'Unknown';
-        $conn->query("INSERT INTO activity_log (user_id, action, details, created_at) 
-            VALUES ($userId, 'ont_enable', 'Enable ONT $serial on OLT $oltName', NOW())");
+        db_exec($conn, "INSERT INTO activity_log (user_id, action, details, created_at)
+            VALUES (?, 'ont_enable', ?, NOW())", [(int) $userId, "Enable ONT $serial on OLT $oltName"]);
         
         jsonResponse($result['success'], $result['message']);
         break;
@@ -155,19 +154,19 @@ switch ($action) {
             jsonResponse(false, 'OLT ID required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
         }
         
         // Get ONT counts from database
-        $total = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id")->fetch_assoc()['c'] ?? 0;
-        $online = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND status = 'online'")->fetch_assoc()['c'] ?? 0;
+        $total = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ?", [(int) $olt_id], 0);
+        $online = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND status = 'online'", [(int) $olt_id], 0);
         $offline = $total - $online;
         
         // Calculate critical (signal < -28 dBm)
-        $critical = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND rx_power < -28")->fetch_assoc()['c'] ?? 0;
+        $critical = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND rx_power < -28", [(int) $olt_id], 0);
         
         $data = [
             'total' => $total,
@@ -190,7 +189,7 @@ switch ($action) {
             jsonResponse(false, 'OLT ID required');
         }
         
-        $olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+        $olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
         
         if (!$olt) {
             jsonResponse(false, 'OLT not found');
@@ -227,16 +226,16 @@ function getONTFromOLT($olt) {
     $brand = strtolower($olt['brand'] ?? 'bdcom');
     
     // Try to get from stored data first
-    $storedOnts = $conn->query("
-        SELECT * FROM olt_onu_signal 
-        WHERE olt_id = {$olt['id']}
+    $storedOnts = db_all($conn, "
+        SELECT * FROM olt_onu_signal
+        WHERE olt_id = ?
         ORDER BY port, recorded_at DESC
-    ");
-    
+    ", [(int) $olt['id']]);
+
     $onts = [];
     $seenSerials = [];
-    
-    while ($row = $storedOnts->fetch_assoc()) {
+
+    foreach ($storedOnts as $row) {
         if (!in_array($row['onu_serial'], $seenSerials)) {
             $onts[] = $row;
             $seenSerials[] = $row['onu_serial'];
@@ -265,8 +264,9 @@ function getONTFromOLT($olt) {
         
         // Store in database
         foreach ($onts as $ont) {
-            $conn->query("INSERT INTO olt_onu_signal (olt_id, onu_serial, port, onu_type, rx_power, tx_power, status)
-                VALUES ({$olt['id']}, '{$ont['onu_serial']}', '{$ont['port']}', '{$ont['onu_type']}', {$ont['rx_power']}, {$ont['tx_power']}, '{$ont['status']}')");
+            db_exec($conn, "INSERT INTO olt_onu_signal (olt_id, onu_serial, port, onu_type, rx_power, tx_power, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [(int) $olt['id'], $ont['onu_serial'], $ont['port'], $ont['onu_type'], $ont['rx_power'], $ont['tx_power'], $ont['status']]);
         }
     }
     
@@ -279,8 +279,9 @@ function rebootONTOnOLT($olt, $serial) {
     
     // Log the action
     global $conn;
-    $conn->query("INSERT INTO network_alerts (device_id, device_name, alert_type, message, severity, status)
-        VALUES ({$olt['id']}, '{$olt['nasname']}', 'ont_reboot', 'Reboot command sent to ONT $serial', 'info', 'active')");
+    db_exec($conn, "INSERT INTO network_alerts (device_id, device_name, alert_type, message, severity, status)
+        VALUES (?, ?, 'ont_reboot', ?, 'info', 'active')",
+        [(int) $olt['id'], $olt['nasname'], "Reboot command sent to ONT $serial"]);
     
     return [
         'success' => true,
@@ -291,8 +292,9 @@ function rebootONTOnOLT($olt, $serial) {
 function disableONTOnOLT($olt, $serial) {
     global $conn;
     
-    $conn->query("INSERT INTO network_alerts (device_id, device_name, alert_type, message, severity, status)
-        VALUES ({$olt['id']}, '{$olt['nasname']}', 'ont_disable', 'Disable command sent to ONT $serial', 'warning', 'active')");
+    db_exec($conn, "INSERT INTO network_alerts (device_id, device_name, alert_type, message, severity, status)
+        VALUES (?, ?, 'ont_disable', ?, 'warning', 'active')",
+        [(int) $olt['id'], $olt['nasname'], "Disable command sent to ONT $serial"]);
     
     return [
         'success' => true,

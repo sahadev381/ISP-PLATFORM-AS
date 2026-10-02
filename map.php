@@ -1,13 +1,13 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Interactive FTTH Infrastructure Map";
 $active = "map";
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <!-- Leaflet & Draw -->
@@ -48,30 +48,30 @@ include 'includes/topbar.php';
     <div id="map"></div>
     <div class="map-toolbar">
         <h4 style="margin:0 0 15px 0; font-size: 14px; color:#1e293b;">Infrastructure Editor</h4>
-        <button class="tool-btn" data-type="OLT" onclick="setMode('add_node', this)"><i class="fa fa-server" style="color:#ef4444;"></i> OLT Node</button>
-        <button class="tool-btn" data-type="POLE" onclick="setMode('add_node', this)"><i class="fa fa-broadcast-tower" style="color:#64748b;"></i> Pole</button>
-        <button class="tool-btn" data-type="MASTER_BOX" onclick="setMode('add_node', this)"><i class="fa fa-box" style="color:#f59e0b;"></i> Master Box</button>
-        <button class="tool-btn" data-type="DB_BOX" onclick="setMode('add_node', this)"><i class="fa fa-boxes" style="color:#3b82f6;"></i> DB Box</button>
-        <button class="tool-btn" data-type="ENCLOSURE" onclick="setMode('add_node', this)"><i class="fa fa-shield-halved" style="color:#8b5cf6;"></i> Enclosure</button>
-        <button class="tool-btn" data-type="JOINT" onclick="setMode('add_node', this)"><i class="fa fa-link" style="color:#10b981;"></i> Joint / Tiffin</button>
+        <button class="tool-btn" data-type="OLT" data-action="setMode" data-args='["add_node"]'><i class="fa fa-server" style="color:#ef4444;"></i> OLT Node</button>
+        <button class="tool-btn" data-type="POLE" data-action="setMode" data-args='["add_node"]'><i class="fa fa-broadcast-tower" style="color:#64748b;"></i> Pole</button>
+        <button class="tool-btn" data-type="MASTER_BOX" data-action="setMode" data-args='["add_node"]'><i class="fa fa-box" style="color:#f59e0b;"></i> Master Box</button>
+        <button class="tool-btn" data-type="DB_BOX" data-action="setMode" data-args='["add_node"]'><i class="fa fa-boxes" style="color:#3b82f6;"></i> DB Box</button>
+        <button class="tool-btn" data-type="ENCLOSURE" data-action="setMode" data-args='["add_node"]'><i class="fa fa-shield-halved" style="color:#8b5cf6;"></i> Enclosure</button>
+        <button class="tool-btn" data-type="JOINT" data-action="setMode" data-args='["add_node"]'><i class="fa fa-link" style="color:#10b981;"></i> Joint / Tiffin</button>
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-        <button class="tool-btn" onclick="openFaultTool()"><i class="fa fa-magnifying-glass-location" style="color:#ef4444;"></i> Fault Localizer</button>
-        <button class="tool-btn" id="fiberBtn" onclick="toggleFiberDrawing()"><i class="fa fa-pen-nib"></i> Trace Fiber</button>
-        <button class="tool-btn" onclick="openLeaseManager()"><i class="fa fa-handshake" style="color:#8b5cf6;"></i> Wire Leases</button>
+        <button class="tool-btn" data-action="openFaultTool"><i class="fa fa-magnifying-glass-location" style="color:#ef4444;"></i> Fault Localizer</button>
+        <button class="tool-btn" id="fiberBtn" data-action="toggleFiberDrawing"><i class="fa fa-pen-nib"></i> Trace Fiber</button>
+        <button class="tool-btn" data-action="openLeaseManager"><i class="fa fa-handshake" style="color:#8b5cf6;"></i> Wire Leases</button>
         <a href="map_export.php" class="tool-btn" style="text-decoration:none;"><i class="fa fa-file-export" style="color:#10b981;"></i> Export KML</a>
-        <button class="tool-btn" onclick="refreshData()" style="background:#fff;"><i class="fa fa-sync"></i> Refresh Data</button>
+        <button class="tool-btn" data-action="refreshData" style="background:#fff;"><i class="fa fa-sync"></i> Refresh Data</button>
     </div>
 </div>
 
 <div id="nodeModal" class="ftth-modal">
     <div class="ftth-modal-content">
-        <div class="modal-header"><h3 id="modalTitle">Asset Manager</h3><span onclick="closeModal('nodeModal')" style="font-size:24px; cursor:pointer;">&times;</span></div>
+        <div class="modal-header"><h3 id="modalTitle">Asset Manager</h3><span data-action="closeModal" data-args='["nodeModal"]' style="font-size:24px; cursor:pointer;">&times;</span></div>
         <div class="modal-body">
             <input type="hidden" id="nodeId"><input type="hidden" id="nodeLat"><input type="hidden" id="nodeLng"><input type="hidden" id="nodeType">
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                 <div><label>Asset Name / ID</label><input type="text" id="nodeName"></div>
-                <div><label>Capacity</label><select id="nodeCapacity" onchange="handleCapacityChange()"></select></div>
+                <div><label>Capacity</label><select id="nodeCapacity" data-action="handleCapacityChange" data-action-on="change"></select></div>
             </div>
 
             <div style="margin-top:10px; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
@@ -92,7 +92,7 @@ include 'includes/topbar.php';
                 </div>
             </div>
 
-            <button class="btn btn-primary" onclick="saveNode()" style="width:100%; padding:12px; font-weight:700; margin-top:20px;"><i class="fa fa-save"></i> Save Infrastructure</button>
+            <button class="btn btn-primary" data-action="saveNode" style="width:100%; padding:12px; font-weight:700; margin-top:20px;"><i class="fa fa-save"></i> Save Infrastructure</button>
         </div>
     </div>
 </div>
@@ -100,7 +100,7 @@ include 'includes/topbar.php';
 <!-- Fault Localization Modal -->
 <div id="faultModal" class="ftth-modal">
     <div class="ftth-modal-content" style="max-width: 400px;">
-        <div class="modal-header"><h3><i class="fa fa-bolt"></i> Fault Localizer</h3><span onclick="closeModal('faultModal')" style="cursor:pointer;">&times;</span></div>
+        <div class="modal-header"><h3><i class="fa fa-bolt"></i> Fault Localizer</h3><span data-action="closeModal" data-args='["faultModal"]' style="cursor:pointer;">&times;</span></div>
         <div class="modal-body">
             <p style="font-size:12px; color:#64748b; margin-bottom:15px;">Pinpoint a fiber break by entering the distance from the source (OLT).</p>
             <label>Select Fiber Route</label>
@@ -109,7 +109,7 @@ include 'includes/topbar.php';
             </select>
             <label>Distance from Source (Meters)</label>
             <input type="number" id="faultDistance" class="form-control" placeholder="e.g. 450">
-            <button class="btn btn-primary" onclick="predictBreak()" style="width:100%; padding:12px;">Predict Break Point</button>
+            <button class="btn btn-primary" data-action="predictBreak" style="width:100%; padding:12px;">Predict Break Point</button>
         </div>
     </div>
 </div>
@@ -119,7 +119,7 @@ include 'includes/topbar.php';
     <div class="ftth-modal-content" style="max-width: 800px;">
         <div class="modal-header">
             <h3><i class="fa fa-handshake"></i> Wire Lease Management</h3>
-            <span onclick="closeModal('leaseModal')" style="cursor:pointer;">&times;</span>
+            <span data-action="closeModal" data-args='["leaseModal"]' style="cursor:pointer;">&times;</span>
         </div>
         <div class="modal-body">
             <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap:30px;">
@@ -165,6 +165,18 @@ include 'includes/topbar.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
 <script>
+
+// Values below are rendered with innerHTML / bindPopup, so anything that
+// originates from the database must be escaped before interpolation.
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
+function escJs(value) {
+    return JSON.stringify(String(value ?? '')).slice(1, -1).replace(/'/g, "\\'");
+}
+function num(value) { return Number(value) || 0; }
     function openLeaseManager() {
         document.getElementById('leaseModal').style.display = 'block';
         loadLeases();
@@ -196,16 +208,16 @@ include 'includes/topbar.php';
             list.innerHTML = data.map(l => `
                 <div style="background:#fff; border:1px solid #e2e8f0; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <b style="color:#1e293b;">${l.client_name}</b>
-                        <span class="badge ${l.status==='Active'?'bg-success':'bg-danger'}">${l.status}</span>
+                        <b style="color:#1e293b;">${esc(l.client_name)}</b>
+                        <span class="badge ${l.status==='Active'?'bg-success':'bg-danger'}">${esc(l.status)}</span>
                     </div>
                     <div style="font-size:12px; color:#64748b;">
-                        <div>Route: <b>${l.route_name}</b> (Core #${l.core_number})</div>
-                        <div>Started: ${l.lease_start}</div>
-                        <div>Price: Rs. ${l.monthly_price}/mo</div>
+                        <div>Route: <b>${esc(l.route_name)}</b> (Core #${num(l.core_number)})</div>
+                        <div>Started: ${esc(l.lease_start)}</div>
+                        <div>Price: Rs. ${num(l.monthly_price)}/mo</div>
                     </div>
                     ${l.status === 'Active' ? `
-                    <button onclick="terminateLease(${l.id})" class="btn-action-sm btn-del" style="margin-top:10px;">
+                    <button ${actionAttr('terminateLease', [num(l.id)])} class="btn-action-sm btn-del" style="margin-top:10px;">
                         <i class="fa fa-ban"></i> Terminate Lease
                     </button>` : ''}
                 </div>
@@ -250,9 +262,11 @@ include 'includes/topbar.php';
 
     var map = L.map('map').setView([27.7172, 85.3240], 15);
 
-    var googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google'});
-    var googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google'});
-    var googleTerrain = L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google'});
+    // Plain HTTP: blocked by img-src on an HTTPS deployment, and
+    // mixed content in every browser. The tiles never loaded.
+    var googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google'});
+    var googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google'});
+    var googleTerrain = L.tileLayer('https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google'});
     googleHybrid.addTo(map);
     L.control.layers({"Satellite": googleHybrid, "Roadmap": googleStreets, "Terrain": googleTerrain}).addTo(map);
 
@@ -262,12 +276,19 @@ include 'includes/topbar.php';
     map.addControl(drawControl);
 
     function updateDropdownColor(sel) {
+        /* Was called as updateDropdownColor(this) from the attribute;
+           the dispatcher passes the element as the context instead. */
+        sel = (sel && sel.value !== undefined) ? sel : this;
         let color = fiberColors[sel.value] || 'white';
         sel.style.backgroundColor = color;
         sel.style.color = (sel.value === 'Black' || sel.value === 'Blue' || sel.value === 'Brown' || sel.value === 'Red') ? 'white' : 'black';
     }
 
     function setMode(mode, btn) {
+        /* The toolbar buttons used to pass `this` explicitly. The
+           dispatcher supplies it as the calling context, and
+           closeModal() still calls setMode(null, null) on purpose. */
+        btn = (btn && btn.getAttribute) ? btn : ((this && this.getAttribute) ? this : null);
         currentMode = mode; currentNodeType = btn ? btn.getAttribute('data-type') : null;
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         if(btn) btn.classList.add('active');
@@ -317,15 +338,15 @@ include 'includes/topbar.php';
             
             h += `<tr>`;
             h += `<td><input type="text" class="p-name" data-port="${i}" value="${pName}" placeholder="P${i} Name"></td>`;
-            h += `<td><select class="color-select p-out-col" data-port="${i}" onchange="updateDropdownColor(this)">${colorNames.map(c=>`<option value="${c}" ${outCol==c?'selected':''}>${c}</option>`).join('')}</select></td>`;
+            h += `<td><select class="color-select p-out-col" data-port="${i}" data-action="updateDropdownColor" data-action-on="change">${colorNames.map(c=>`<option value="${c}" ${outCol==c?'selected':''}>${c}</option>`).join('')}</select></td>`;
             h += `<td style="text-align:center;">&rarr;</td>`;
-            h += `<td><select class="color-select p-in-col" data-port="${i}" onchange="updateDropdownColor(this)">${colorNames.map(c=>`<option value="${c}" ${inCol==c?'selected':''}>${c}</option>`).join('')}</select></td>`;
+            h += `<td><select class="color-select p-in-col" data-port="${i}" data-action="updateDropdownColor" data-action-on="change">${colorNames.map(c=>`<option value="${c}" ${inCol==c?'selected':''}>${c}</option>`).join('')}</select></td>`;
 
             if(type === 'DB_BOX') {
                 h += `<td><input type="text" class="p-user" data-port="${i}" value="${pData?.customer_username || ''}" placeholder="Username"></td>`;
             } else if(type === 'OLT' || type === 'MASTER_BOX') {
                 let targetType = (type === 'OLT') ? 'MASTER_BOX' : 'DB_BOX';
-                let options = allNodes.filter(n => n.type === targetType).map(n => `<option value="${n.id}" ${pData?.linked_node_id == n.id ? 'selected' : ''}>${n.name}</option>`).join('');
+                let options = allNodes.filter(n => n.type === targetType).map(n => `<option value="${num(n.id)}" ${pData?.linked_node_id == n.id ? 'selected' : ''}>${esc(n.name)}</option>`).join('');
                 h += `<td><select class="p-link" data-port="${i}"><option value="">-- Link --</option>${options}</select></td>`;
             } else {
                 h += `<td>Spliced</td>`;
@@ -402,7 +423,7 @@ include 'includes/topbar.php';
                     let fd = new FormData(); fd.append('id', n.id); fd.append('lat', e.target.getLatLng().lat); fd.append('lng', e.target.getLatLng().lng);
                     fetch('map_api.php?action=update_node_pos', { method: 'POST', body: fd });
                 });
-                m.bindPopup(`<b>${n.type}: ${n.name}</b><div class="popup-actions"><button class="btn-action-sm btn-view" onclick="openManager(${n.id}, '${n.type}', null)"><i class="fa fa-edit"></i> View / Edit</button><button class="btn-action-sm btn-del" onclick="deleteNode(${n.id})"><i class="fa fa-trash"></i> Delete</button></div>`);
+                m.bindPopup(`<b>${esc(n.type)}: ${esc(n.name)}</b><div class="popup-actions"><button class="btn-action-sm btn-view" ${actionAttr('openManager', [num(n.id), n.type, null])}><i class="fa fa-edit"></i> View / Edit</button><button class="btn-action-sm btn-del" ${actionAttr('deleteNode', [num(n.id)])}><i class="fa fa-trash"></i> Delete</button></div>`);
             });
             data.routes.forEach(r => {
                 let color = '#3b82f6';
@@ -418,18 +439,18 @@ include 'includes/topbar.php';
                     opacity: 0.8 
                 }).addTo(routesLayer).bindPopup(`
                     <div style="min-width:180px;">
-                        <b style="font-size:14px;">Fiber: ${r.name}</b><br>
+                        <b style="font-size:14px;">Fiber: ${esc(r.name)}</b><br>
                         <hr style="margin:8px 0; border:0; border-top:1px solid #eee;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span>Length:</span> <b>${Math.round(r.calculated_length_m)}m</b>
+                            <span>Length:</span> <b>${num(Math.round(r.calculated_length_m))}m</b>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span>Cores:</span> <b>${r.used_cores} / ${r.total_cores} Used</b>
+                            <span>Cores:</span> <b>${num(r.used_cores)} / ${num(r.total_cores)} Used</b>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                            <span>Loss (Est):</span> <b>${r.predicted_loss_db} dB</b>
+                            <span>Loss (Est):</span> <b>${num(r.predicted_loss_db)} dB</b>
                         </div>
-                        <button class="btn-action-sm btn-del" onclick="deleteRoute(${r.id})">
+                        <button class="btn-action-sm btn-del" ${actionAttr('deleteRoute', [num(r.id)])}>
                             <i class="fa fa-trash"></i> Delete Route
                         </button>
                     </div>
@@ -460,17 +481,17 @@ include 'includes/topbar.php';
                 }).addTo(map).bindPopup(`
                     <div style="text-align:center; min-width:150px;">
                         <div style="margin-bottom:8px;">
-                            <b style="font-size:14px;">${c.full_name}</b><br>
-                            <small style="color:#64748b;">@${c.username}</small>
+                            <b style="font-size:14px;">${esc(c.full_name)}</b><br>
+                            <small style="color:#64748b;">@${esc(c.username)}</small>
                         </div>
                         <div style="display:inline-block; padding:2px 8px; border-radius:12px; background:${color}22; color:${color}; font-size:11px; font-weight:700; margin-bottom:10px;">
-                            ${status_label}
+                            ${esc(status_label)}
                         </div>
                         <div class="popup-actions">
-                            <a href="user_view.php?user=${c.username}" class="btn-action-sm btn-view" target="_blank">
+                            <a href="user_view.php?user=${encodeURIComponent(c.username || '')}" class="btn-action-sm btn-view" target="_blank">
                                 <i class="fa fa-user"></i> View Profile
                             </a>
-                            <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${c.lat},${c.lng}" class="btn-action-sm" style="background:#f8fafc; color:#1e293b;" target="_blank">
+                            <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${num(c.lat)},${num(c.lng)}" class="btn-action-sm" style="background:#f8fafc; color:#1e293b;" target="_blank">
                                 <i class="fa fa-street-view"></i> Street View
                             </a>
                         </div>
@@ -529,4 +550,4 @@ include 'includes/topbar.php';
     window.onload = refreshData;
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 header('Content-Type: text/csv');
 header('Content-Disposition: attachment; filename="user_report.csv"');

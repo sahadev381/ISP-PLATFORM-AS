@@ -1,6 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Knowledge Base";
 $active = "kb";
@@ -12,10 +13,10 @@ if (isset($_POST['add'])) {
     $content = $_POST['content'];
     $is_public = isset($_POST['is_public']) ? 1 : 0;
     
-    $conn->query("
+    db_exec($conn, "
         INSERT INTO knowledge_base (category, title, content, is_public, created_by)
-        VALUES ('$category', '$title', '$content', $is_public, $USER_ID)
-    ");
+        VALUES (?, ?, ?, ?, ?)
+    ", [$category, $title, $content, $is_public, (int) $USER_ID]);
     
     header("Location: knowledge_base.php");
     exit;
@@ -23,8 +24,10 @@ if (isset($_POST['add'])) {
 
 // Delete article
 if (isset($_GET['del'])) {
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = intval($_GET['del']);
-    $conn->query("DELETE FROM knowledge_base WHERE id=$id");
+    db_exec($conn, "DELETE FROM knowledge_base WHERE id = ?", [(int) $id]);
     header("Location: knowledge_base.php");
     exit;
 }
@@ -33,8 +36,8 @@ if (isset($_GET['del'])) {
 $articles = $conn->query("SELECT kb.*, a.username as author FROM knowledge_base kb LEFT JOIN admins a ON kb.created_by = a.id ORDER BY kb.created_at DESC");
 $categories = $conn->query("SELECT * FROM kb_categories ORDER BY sort_order");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -61,7 +64,7 @@ include 'includes/sidebar.php';
             <tbody>
                 <?php while($article = $articles->fetch_assoc()): ?>
                 <tr>
-                    <td><?= $article['id'] ?></td>
+                    <td><?= e($article['id']) ?></td>
                     <td><?= htmlspecialchars($article['title']) ?></td>
                     <td><?= htmlspecialchars($article['category']) ?></td>
                     <td><?= number_format($article['views']) ?></td>
@@ -72,10 +75,10 @@ include 'includes/sidebar.php';
                     </td>
                     <td><?= date('M d, Y', strtotime($article['created_at'])) ?></td>
                     <td>
-                        <a href="kb_view.php?id=<?= $article['id'] ?>" class="btn btn-sm view" target="_blank">
+                        <a href="kb_view.php?id=<?= e($article['id']) ?>" class="btn btn-sm view" target="_blank">
                             <i class="fa fa-eye"></i>
                         </a>
-                        <a href="?del=<?= $article['id'] ?>" class="btn btn-sm danger" onclick="return confirm('Delete this article?')">
+                        <a href="?del=<?= (int) $article['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn btn-sm danger" <?= action_attr('confirmFirst', ['Delete this article?']) ?>>
                             <i class="fa fa-trash"></i>
                         </a>
                     </td>
@@ -95,11 +98,12 @@ include 'includes/sidebar.php';
         </div>
         
         <form method="POST">
+<?= csrf_field() ?>
             <div class="form-group">
                 <label class="form-label">Category</label>
                 <select name="category" class="form-control" required>
                     <?php while($cat = $categories->fetch_assoc()): ?>
-                        <option value="<?= $cat['name'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                        <option value="<?= e($cat['name']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
                     <?php endwhile; ?>
                 </select>
             </div>
@@ -127,4 +131,4 @@ include 'includes/sidebar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

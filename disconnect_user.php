@@ -1,26 +1,127 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+define('RBAC_JSON_ENDPOINT', true); // errors from the RBAC guards must be JSON
+/**
+ * Send a RADIUS Disconnect-Request (CoA) for a PPPoE user.
+ *
+ * Fixed here:
+ *  - the old code wrapped escapeshellarg() output inside single quotes,
+ *    which produced broken shell quoting and made the command fail;
+ *  - the NAS IP and the shared secret were interpolated unescaped, so
+ *    anyone able to edit a NAS record got shell execution;
+ *  - the shared secret was echoed back in the error message.
+ */
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
-    $username = escapeshellarg($_POST['username']);
-    $nas = $conn->query("SELECT * FROM nas WHERE status=1 LIMIT 1")->fetch_assoc();
+header('Content-Type: application/json');
 
-    if (!$nas) {
-        echo json_encode(['success'=>false,'msg'=>'NAS not configured']);
-        exit;
-    }
-
-    $radclient = '/usr/bin/radclient';
-    $cmd = "echo 'User-Name = $username' | $radclient -x {$nas['ip_address']}:3799 disconnect {$nas['secret']} 2>&1";
-    exec($cmd, $output, $status);
-    $output_str = implode("\n", $output);
-
-    if (stripos($output_str, 'Received Disconnect-ACK') !== false) {
-        echo json_encode(['success'=>true,'msg'=>'User disconnected successfully.']);
-    } else {
-        echo json_encode(['success'=>false,'msg'=>'Disconnect may have failed. Debug: '.$output_str]);
-    }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'msg' => 'POST required']);
+    exit;
 }
-?>
 
+csrf_check();
+
+$username = trim($_POST['username'] ?? '');
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
+if ($username === '') {
+    echo json_encode(['success' => false, 'msg' => 'Username required']);
+    exit;
+}
+
+// Disconnect through the NAS the customer is actually connected to.
+// The old query took whichever enabled NAS came back first, so on any
+// deployment with more than one device the Disconnect-Request was sent
+// to the wrong box and silently did nothing.
+$nas = db_one($conn, "
+    SELECT n.ip_address, n.secret
+    FROM radacct r
+    JOIN nas n ON n.nasname = r.nasipaddress OR n.ip_address = r.nasipaddress
+    WHERE r.username = ? AND r.acctstoptime IS NULL
+    ORDER BY r.acctstarttime DESC
+    LIMIT 1
+", [$username]);
+
+if (!$nas) {
+    // No open session: fall back to the single configured NAS, which is
+    // correct for the common one-router deployment.
+    $nas = db_one($conn, "SELECT ip_address, secret FROM nas WHERE status = 1 LIMIT 1");
+}
+
+if (!$nas) {
+    echo json_encode(['success' => false, 'msg' => 'NAS not configured']);
+    exit;
+}
+
+// The NAS address comes from the database but is still validated before it
+// reaches a shell.
+$nasIp = trim((string) $nas['ip_address']);
+if (!filter_var($nasIp, FILTER_VALIDATE_IP)) {
+    error_log("disconnect_user: invalid NAS IP in database: $nasIp");
+    echo json_encode(['success' => false, 'msg' => 'NAS address is invalid']);
+    exit;
+}
+
+$radclient = '/usr/bin/radclient';
+if (!is_executable($radclient)) {
+    echo json_encode(['success' => false, 'msg' => 'radclient is not installed']);
+    exit;
+}
+
+// Feed the attribute to radclient on stdin instead of building an `echo`
+// pipeline, so the username never touches the shell at all.
+// Hand the shared secret to radclient in a file (-S), not on the
+// command line. Arguments are world-readable through /proc, so the old
+// form leaked the RADIUS secret to any local user running `ps`.
+$secretFile = tempnam(sys_get_temp_dir(), 'radsec');
+if ($secretFile === false) {
+    echo json_encode(['success' => false, 'msg' => 'Could not prepare the request']);
+    exit;
+}
+chmod($secretFile, 0600);
+file_put_contents($secretFile, (string) $nas['secret'] . "\n");
+
+$cmd = sprintf(
+    '%s -x -S %s %s disconnect 2>&1',
+    escapeshellcmd($radclient),
+    escapeshellarg($secretFile),
+    escapeshellarg($nasIp . ':3799')
+);
+
+$descriptors = [
+    0 => ['pipe', 'r'],
+    1 => ['pipe', 'w'],
+    2 => ['pipe', 'w'],
+];
+
+$process = proc_open($cmd, $descriptors, $pipes);
+if (!is_resource($process)) {
+    @unlink($secretFile);
+    echo json_encode(['success' => false, 'msg' => 'Could not start radclient']);
+    exit;
+}
+
+fwrite($pipes[0], 'User-Name = "' . str_replace('"', '\"', $username) . "\"\n");
+fclose($pipes[0]);
+
+$output = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+fclose($pipes[1]);
+fclose($pipes[2]);
+proc_close($process);
+@unlink($secretFile);
+
+if (stripos($output, 'Received Disconnect-ACK') !== false) {
+    if (function_exists('logActivity')) {
+        logActivity('disconnect_user', "Disconnected $username");
+    }
+    echo json_encode(['success' => true, 'msg' => 'User disconnected successfully.']);
+    exit;
+}
+
+// Never return raw radclient output: it contains the RADIUS shared secret.
+error_log("disconnect_user failed for $username: $output");
+echo json_encode(['success' => false, 'msg' => 'Disconnect failed. See the server log for details.']);

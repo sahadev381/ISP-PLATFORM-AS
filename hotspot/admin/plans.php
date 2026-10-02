@@ -1,13 +1,14 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
+session_boot();
 $page_title = "Hotspot Plans";
 $page = 'plans';
 $base_path = '.';
 
-chdir(__DIR__ . '/../..');
-include_once 'config.php';
-include_once 'includes/auth.php';
-include_once 'hotspot/includes/plan_manager.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+include_once __DIR__ . '/../includes/plan_manager.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -19,12 +20,13 @@ $message = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
-    
+
     // Generate PINs
     if ($action == 'generate_pins') {
-        $profileId = $_POST['profile_id'] ?? 1;
-        $count = (int)($_POST['count'] ?? 10);
+        $profileId = (int) ($_POST['profile_id'] ?? 1);
+        $count = min(1000, max(1, (int)($_POST['count'] ?? 10)));
         
         $pins = $planMgr->generatePINs($profileId, $count);
         $message = "Generated " . count($pins) . " PINs: " . implode(', ', array_slice($pins, 0, 10));
@@ -70,7 +72,7 @@ $stats = $planMgr->getStats();
 // Get old profiles
 $oldProfiles = $conn->query("SELECT * FROM hotspot_profiles ORDER BY type, name");
 
-include 'includes/header_hotspot.php';
+include __DIR__ . '/includes/header_hotspot.php';
 ?>
 
 <div class="row mb-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
@@ -78,21 +80,21 @@ include 'includes/header_hotspot.php';
         <div class="stat-icon blue"><i class="fa fa-tags"></i></div>
         <div>
             <div class="stat-label">Total Plans</div>
-            <div class="stat-value"><?= $stats['total_plans'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($stats['total_plans'] ?? 0) ?></div>
         </div>
     </div>
     <div class="stat-card" style="border-left: 4px solid var(--success);">
         <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
         <div>
             <div class="stat-label">Available PINs</div>
-            <div class="stat-value"><?= $stats['available_vouchers'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($stats['available_vouchers'] ?? 0) ?></div>
         </div>
     </div>
     <div class="stat-card" style="border-left: 4px solid var(--info);">
         <div class="stat-icon" style="background: #cffafe; color: var(--info);"><i class="fa fa-user-check"></i></div>
         <div>
             <div class="stat-label">Used PINs</div>
-            <div class="stat-value"><?= $stats['used_vouchers'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($stats['used_vouchers'] ?? 0) ?></div>
         </div>
     </div>
     <div class="stat-card" style="border-left: 4px solid var(--warning);">
@@ -148,6 +150,7 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="card-body">
                     <form method="POST" class="row g-3">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create_plan">
                         
                         <div class="col-md-3">
@@ -216,18 +219,19 @@ include 'includes/header_hotspot.php';
                             <tr>
                                 <td><?= htmlspecialchars($p['name']) ?></td>
                                 <td><span class="badge bg-<?= $p['type'] == 'prepaid' ? 'success' : ($p['type'] == 'postpaid' ? 'danger' : 'info') ?>">
-                                    <?= ucfirst(str_replace('_', ' ', $p['type'])) ?>
+                                    <?= e(ucfirst(str_replace('_', ' ', $p['type']))) ?>
                                 </span></td>
-                                <td><?= $p['data_limit_mb'] > 0 ? $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
+                                <td><?= $p['data_limit_mb'] > 0 ? (int) $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
                                 <td><?= round($p['speed_kbps']/1024) ?> Mbps</td>
-                                <td>Rs.<?= $p['price'] ?></td>
-                                <td><?= $p['validity_days'] ?> days</td>
-                                <td><span class="badge bg-<?= $p['status'] == 'active' ? 'success' : 'secondary' ?>"><?= $p['status'] ?></span></td>
+                                <td>Rs.<?= e($p['price']) ?></td>
+                                <td><?= e($p['validity_days']) ?> days</td>
+                                <td><span class="badge bg-<?= $p['status'] == 'active' ? 'success' : 'secondary' ?>"><?= e($p['status']) ?></span></td>
                                 <td>
                                     <form method="POST" style="display:inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_plan">
-                                        <input type="hidden" name="plan_id" value="<?= $p['id'] ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this plan?')">
+                                        <input type="hidden" name="plan_id" value="<?= e($p['id']) ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger" <?= action_attr('confirmFirst', ['Delete this plan?']) ?>>
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -261,11 +265,11 @@ include 'includes/header_hotspot.php';
                         <tbody>
                             <?php while ($p = $oldProfiles->fetch_assoc()): ?>
                             <tr>
-                                <td><?= $p['name'] ?></td>
-                                <td><?= ucfirst($p['type']) ?></td>
-                                <td><?= $p['data_limit_mb'] > 0 ? $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
-                                <td><?= $p['validity_hours'] ?> hrs</td>
-                                <td>Rs.<?= $p['price'] ?></td>
+                                <td><?= e($p['name']) ?></td>
+                                <td><?= e(ucfirst($p['type'])) ?></td>
+                                <td><?= $p['data_limit_mb'] > 0 ? (int) $p['data_limit_mb'] . ' MB' : 'Unlimited' ?></td>
+                                <td><?= e($p['validity_hours']) ?> hrs</td>
+                                <td>Rs.<?= e($p['price']) ?></td>
                                 <td><?= round($p['speed_kbps']/1024) ?> Mbps</td>
                             </tr>
                             <?php endwhile; ?>
@@ -283,6 +287,7 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="card-body">
                     <form method="POST" class="row g-3">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="generate_pins">
                         
                         <div class="col-md-4">
@@ -291,7 +296,7 @@ include 'includes/header_hotspot.php';
                                 <?php 
                                 $oldProfiles = $conn->query("SELECT * FROM hotspot_profiles WHERE status='active'");
                                 while ($p = $oldProfiles->fetch_assoc()): ?>
-                                    <option value="<?= $p['id'] ?>"><?= $p['name'] ?> - Rs.<?= $p['price'] ?></option>
+                                    <option value="<?= e($p['id']) ?>"><?= e($p['name']) ?> - Rs.<?= e($p['price']) ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -325,13 +330,14 @@ include 'includes/header_hotspot.php';
                 </div>
                 <div class="card-body">
                     <form method="POST" class="row g-3">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="generate_vouchers">
                         
                         <div class="col-md-3">
                             <label>Voucher Type</label>
                             <select name="voucher_type_id" class="form-select">
                                 <?php foreach ($voucherTypes as $vt): ?>
-                                    <option value="<?= $vt['id'] ?>"><?= $vt['name'] ?></option>
+                                    <option value="<?= e($vt['id']) ?>"><?= e($vt['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -373,12 +379,12 @@ include 'includes/header_hotspot.php';
                         <tbody>
                             <?php foreach ($voucherTypes as $vt): ?>
                             <tr>
-                                <td><?= $vt['name'] ?></td>
-                                <td><span class="badge bg-info"><?= ucfirst(str_replace('_', ' ', $vt['type'])) ?></span></td>
-                                <td><?= $vt['value'] ?><?= $vt['unit'] ?></td>
-                                <td>Rs.<?= $vt['price'] ?></td>
-                                <td><?= $vt['validity_days'] ?> days</td>
-                                <td><span class="badge bg-<?= $vt['status'] == 'active' ? 'success' : 'secondary' ?>"><?= $vt['status'] ?></span></td>
+                                <td><?= e($vt['name']) ?></td>
+                                <td><span class="badge bg-info"><?= e(ucfirst(str_replace('_', ' ', $vt['type']))) ?></span></td>
+                                <td><?= e($vt['value']) ?><?= e($vt['unit']) ?></td>
+                                <td>Rs.<?= e($vt['price']) ?></td>
+                                <td><?= e($vt['validity_days']) ?> days</td>
+                                <td><span class="badge bg-<?= $vt['status'] == 'active' ? 'success' : 'secondary' ?>"><?= e($vt['status']) ?></span></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -418,20 +424,20 @@ include 'includes/header_hotspot.php';
                         <tbody>
                             <?php while ($inv = $invoices->fetch_assoc()): ?>
                             <tr>
-                                <td><?= $inv['invoice_number'] ?></td>
-                                <td><?= $inv['username'] ?? 'N/A' ?></td>
-                                <td>Rs.<?= $inv['amount'] ?></td>
-                                <td>Rs.<?= $inv['tax'] ?></td>
-                                <td>Rs.<?= $inv['total'] ?></td>
+                                <td><?= e($inv['invoice_number']) ?></td>
+                                <td><?= e($inv['username'] ?? 'N/A') ?></td>
+                                <td>Rs.<?= e($inv['amount']) ?></td>
+                                <td>Rs.<?= e($inv['tax']) ?></td>
+                                <td>Rs.<?= e($inv['total']) ?></td>
                                 <td>
                                     <span class="badge bg-<?= 
                                         $inv['status'] == 'paid' ? 'success' : 
                                         ($inv['status'] == 'pending' ? 'warning' : 'danger') 
                                     ?>">
-                                        <?= $inv['status'] ?>
+                                        <?= e($inv['status']) ?>
                                     </span>
                                 </td>
-                                <td><?= $inv['due_date'] ?></td>
+                                <td><?= e($inv['due_date']) ?></td>
                                 <td><?= date('M d, H:i', strtotime($inv['created_at'])) ?></td>
                             </tr>
                             <?php endwhile; ?>

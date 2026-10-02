@@ -1,8 +1,12 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 header('Content-Type: application/json');
+
+require_once __DIR__ . '/includes/api_auth.php';
+api_require_auth();
+api_csrf_check();
 
 $action = $_GET['action'] ?? '';
 $admin_id = $_SESSION['user_id'] ?? 0;
@@ -17,10 +21,17 @@ if ($action == 'add_entry') {
     if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
         if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif'])) {
-            $filename = 'diary_' . time() . '.' . $ext;
-            $target = 'uploads/' . $filename;
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $target)) {
-                $image_path = $filename;
+            // Reject anything that is not really an image, and never
+            // trust the client-supplied filename.
+            if (@getimagesize($_FILES['image']['tmp_name']) !== false) {
+                $filename = 'diary_' . bin2hex(random_bytes(8)) . '.' . $ext;
+                $uploadDir = __DIR__ . '/uploads/';
+                if (!is_dir($uploadDir)) {
+                    @mkdir($uploadDir, 0755, true);
+                }
+                if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $filename)) {
+                    $image_path = $filename;
+                }
             }
         }
     }
@@ -31,7 +42,9 @@ if ($action == 'add_entry') {
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status' => 'error', 'message' => $conn->error]);
+        // $conn->error names tables and columns; log it, do not ship it.
+        error_log('work_diary add_entry failed: ' . $conn->error);
+        echo json_encode(['status' => 'error', 'message' => 'Could not save the entry.']);
     }
 }
 
@@ -40,19 +53,26 @@ if ($action == 'get_entries') {
     $search = $_GET['search'] ?? '';
     
     $query = "SELECT d.*, a.username FROM work_diary d LEFT JOIN admins a ON d.admin_id = a.id WHERE 1=1";
-    if ($category) $query .= " AND d.category = '$category'";
-    if ($search) $query .= " AND (d.title LIKE '%$search%' OR d.content LIKE '%$search%')";
+    $params = [];
+    if ($category) {
+        $query .= " AND d.category = ?";
+        $params[] = $category;
+    }
+    if ($search) {
+        $query .= " AND (d.title LIKE ? OR d.content LIKE ?)";
+        $like = db_like($search);
+        $params[] = $like;
+        $params[] = $like;
+    }
     $query .= " ORDER BY d.created_at DESC LIMIT 50";
-    
-    $result = $conn->query($query);
-    $entries = $result->fetch_all(MYSQLI_ASSOC);
-    
-    if (!empty($entries)) {
-        $diary_ids = array_column($entries, 'id');
-        $ids_str = implode(',', array_map('intval', $diary_ids));
 
-        $c_res = $conn->query("SELECT c.*, a.username FROM diary_comments c LEFT JOIN admins a ON c.admin_id = a.id WHERE c.diary_id IN ($ids_str) ORDER BY c.created_at ASC");
-        $all_comments = $c_res->fetch_all(MYSQLI_ASSOC);
+    $entries = db_all($conn, $query, $params);
+
+    if (!empty($entries)) {
+        $diary_ids = array_map('intval', array_column($entries, 'id'));
+        $placeholders = implode(',', array_fill(0, count($diary_ids), '?'));
+
+        $all_comments = db_all($conn, "SELECT c.*, a.username FROM diary_comments c LEFT JOIN admins a ON c.admin_id = a.id WHERE c.diary_id IN ($placeholders) ORDER BY c.created_at ASC", $diary_ids);
 
         $comments_map = [];
         foreach ($all_comments as $comment) {
@@ -85,7 +105,7 @@ if ($action == 'delete_entry') {
     $id = $_POST['id'];
     // Only allow owner or superadmin to delete
     if ($_SESSION['role'] == 'superadmin') {
-        $conn->query("DELETE FROM work_diary WHERE id = $id");
+        db_exec($conn, "DELETE FROM work_diary WHERE id = ?", [(int) $id]);
         echo json_encode(['status' => 'success']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);

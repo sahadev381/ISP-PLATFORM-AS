@@ -1,5 +1,5 @@
 <?php
-require_once 'includes/mikrotik_api.php';
+require_once __DIR__ . '/includes/mikrotik_api.php';
 
 $host = $argv[1] ?? '192.168.88.1';
 $user = $argv[2] ?? 'admin';

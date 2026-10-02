@@ -1,59 +1,76 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
-    $full_name = trim($_POST['full_name']);
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $address = trim($_POST['address']);
-    $plan_id = $_POST['plan_id'];
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    
+    csrf_check();
+
+    $full_name        = trim($_POST['full_name'] ?? '');
+    $username         = trim($_POST['username'] ?? '');
+    $email            = trim($_POST['email'] ?? '');
+    $phone            = trim($_POST['phone'] ?? '');
+    $address          = trim($_POST['address'] ?? '');
+    $plan_id          = (int) ($_POST['plan_id'] ?? 0);
+    $password         = (string) ($_POST['password'] ?? '');
+    $confirm_password = (string) ($_POST['confirm_password'] ?? '');
+
     // Validation
-    if ($password !== $confirm_password) {
+    if ($username === '' || $full_name === '') {
+        $error = "Name and username are required";
+    } elseif (!preg_match('/^[A-Za-z0-9._-]{3,32}$/', $username)) {
+        $error = "Username may only contain letters, numbers, dot, dash and underscore (3-32 chars)";
+    } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Please enter a valid email address";
+    } elseif ($password !== $confirm_password) {
         $error = "Passwords do not match";
-    } elseif (strlen($password) < 6) {
-        $error = "Password must be at least 6 characters";
+    } elseif (strlen($password) < 8) {
+        $error = "Password must be at least 8 characters";
+    } elseif (!$plan_id) {
+        $error = "Please choose a plan";
     } else {
         // Check if username exists
-        $check = $conn->query("SELECT username FROM customers WHERE username='$username'");
-        if ($check->num_rows > 0) {
+        if (db_one($conn, "SELECT username FROM customers WHERE username = ?", [$username])) {
             $error = "Username already exists";
+        } elseif ($email !== '' && db_one($conn, "SELECT email FROM customers WHERE email = ?", [$email])) {
+            $error = "Email already registered";
         } else {
-            // Check if email exists
-            $checkEmail = $conn->query("SELECT email FROM customers WHERE email='$email'");
-            if ($checkEmail->num_rows > 0) {
-                $error = "Email already registered";
+            // Get plan details
+            $plan = db_one($conn, "SELECT * FROM plans WHERE id = ?", [$plan_id]);
+
+            if (!$plan) {
+                $error = "Selected plan is not available";
             } else {
-                // Get plan details
-                $plan = $conn->query("SELECT * FROM plans WHERE id=$plan_id")->fetch_assoc();
-                
                 // Calculate expiry
                 $validity = $plan['validity'] ?? 30;
-                $expiry = date('Y-m-d', strtotime("+$validity days"));
-                
+                $expiry   = date('Y-m-d', strtotime("+$validity days"));
+
                 // Hash password
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                
-                // Insert customer
-                $conn->query("
-                    INSERT INTO customers (username, password, full_name, email, phone, address, plan_id, expiry, status, created_at)
-                    VALUES ('$username', '$hashed_password', '$full_name', '$email', '$phone', '$address', $plan_id, '$expiry', 'active', NOW())
-                ");
-                
-                // Create first invoice
-                $amount = $plan['price'];
-                $conn->query("
-                    INSERT INTO invoices (username, amount, expiry_date, status, admin)
-                    VALUES ('$username', $amount, '$expiry', 'pending', 'system')
-                ");
-                
-                $success = "Registration successful! Please login.";
+
+                $conn->begin_transaction();
+                try {
+                    // Insert customer
+                    db_exec($conn, "
+                        INSERT INTO customers (username, password, full_name, email, phone, address, plan_id, expiry, status, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                    ", [$username, $hashed_password, $full_name, $email, $phone, $address, $plan_id, $expiry]);
+
+                    // Create first invoice
+                    db_exec($conn, "
+                        INSERT INTO invoices (username, amount, expiry_date, status, admin)
+                        VALUES (?, ?, ?, 'pending', 'system')
+                    ", [$username, $plan['price'], $expiry]);
+
+                    $conn->commit();
+                    $success = "Registration successful! Please login.";
+                } catch (Throwable $e) {
+                    $conn->rollback();
+                    error_log('Customer registration failed: ' . $e->getMessage());
+                    $error = "Registration failed. Please try again.";
+                }
             }
         }
     }
@@ -273,7 +290,7 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
                 <div class="alert alert-success">
                     <i class="fa fa-check-circle"></i> <?= htmlspecialchars($success) ?>
                     <br><br>
-                    <a href="login.php" class="btn-register" style="display: inline-block; width: auto; padding: 12px 24px;">Go to Login</a>
+                    <a href="index.php" class="btn-register" style="display: inline-block; width: auto; padding: 12px 24px;">Go to Login</a>
                 </div>
             <?php else: ?>
             
@@ -281,6 +298,7 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
             <p class="subtitle">Fill in your details to get started</p>
             
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Full Name *</label>
@@ -313,8 +331,8 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
                     <select name="plan_id" class="form-control" required>
                         <option value="">-- Select Plan --</option>
                         <?php while($plan = $plans->fetch_assoc()): ?>
-                            <option value="<?= $plan['id'] ?>">
-                                <?= htmlspecialchars($plan['name']) ?> - <?= htmlspecialchars($plan['speed']) ?> - NPR <?= number_format($plan['price']) ?>/<?= $plan['validity'] ?> days
+                            <option value="<?= e($plan['id']) ?>">
+                                <?= htmlspecialchars($plan['name']) ?> - <?= htmlspecialchars($plan['speed']) ?> - NPR <?= number_format($plan['price']) ?>/<?= e($plan['validity']) ?> days
                             </option>
                         <?php endwhile; ?>
                     </select>
@@ -344,7 +362,7 @@ $plans = $conn->query("SELECT * FROM plans ORDER BY price ASC");
             <?php endif; ?>
             
             <div class="footer-links">
-                <a href="login.php">
+                <a href="index.php">
                     <i class="fa fa-sign-in-alt"></i> Already have an account? Login
                 </a>
             </div>

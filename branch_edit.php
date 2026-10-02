@@ -1,14 +1,17 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
-include 'includes/header.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if(!isSuperAdmin()) die("Access Denied");
 
 $id = (int)$_GET['id'];
-$branch = $conn->query("SELECT * FROM branches WHERE id=$id")->fetch_assoc();
+$branch = db_one($conn, "SELECT * FROM branches WHERE id = ?", [(int) $id]);
 $error = '';
 
 if(isset($_POST['update'])){
@@ -32,6 +35,7 @@ if(isset($_POST['update'])){
 <h2>Edit Branch</h2>
 <?php if($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 <form method="post">
+<?= csrf_field() ?>
     <input type="text" name="name" value="<?= htmlspecialchars($branch['name']) ?>" class="form-control" required><br>
     <input type="text" name="code" value="<?= htmlspecialchars($branch['code']) ?>" class="form-control" required><br>
     <textarea name="address" class="form-control"><?= htmlspecialchars($branch['address']) ?></textarea><br>

@@ -1,19 +1,22 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 $base_path = '../';
 
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $page_title = "Payment - Khalti";
 
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/header.php';
 
 $username = $_SESSION['username'] ?? '';
-$public_key = KHALTI_PUBLIC_KEY;
+/* KHALTI_PUBLIC_KEY was never defined anywhere - phase 2 moved the
+   keys into .env and this reference was missed, so the page was a
+   fatal error. An unconfigured gateway must degrade to "not
+   available", not to a 500. */
+$public_key = (string) env('KHALTI_PUBLIC_KEY', '');
 ?>
 
 <div class="main">
@@ -49,12 +52,12 @@ $public_key = KHALTI_PUBLIC_KEY;
         </div>
         
         <?php
-        $transactions = $conn->query("
-            SELECT * FROM wallet_transactions 
-            WHERE username = '$username' 
-            ORDER BY created_at DESC 
+        $transactions = db_all($conn, "
+            SELECT * FROM wallet_transactions
+            WHERE username = ?
+            ORDER BY created_at DESC
             LIMIT 10
-        ");
+        ", [$username]);
         ?>
         
         <table>
@@ -68,12 +71,12 @@ $public_key = KHALTI_PUBLIC_KEY;
                 </tr>
             </thead>
             <tbody>
-                <?php if($transactions && $transactions->num_rows > 0): ?>
-                    <?php while($t = $transactions->fetch_assoc()): ?>
+                <?php if(count($transactions) > 0): ?>
+                    <?php foreach($transactions as $t): ?>
                         <tr>
                             <td><?= date('Y-m-d H:i', strtotime($t['created_at'])) ?></td>
                             <td><?= number_format($t['amount'], 2) ?></td>
-                            <td><?= ucfirst($t['gateway']) ?></td>
+                            <td><?= e(ucfirst($t['gateway'])) ?></td>
                             <td>
                                 <?php if($t['status'] == 'success'): ?>
                                     <span class="badge active">Success</span>
@@ -85,7 +88,7 @@ $public_key = KHALTI_PUBLIC_KEY;
                             </td>
                             <td><?= htmlspecialchars($t['txn_id'] ?? 'N/A') ?></td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
                         <td colspan="5" style="text-align: center; color: var(--text-muted);">
@@ -101,8 +104,8 @@ $public_key = KHALTI_PUBLIC_KEY;
 <script src="https://khalti.com/static/khalti-checkout.js"></script>
 <script>
 var config = {
-    "publicKey": "<?= $public_key ?>",
-    "productIdentity": "wallet-<?= $username ?>",
+    "publicKey": <?= e_js($public_key) ?>,
+    "productIdentity": "wallet-" + <?= e_js($username) ?>,
     "productName": "ISP Wallet Recharge",
     "productUrl": window.location.href,
     "eventHandler": {
@@ -114,7 +117,10 @@ var config = {
             var fields = {
                 'token': payload.token,
                 'amount': document.getElementById('amount').value,
-                'username': '<?= $username ?>'
+                'username': <?= e_js($username) ?>,
+                // A form built in JS is a real navigation, not fetch/XHR,
+                // so the global header shim cannot reach it.
+                '_csrf': <?= e_js(csrf_token()) ?>
             };
             
             for(var key in fields) {
@@ -152,4 +158,4 @@ payButton.addEventListener('click', function() {
 });
 </script>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

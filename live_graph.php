@@ -1,13 +1,15 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <h2>PPPoE Live Usage (MB)</h2>
 <div class="table-box">
-    <canvas id="usageChart" style="width:100%; height:400px;"></canvas>
+    <!-- live_chart.js looks for #liveChart; this said usageChart, so
+         the page threw on every load and the graph never appeared. -->
+    <canvas id="liveChart" style="width:100%; height:400px;"></canvas>
 </div>
 
 <script>

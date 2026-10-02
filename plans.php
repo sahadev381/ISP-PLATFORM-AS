@@ -1,7 +1,8 @@
 <?php
 $base_path = './';
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 /* Page info */
 $page_title = "Service Plans & FUP";
@@ -10,27 +11,28 @@ $active = "plans";
 /* Plan Form Template */
 function renderPlanForm($id_prefix, $isEdit = false) { ?>
     <form method="post">
+<?= csrf_field() ?>
         <?php if($isEdit) echo '<input type="hidden" name="id" id="edit_id">'; ?>
         <div class="form-grid">
             <div class="form-group">
                 <label>Plan Name</label>
-                <input class="form-control" name="name" id="<?= $id_prefix ?>_name" required>
+                <input class="form-control" name="name" id="<?= e($id_prefix) ?>_name" required>
             </div>
             <div class="form-group">
                 <label>Base Speed</label>
-                <input class="form-control" name="speed" id="<?= $id_prefix ?>_speed" placeholder="e.g. 100M/100M" required>
+                <input class="form-control" name="speed" id="<?= e($id_prefix) ?>_speed" placeholder="e.g. 100M/100M" required>
             </div>
             <div class="form-group">
                 <label>Price (NPR)</label>
-                <input type="number" step="0.01" class="form-control" name="price" id="<?= $id_prefix ?>_price" required>
+                <input type="number" step="0.01" class="form-control" name="price" id="<?= e($id_prefix) ?>_price" required>
             </div>
             <div class="form-group">
                 <label>Validity (Days)</label>
-                <input type="number" class="form-control" name="validity" id="<?= $id_prefix ?>_validity" value="30" required>
+                <input type="number" class="form-control" name="validity" id="<?= e($id_prefix) ?>_validity" value="30" required>
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label>Total Data Quota (GB)</label>
-                <input type="number" class="form-control" name="data_limit" id="<?= $id_prefix ?>_data_limit" value="1000">
+                <input type="number" class="form-control" name="data_limit" id="<?= e($id_prefix) ?>_data_limit" value="1000">
             </div>
         </div>
 
@@ -39,11 +41,11 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Limit (GB)</label>
-                    <input type="number" class="form-control" name="fup1_limit" id="<?= $id_prefix ?>_fup1_limit">
+                    <input type="number" class="form-control" name="fup1_limit" id="<?= e($id_prefix) ?>_fup1_limit">
                 </div>
                 <div class="form-group">
                     <label>FUP Speed</label>
-                    <input class="form-control" name="fup1_speed" id="<?= $id_prefix ?>_fup1_speed" placeholder="e.g. 50M/50M">
+                    <input class="form-control" name="fup1_speed" id="<?= e($id_prefix) ?>_fup1_speed" placeholder="e.g. 50M/50M">
                 </div>
             </div>
         </div>
@@ -53,11 +55,11 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Limit (GB)</label>
-                    <input type="number" class="form-control" name="fup2_limit" id="<?= $id_prefix ?>_fup2_limit">
+                    <input type="number" class="form-control" name="fup2_limit" id="<?= e($id_prefix) ?>_fup2_limit">
                 </div>
                 <div class="form-group">
                     <label>FUP Speed</label>
-                    <input class="form-control" name="fup2_speed" id="<?= $id_prefix ?>_fup2_speed" placeholder="e.g. 20M/20M">
+                    <input class="form-control" name="fup2_speed" id="<?= e($id_prefix) ?>_fup2_speed" placeholder="e.g. 20M/20M">
                 </div>
             </div>
         </div>
@@ -67,11 +69,11 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Limit (GB)</label>
-                    <input type="number" class="form-control" name="fup3_limit" id="<?= $id_prefix ?>_fup3_limit">
+                    <input type="number" class="form-control" name="fup3_limit" id="<?= e($id_prefix) ?>_fup3_limit">
                 </div>
                 <div class="form-group">
                     <label>FUP Speed</label>
-                    <input class="form-control" name="fup3_speed" id="<?= $id_prefix ?>_fup3_speed" placeholder="e.g. 10M/10M">
+                    <input class="form-control" name="fup3_speed" id="<?= e($id_prefix) ?>_fup3_speed" placeholder="e.g. 10M/10M">
                 </div>
             </div>
         </div>
@@ -84,31 +86,33 @@ function renderPlanForm($id_prefix, $isEdit = false) { ?>
 
 /* Handle Add Plan */
 if(isset($_POST['add'])){
-    $name       = $conn->real_escape_string($_POST['name']);
-    $speed      = $conn->real_escape_string($_POST['speed']);
-    $price      = $conn->real_escape_string($_POST['price']);
-    $validity   = $conn->real_escape_string($_POST['validity']);
+    $name       = (string) ($_POST['name'] ?? '');
+    $speed      = (string) ($_POST['speed'] ?? '');
+    $price      = (float) ($_POST['price'] ?? 0);
+    $validity   = (int) ($_POST['validity'] ?? 0);
     $data_limit = (float)$_POST['data_limit'] * 1073741824;
-    
-    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
-    $fup1_speed = $conn->real_escape_string($_POST['fup1_speed']);
-    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
-    $fup2_speed = $conn->real_escape_string($_POST['fup2_speed']);
-    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
-    $fup3_speed = $conn->real_escape_string($_POST['fup3_speed']??'');
 
-    $conn->query("
+    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
+    $fup1_speed = (string) ($_POST['fup1_speed'] ?? '');
+    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
+    $fup2_speed = (string) ($_POST['fup2_speed'] ?? '');
+    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
+    $fup3_speed = (string) ($_POST['fup3_speed'] ?? '');
+
+    db_exec($conn, "
         INSERT INTO plans (name, speed, price, validity, data_limit, fup1_limit, fup1_speed, fup2_limit, fup2_speed, fup3_limit, fup3_speed)
-        VALUES ('$name', '$speed', '$price', '$validity', '$data_limit', '$fup1_limit', '$fup1_speed', '$fup2_limit', '$fup2_speed', '$fup3_limit', '$fup3_speed')
-    ");
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ", [$name, $speed, $price, $validity, $data_limit, $fup1_limit, $fup1_speed, $fup2_limit, $fup2_speed, $fup3_limit, $fup3_speed]);
     header("Location: plans.php?msg=added");
     exit;
 }
 
 /* Handle Delete Plan */
 if(isset($_GET['del'])){
+    // GET deletes need the token checked explicitly; csrf_check() skips GET.
+    csrf_check_request();
     $id = (int)$_GET['del'];
-    $conn->query("DELETE FROM plans WHERE id='$id'");
+    db_exec($conn, "DELETE FROM plans WHERE id = ?", [(int) $id]);
     header("Location: plans.php?msg=deleted");
     exit;
 }
@@ -116,36 +120,36 @@ if(isset($_GET['del'])){
 /* Handle Edit Plan */
 if(isset($_POST['edit'])){
     $id         = (int)$_POST['id'];
-    $name       = $conn->real_escape_string($_POST['name']);
-    $speed      = $conn->real_escape_string($_POST['speed']);
-    $price      = $conn->real_escape_string($_POST['price']);
-    $validity   = $conn->real_escape_string($_POST['validity']);
+    $name       = (string) ($_POST['name'] ?? '');
+    $speed      = (string) ($_POST['speed'] ?? '');
+    $price      = (float) ($_POST['price'] ?? 0);
+    $validity   = (int) ($_POST['validity'] ?? 0);
     $data_limit = (float)$_POST['data_limit'] * 1073741824;
-    
-    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
-    $fup1_speed = $conn->real_escape_string($_POST['fup1_speed']);
-    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
-    $fup2_speed = $conn->real_escape_string($_POST['fup2_speed']);
-    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
-    $fup3_speed = $conn->real_escape_string($_POST['fup3_speed']??'');
 
-    $conn->query("
+    $fup1_limit = (float)$_POST['fup1_limit'] * 1073741824;
+    $fup1_speed = (string) ($_POST['fup1_speed'] ?? '');
+    $fup2_limit = (float)$_POST['fup2_limit'] * 1073741824;
+    $fup2_speed = (string) ($_POST['fup2_speed'] ?? '');
+    $fup3_limit = (float)($_POST['fup3_limit']??0) * 1073741824;
+    $fup3_speed = (string) ($_POST['fup3_speed'] ?? '');
+
+    db_exec($conn, "
         UPDATE plans
-        SET name='$name', speed='$speed', price='$price', validity='$validity', data_limit='$data_limit',
-            fup1_limit='$fup1_limit', fup1_speed='$fup1_speed',
-            fup2_limit='$fup2_limit', fup2_speed='$fup2_speed',
-            fup3_limit='$fup3_limit', fup3_speed='$fup3_speed'
-        WHERE id='$id'
-    ");
+        SET name = ?, speed = ?, price = ?, validity = ?, data_limit = ?,
+            fup1_limit = ?, fup1_speed = ?,
+            fup2_limit = ?, fup2_speed = ?,
+            fup3_limit = ?, fup3_speed = ?
+        WHERE id = ?
+    ", [$name, $speed, $price, $validity, $data_limit, $fup1_limit, $fup1_speed, $fup2_limit, $fup2_speed, $fup3_limit, $fup3_speed, $id]);
     header("Location: plans.php?msg=updated");
     exit;
 }
 
 $plans_res = $conn->query("SELECT * FROM plans ORDER BY id DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -204,20 +208,20 @@ include 'includes/topbar.php';
                         <td>
                             <div style="font-size: 11px; line-height: 1.4;">
                                 <?php if($p['fup1_limit'] > 0): ?>
-                                    <span style="color:#64748b;">T1: <?= round($p['fup1_limit']/1073741824) ?>GB &rarr; <?= $p['fup1_speed'] ?></span><br>
+                                    <span style="color:#64748b;">T1: <?= round($p['fup1_limit']/1073741824) ?>GB &rarr; <?= e($p['fup1_speed']) ?></span><br>
                                 <?php endif; ?>
                                 <?php if($p['fup2_limit'] > 0): ?>
-                                    <span style="color:#64748b;">T2: <?= round($p['fup2_limit']/1073741824) ?>GB &rarr; <?= $p['fup2_speed'] ?></span><br>
+                                    <span style="color:#64748b;">T2: <?= round($p['fup2_limit']/1073741824) ?>GB &rarr; <?= e($p['fup2_speed']) ?></span><br>
                                 <?php endif; ?>
                                 <?php if($p['fup3_limit'] > 0): ?>
-                                    <span style="color:#64748b;">T3: <?= round($p['fup3_limit']/1073741824) ?>GB &rarr; <?= $p['fup3_speed'] ?></span>
+                                    <span style="color:#64748b;">T3: <?= round($p['fup3_limit']/1073741824) ?>GB &rarr; <?= e($p['fup3_speed']) ?></span>
                                 <?php endif; ?>
                             </div>
                         </td>
                         <td><span class="badge" style="background:#f0fdf4; color:#16a34a;">NPR <?= number_format($p['price']) ?></span></td>
                         <td>
-                            <button onclick='openEditModal(<?= json_encode($p) ?>)' class="btn-icon btn-edit"><i class="fa fa-edit"></i></button>
-                            <a href="?del=<?= $p['id'] ?>" class="btn-icon btn-delete" onclick="return confirm('Delete plan?')"><i class="fa fa-trash"></i></a>
+                            <button <?= action_attr('openEditModal', [$p]) ?> class="btn-icon btn-edit"><i class="fa fa-edit"></i></button>
+                            <a href="?del=<?= (int) $p['id'] ?>&amp;_csrf=<?= e(csrf_token()) ?>" class="btn-icon btn-delete" <?= action_attr('confirmFirst', ['Delete plan?']) ?>><i class="fa fa-trash"></i></a>
                         </td>
                     </tr>
                     <?php endwhile; ?>
@@ -228,7 +232,16 @@ include 'includes/topbar.php';
 
     <div id="plan-fuptest-tab" class="plan-tab-content" style="display:none;">
         <div class="table-card" style="height: 800px;">
-            <iframe src="fup_test.php" style="width:100%; height:100%; border:none; border-radius:15px;"></iframe>
+            <?php /* fup_test.php does not exist in this repository, so this
+                     tab was an iframe onto a 404 - a blank panel with no
+                     explanation. Saying so is better than showing nothing;
+                     the tab is left in place because removing it would
+                     hide the fact that the feature is missing. */ ?>
+            <div style="padding:40px; text-align:center; color:#64748b;">
+                <p style="font-size:15px; font-weight:600;">FUP test tool is not installed.</p>
+                <p style="font-size:13px;">This tab embeds <code>fup_test.php</code>, which is not part of this
+                   deployment. Add it, or remove this tab from <code>plans.php</code>.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -292,4 +305,4 @@ window.onclick = function(event) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

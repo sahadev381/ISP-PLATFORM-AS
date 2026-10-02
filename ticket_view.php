@@ -1,18 +1,26 @@
 <?php
 $base_path = './';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) die("Invalid Ticket ID");
 
 /* Handle reply */
 if (isset($_POST['reply'])) {
-    $msg    = trim($_POST['message']);
-    $status = $_POST['status'];
+    csrf_check();
+
+    $msg    = trim($_POST['message'] ?? '');
+    $status = $_POST['status'] ?? '';
+
+    $allowed_status = ['Open', 'In Progress', 'Pending', 'Closed'];
+    if (!in_array($status, $allowed_status, true)) {
+        die("Invalid ticket status");
+    }
 
     if ($msg !== '') {
-        $conn->query("UPDATE tickets SET status='$status' WHERE id=$id");
+        db_exec($conn, "UPDATE tickets SET status = ? WHERE id = ?", [$status, $id]);
         $stmt = $conn->prepare("INSERT INTO ticket_replies (ticket_id, sender, message, created_at) VALUES (?, 'Admin', ?, NOW())");
         $stmt->bind_param("is", $id, $msg);
         $stmt->execute();
@@ -21,21 +29,24 @@ if (isset($_POST['reply'])) {
     }
 }
 
-$ticket = $conn->query("
+$ticket = db_one($conn, "
     SELECT t.*, c.username, c.full_name, c.phone
-    FROM tickets t 
-    LEFT JOIN customers c ON t.customer_id = c.id 
-    WHERE t.id=$id
-")->fetch_assoc();
+    FROM tickets t
+    LEFT JOIN customers c ON t.customer_id = c.id
+    WHERE t.id = ?
+", [$id]);
 
 if (!$ticket) die("Ticket not found");
 
-$replies = $conn->query("SELECT * FROM ticket_replies WHERE ticket_id=$id ORDER BY created_at ASC");
+// SELECT t.* carries branch_id, so ownership is checked directly.
+require_branch_access($ticket);
+
+$replies = db_all($conn, "SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY created_at ASC", [$id]);
 
 $page_title = "Ticket #" . $id . ": " . $ticket['subject'];
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -71,12 +82,12 @@ include $base_path . 'includes/topbar.php';
 <div class="ticket-view-container">
     <div class="ticket-header">
         <div class="ticket-info">
-            <span class="badge badge-<?= strtolower(str_replace(' ', '', $ticket['status'])) ?>"><?= $ticket['status'] ?></span>
+            <span class="badge badge-<?= e(strtolower(str_replace(' ', '', $ticket['status']))) ?>"><?= e($ticket['status']) ?></span>
             <h2 style="margin-top: 10px;"><?= htmlspecialchars($ticket['subject']) ?></h2>
             <div class="ticket-meta">
                 <span><i class="fa fa-user"></i> <?= htmlspecialchars($ticket['full_name'] ?? 'Unknown') ?> (<?= htmlspecialchars($ticket['username'] ?? 'N/A') ?>)</span>
                 <span><i class="fa fa-clock"></i> <?= date('M d, Y h:i A', strtotime($ticket['created_at'])) ?></span>
-                <span><i class="fa fa-bolt"></i> Priority: <?= $ticket['priority'] ?></span>
+                <span><i class="fa fa-bolt"></i> Priority: <?= e($ticket['priority']) ?></span>
             </div>
         </div>
         <div>
@@ -92,21 +103,21 @@ include $base_path . 'includes/topbar.php';
             <div class="reply-item user-reply">
                 <div class="reply-bubble">
                     <strong><?= htmlspecialchars($ticket['username'] ?? 'User') ?>:</strong><br>
-                    <?= nl2br(htmlspecialchars($ticket['message'])) ?>
+                    <?= e(nl2br(htmlspecialchars($ticket['message']))) ?>
                 </div>
                 <div class="reply-meta"><?= date('M d, h:i A', strtotime($ticket['created_at'])) ?></div>
             </div>
 
             <!-- Replies -->
-            <?php while($r = $replies->fetch_assoc()): ?>
+            <?php foreach($replies as $r): ?>
                 <div class="reply-item <?= $r['sender'] == 'Admin' ? 'admin-reply' : 'user-reply' ?>">
                     <div class="reply-bubble">
                         <strong><?= htmlspecialchars($r['sender']) ?>:</strong><br>
-                        <?= nl2br(htmlspecialchars($r['message'])) ?>
+                        <?= e(nl2br(htmlspecialchars($r['message']))) ?>
                     </div>
                     <div class="reply-meta"><?= date('M d, h:i A', strtotime($r['created_at'])) ?></div>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     </div>
 
@@ -114,6 +125,7 @@ include $base_path . 'includes/topbar.php';
     <div class="reply-form-card">
         <h4 style="margin-bottom: 15px; color: #1e293b;">Post a Reply</h4>
         <form method="POST">
+            <?= csrf_field() ?>
             <textarea name="message" class="form-control" rows="4" placeholder="Type your reply here..." required></textarea>
             
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -138,4 +150,4 @@ include $base_path . 'includes/topbar.php';
     <?php endif; ?>
 </div>
 
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

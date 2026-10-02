@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Network Faults & AI Localization";
 $active = "faults";
@@ -8,7 +8,7 @@ $active = "faults";
 // Resolve Fault Logic
 if (isset($_GET['resolve'])) {
     $id = intval($_GET['resolve']);
-    $conn->query("UPDATE network_faults SET is_resolved = 1 WHERE id = $id");
+    db_exec($conn, "UPDATE network_faults SET is_resolved = 1 WHERE id = ?", [(int) $id]);
     header("Location: faults.php?msg=resolved");
     exit;
 }
@@ -21,9 +21,9 @@ $faults = $conn->query("
     ORDER BY f.created_at DESC
 ");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -51,16 +51,16 @@ include 'includes/topbar.php';
                     <?php while($f = $faults->fetch_assoc()): ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 15px;">
-                            <b style="color: #e11d48;"><?= str_replace('_', ' ', $f['fault_type']) ?></b>
+                            <b style="color: #e11d48;"><?= e(str_replace('_', ' ', $f['fault_type'])) ?></b>
                         </td>
-                        <td style="padding: 15px;"><?= $f['node_name'] ?: 'Backbone' ?></td>
+                        <td style="padding: 15px;"><?= e($f['node_name'] ?: 'Backbone') ?></td>
                         <td style="padding: 15px;">
                             <span class="badge" style="background: <?= ($f['severity'] == 'CRITICAL') ? '#ef4444' : '#f59e0b' ?>; color: #fff;">
-                                <?= $f['severity'] ?>
+                                <?= e($f['severity']) ?>
                             </span>
                         </td>
                         <td style="padding: 15px;">
-                            <a href="map.php?lat=<?= $f['predicted_lat'] ?>&lng=<?= $f['predicted_lng'] ?>" class="btn btn-sm" style="background: #eff6ff; color: #3b82f6; text-decoration: none;">
+                            <a href="map.php?lat=<?= e($f['predicted_lat']) ?>&lng=<?= e($f['predicted_lng']) ?>" class="btn btn-sm" style="background: #eff6ff; color: #3b82f6; text-decoration: none;">
                                 <i class="fa fa-location-dot"></i> View on GIS
                             </a>
                         </td>
@@ -68,7 +68,7 @@ include 'includes/topbar.php';
                             <?= date('M d, h:i A', strtotime($f['created_at'])) ?>
                         </div>
                         <td style="padding: 15px;">
-                            <a href="?resolve=<?= $f['id'] ?>" class="btn btn-sm" style="background: #dcfce7; color: #16a34a; text-decoration: none;">Resolve</a>
+                            <a href="?resolve=<?= e($f['id']) ?>" class="btn btn-sm" style="background: #dcfce7; color: #16a34a; text-decoration: none;">Resolve</a>
                         </td>
                     </tr>
                     <?php endwhile; ?>
@@ -80,4 +80,4 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

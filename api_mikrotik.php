@@ -4,6 +4,9 @@
  */
 
 header('Content-Type: application/json');
+require_once __DIR__ . '/includes/api_auth.php';
+api_require_auth();
+
 
 $host = $_GET['host'] ?? '192.168.5.20';
 $user = $_GET['user'] ?? 'apiuser';
@@ -17,7 +20,7 @@ $response = [
 ];
 
 try {
-    include 'includes/mikrotik_web.php';
+    include __DIR__ . '/includes/mikrotik_web.php';
     
     $mikrotik = new MikrotikWeb($host, $user, $pass);
     

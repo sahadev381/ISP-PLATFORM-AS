@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 // Only Super Admins can see full logs
 if (!isSuperAdmin()) {
@@ -16,9 +16,9 @@ $logs = $conn->query("
     LIMIT 1000
 ");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -44,11 +44,11 @@ include 'includes/topbar.php';
                     <td style="padding: 15px;"><b><?= htmlspecialchars($l['username']) ?></b></td>
                     <td style="padding: 15px;">
                         <span class="badge" style="background:#f1f5f9; color:#475569; font-size:10px;">
-                            <?= strtoupper($l['action']) ?>
+                            <?= e(strtoupper($l['action'])) ?>
                         </span>
                     </td>
                     <td style="padding: 15px; color:#475569;"><?= htmlspecialchars($l['description']) ?></td>
-                    <td style="padding: 15px; font-family:monospace; color:#94a3b8;"><?= $l['ip_address'] ?></td>
+                    <td style="padding: 15px; font-family:monospace; color:#94a3b8;"><?= e($l['ip_address']) ?></td>
                     <td style="padding: 15px; color:#64748b;"><?= date('M d, h:i A', strtotime($l['created_at'])) ?></td>
                 </tr>
                 <?php endwhile; ?>
@@ -57,4 +57,4 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

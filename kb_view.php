@@ -1,15 +1,15 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if ($id > 0) {
     // Increment views
-    $conn->query("UPDATE knowledge_base SET views = views + 1 WHERE id = $id");
+    db_exec($conn, "UPDATE knowledge_base SET views = views + 1 WHERE id = ?", [(int) $id]);
     
     // Get article
-    $article = $conn->query("SELECT kb.*, a.username as author FROM knowledge_base kb LEFT JOIN admins a ON kb.created_by = a.id WHERE kb.id = $id")->fetch_assoc();
+    $article = db_one($conn, "SELECT kb.*, a.username as author FROM knowledge_base kb LEFT JOIN admins a ON kb.created_by = a.id WHERE kb.id = ?", [(int) $id]);
 }
 
 if (!$article) {
@@ -17,8 +17,8 @@ if (!$article) {
 }
 
 $page_title = $article['title'];
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -51,4 +51,4 @@ include 'includes/sidebar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

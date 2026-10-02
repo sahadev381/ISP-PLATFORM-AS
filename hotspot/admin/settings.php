@@ -1,45 +1,55 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
+session_boot();
 $page_title = "Hotspot Settings";
 
-chdir(__DIR__ . '/../..');
 $base_path = '.';
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../../config.php';
+include_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ' . $base_path . '/index.php');
     exit;
 }
 
+// SMS gateway credentials are edited here - superadmin only.
+require_role('superadmin');
+
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $settings = [
         'sms_api_url' => $_POST['sms_api_url'] ?? '',
-        'sms_api_key' => $_POST['sms_api_key'] ?? '',
         'sms_sender_id' => $_POST['sms_sender_id'] ?? '',
         'sms_username' => $_POST['sms_username'] ?? '',
-        'sms_password' => $_POST['sms_password'] ?? '',
         'portal_title' => $_POST['portal_title'] ?? 'Hotspot Portal',
         'session_timeout' => $_POST['session_timeout'] ?? 3600,
         'otp_expiry' => $_POST['otp_expiry'] ?? 300,
     ];
 
+    // The form never renders the stored secrets, so an empty field means
+    // "leave it as it is" rather than "clear it".
+    foreach (['sms_api_key', 'sms_password'] as $secret) {
+        if (($_POST[$secret] ?? '') !== '') {
+            $settings[$secret] = $_POST[$secret];
+        }
+    }
+
     foreach ($settings as $key => $value) {
-        $conn->query("
-            INSERT INTO hotspot_settings (setting_key, setting_value) 
-            VALUES ('$key', '$value')
-            ON DUPLICATE KEY UPDATE setting_value = '$value'
-        ");
+        db_exec($conn, "
+            INSERT INTO hotspot_settings (setting_key, setting_value)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = ?
+        ", [$key, $value, $value]);
     }
 
     $message = 'Settings saved successfully!';
 }
 
 $settings = [];
-$result = $conn->query("SELECT setting_key, setting_value FROM hotspot_settings");
-while ($row = $result->fetch_assoc()) {
+foreach (db_all($conn, "SELECT setting_key, setting_value FROM hotspot_settings") as $row) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 ?>
@@ -48,7 +58,7 @@ while ($row = $result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -194,7 +204,7 @@ while ($row = $result->fetch_assoc()) {
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -215,11 +225,12 @@ while ($row = $result->fetch_assoc()) {
             
             <?php if ($message): ?>
                 <div style="background: #d1fae5; color: #065f46; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
             <form method="POST">
+                <?= csrf_field() ?>
                 <!-- SMS Settings -->
                 <div class="content-card">
                     <div class="card-header">
@@ -231,36 +242,38 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>SMS API URL</label>
                                     <input type="text" name="sms_api_url" class="form-control" 
-                                           value="<?= $settings['sms_api_url'] ?? '' ?>"
+                                           value="<?= e($settings['sms_api_url'] ?? '') ?>"
                                            placeholder="https://sms.example.com/api/send">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>API Key</label>
-                                    <input type="text" name="sms_api_key" class="form-control" 
-                                           value="<?= $settings['sms_api_key'] ?? '' ?>">
+                                    <input type="password" name="sms_api_key" class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="<?= !empty($settings['sms_api_key']) ? 'unchanged - type to replace' : 'not set' ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Sender ID</label>
                                     <input type="text" name="sms_sender_id" class="form-control" 
-                                           value="<?= $settings['sms_sender_id'] ?? 'HOTSPOT' ?>">
+                                           value="<?= e($settings['sms_sender_id'] ?? 'HOTSPOT') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Username (if required)</label>
                                     <input type="text" name="sms_username" class="form-control" 
-                                           value="<?= $settings['sms_username'] ?? '' ?>">
+                                           value="<?= e($settings['sms_username'] ?? '') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Password (if required)</label>
-                                    <input type="password" name="sms_password" class="form-control" 
-                                           value="<?= $settings['sms_password'] ?? '' ?>">
+                                    <input type="password" name="sms_password" class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="<?= !empty($settings['sms_password']) ? 'unchanged - type to replace' : 'not set' ?>">
                                 </div>
                             </div>
                         </div>
@@ -283,14 +296,14 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>Portal Title</label>
                                     <input type="text" name="portal_title" class="form-control" 
-                                           value="<?= $settings['portal_title'] ?? 'Hotspot Portal' ?>">
+                                           value="<?= e($settings['portal_title'] ?? 'Hotspot Portal') ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Session Timeout (seconds)</label>
                                     <input type="number" name="session_timeout" class="form-control" 
-                                           value="<?= $settings['session_timeout'] ?? 3600 ?>">
+                                           value="<?= e($settings['session_timeout'] ?? 3600) ?>">
                                     <div class="help-text">3600 = 1 hour, 7200 = 2 hours</div>
                                 </div>
                             </div>
@@ -298,7 +311,7 @@ while ($row = $result->fetch_assoc()) {
                                 <div class="form-group">
                                     <label>OTP Expiry (seconds)</label>
                                     <input type="number" name="otp_expiry" class="form-control" 
-                                           value="<?= $settings['otp_expiry'] ?? 300 ?>">
+                                           value="<?= e($settings['otp_expiry'] ?? 300) ?>">
                                     <div class="help-text">300 = 5 minutes</div>
                                 </div>
                             </div>

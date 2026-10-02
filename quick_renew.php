@@ -1,11 +1,9 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 /* SHOW ERRORS (important) */
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 $msg = "";
 $error = "";
@@ -13,11 +11,16 @@ $error = "";
 /* RENEW USER */
 if (isset($_POST['renew'])) {
 
+    csrf_check();
+
     if (!isset($_POST['username'], $_POST['months'])) {
         $error = "Invalid request!";
     } else {
 
         $username = $_POST['username'];
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
         $months   = intval($_POST['months']);
 
         if ($months <= 0) {
@@ -25,22 +28,20 @@ if (isset($_POST['renew'])) {
         } else {
 
             /* Get customer + plan */
-            $q = $conn->query("
-                SELECT 
+            $row = db_one($conn, "
+                SELECT
                     c.username,
                     c.expiry,
                     p.price,
                     p.validity
                 FROM customers c
                 JOIN plans p ON c.plan_id = p.id
-                WHERE c.username = '$username'
-            ");
+                WHERE c.username = ?
+            ", [$username]);
 
-            if ($q === false || $q->num_rows == 0) {
+            if (!$row) {
                 $error = "User not found!";
             } else {
-
-                $row = $q->fetch_assoc();
 
                 /* Calculate amount */
                 $amount = $row['price'] * $months;
@@ -48,24 +49,35 @@ if (isset($_POST['renew'])) {
                 /* Calculate expiry */
                 $today = date('Y-m-d');
                 $baseDate = ($row['expiry'] >= $today) ? $row['expiry'] : $today;
-                $days = $row['validity'] * $months;
+                $days = (int) $row['validity'] * $months;
 
                 $newExpiry = date('Y-m-d', strtotime("+$days days", strtotime($baseDate)));
 
-                /* Update customer */
-                $conn->query("
-                    UPDATE customers 
-                    SET expiry='$newExpiry', status='active'
-                    WHERE username='$username'
-                ");
+                // Expiry and the invoice must move together, otherwise a
+                // failure between the two leaves the customer renewed with no
+                // invoice (or billed with no extension).
+                $conn->begin_transaction();
+                try {
+                    /* Update customer */
+                    db_exec($conn, "
+                        UPDATE customers
+                        SET expiry = ?, status = 'active'
+                        WHERE username = ?
+                    ", [$newExpiry, $username]);
 
-                /* Insert invoice */
-                $conn->query("
-                    INSERT INTO invoices (username, amount, created_at, status)
-                    VALUES ('$username', '$amount', NOW(), 'paid')
-                ");
+                    /* Insert invoice */
+                    db_exec($conn, "
+                        INSERT INTO invoices (username, amount, created_at, status)
+                        VALUES (?, ?, NOW(), 'paid')
+                    ", [$username, $amount]);
 
-                $msg = "Renewal successful! New expiry: $newExpiry";
+                    $conn->commit();
+                    $msg = "Renewal successful! New expiry: $newExpiry";
+                } catch (Throwable $e) {
+                    $conn->rollback();
+                    error_log('quick_renew failed: ' . $e->getMessage());
+                    $error = "Renewal failed. Please try again.";
+                }
             }
         }
     }
@@ -77,8 +89,8 @@ $users = $conn->query("SELECT username FROM customers ORDER BY username ASC");
 /* PAGE TITLE */
 $page_title = "User Renewal";
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -89,13 +101,13 @@ include 'includes/sidebar.php';
 
     <?php if ($msg) { ?>
         <div style="background:#2ecc71;color:#fff;padding:12px;border-radius:10px;margin-bottom:15px;">
-            <?= $msg ?>
+            <?= e($msg) ?>
         </div>
     <?php } ?>
 
     <?php if ($error) { ?>
         <div style="background:#e74c3c;color:#fff;padding:12px;border-radius:10px;margin-bottom:15px;">
-            <?= $error ?>
+            <?= e($error) ?>
         </div>
     <?php } ?>
 
@@ -103,6 +115,7 @@ include 'includes/sidebar.php';
         <h3>Renew User</h3>
 
         <form method="post">
+<?= csrf_field() ?>
             <table>
                 <tr>
                     <td>User</td>
@@ -110,8 +123,8 @@ include 'includes/sidebar.php';
                         <select name="username" required>
                             <option value="">Select User</option>
                             <?php while ($u = $users->fetch_assoc()) { ?>
-                                <option value="<?= $u['username'] ?>">
-                                    <?= $u['username'] ?>
+                                <option value="<?= e($u['username']) ?>">
+                                    <?= e($u['username']) ?>
                                 </option>
                             <?php } ?>
                         </select>
@@ -161,10 +174,10 @@ include 'includes/sidebar.php';
             while ($i = $h->fetch_assoc()) {
             ?>
                 <tr>
-                    <td><?= $i['id'] ?></td>
-                    <td><?= $i['username'] ?></td>
-                    <td><?= $i['amount'] ?></td>
-                    <td><?= $i['created_at'] ?></td>
+                    <td><?= e($i['id']) ?></td>
+                    <td><?= e($i['username']) ?></td>
+                    <td><?= e($i['amount']) ?></td>
+                    <td><?= e($i['created_at']) ?></td>
                 </tr>
             <?php } ?>
         </table>
@@ -172,5 +185,5 @@ include 'includes/sidebar.php';
 
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

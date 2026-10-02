@@ -9,14 +9,26 @@ class HotspotAuth {
     private $session_timeout = 3600;
     
     public function __construct() {
-        chdir(__DIR__ . '/../..');
-        include 'config.php';
+        /* require_once returns true without re-executing when the file
+           has already been included, so $conn is never created in this
+           scope - every caller that had already loaded config.php got
+           null here. Take it from the global scope instead, where
+           config.php actually put it. */
+        require_once __DIR__ . '/../../config.php';
+        global $conn;
         $this->conn = $conn;
-        
+
+        if (!$this->conn instanceof mysqli) {
+            throw new RuntimeException('HotspotAuth needs a database connection.');
+        }
+
         // Load settings
-        $result = $conn->query("SELECT setting_value FROM hotspot_settings WHERE setting_key = 'session_timeout'");
-        if ($result && $row = $result->fetch_assoc()) {
-            $this->session_timeout = (int)$row['setting_value'];
+        $value = db_value(
+            $this->conn,
+            "SELECT setting_value FROM hotspot_settings WHERE setting_key = 'session_timeout'"
+        );
+        if ($value !== null) {
+            $this->session_timeout = (int) $value;
         }
     }
     
@@ -56,17 +68,13 @@ class HotspotAuth {
      * Authenticate with username/password (Browser Login)
      */
     private function authenticateWithUser($username, $password, $mac, $ip) {
-        $username = $this->conn->real_escape_string($username);
-        
         // Get user
-        $result = $this->conn->query("SELECT * FROM hotspot_users WHERE username = '$username'");
-        if (!$result || $result->num_rows == 0) {
+        $user = db_one($this->conn, "SELECT * FROM hotspot_users WHERE username = ?", [$username]);
+        if (!$user) {
             $this->logAccess(null, $username, $ip, $mac, 'login', 'user', 'failed', 'User not found');
             return ['status' => 'error', 'message' => 'Invalid username or password'];
         }
-        
-        $user = $result->fetch_assoc();
-        
+
         // Check status
         if ($user['status'] != 'active') {
             $this->logAccess($user['id'], $username, $ip, $mac, 'login', 'user', 'blocked', 'Account ' . $user['status']);
@@ -116,8 +124,8 @@ class HotspotAuth {
         
         // Check single session
         if ($user['single_session']) {
-            $active = $this->conn->query("SELECT id FROM hotspot_sessions WHERE username = '$username' AND status = 'active'");
-            if ($active && $active->num_rows > 0) {
+            $active = db_all($this->conn, "SELECT id FROM hotspot_sessions WHERE username = ? AND status = 'active'", [$username]);
+            if ($active) {
                 $this->logAccess($user['id'], $username, $ip, $mac, 'login', 'user', 'blocked', 'Single session active');
                 return ['status' => 'error', 'message' => 'Account already logged in elsewhere'];
             }
@@ -125,8 +133,8 @@ class HotspotAuth {
         
         // Check max devices
         if ($user['max_devices'] > 0) {
-            $active = $this->conn->query("SELECT id FROM hotspot_sessions WHERE username = '$username' AND status = 'active'");
-            $currentDevices = $active ? $active->num_rows : 0;
+            $active = db_all($this->conn, "SELECT id FROM hotspot_sessions WHERE username = ? AND status = 'active'", [$username]);
+            $currentDevices = count($active);
             if ($currentDevices >= $user['max_devices']) {
                 $this->logAccess($user['id'], $username, $ip, $mac, 'login', 'user', 'blocked', 'Max devices reached');
                 return ['status' => 'error', 'message' => 'Maximum devices reached. Logout from another device.'];
@@ -155,7 +163,7 @@ class HotspotAuth {
         $this->createSession($user['id'], $username, $mac, $ip, $user['profile_id']);
         
         // Update last login
-        $this->conn->query("UPDATE hotspot_users SET last_login = NOW() WHERE id = {$user['id']}");
+        db_exec($this->conn, "UPDATE hotspot_users SET last_login = NOW() WHERE id = ?", [(int) $user['id']]);
         
         $this->logAccess($user['id'], $username, $ip, $mac, 'login', 'user', 'success', 'Login successful');
         
@@ -172,27 +180,25 @@ class HotspotAuth {
     private function authenticateWithVoucher($pin, $mac, $ip) {
         $pin = preg_replace('/[^0-9]/', '', $pin);
         
-        $result = $this->conn->query("
+        $voucher = db_one($this->conn, "
             SELECT v.*, p.name as plan_name, p.data_limit_mb, p.validity_hours, p.speed_kbps
             FROM hotspot_vouchers v
             JOIN hotspot_profiles p ON v.profile_id = p.id
-            WHERE v.pin_code = '$pin'
-        ");
-        
-        if (!$result || $result->num_rows == 0) {
+            WHERE v.pin_code = ?
+        ", [$pin]);
+
+        if (!$voucher) {
             $this->logAccess(null, '', $ip, $mac, 'login', 'voucher', 'failed', 'Invalid PIN');
             return ['status' => 'error', 'message' => 'Invalid PIN code'];
         }
-        
-        $voucher = $result->fetch_assoc();
-        
+
         if ($voucher['status'] != 'available') {
             $this->logAccess(null, '', $ip, $mac, 'login', 'voucher', 'failed', 'PIN status: ' . $voucher['status']);
             return ['status' => 'error', 'message' => 'PIN already used or expired'];
         }
         
         if (strtotime($voucher['expires_at']) < time()) {
-            $this->conn->query("UPDATE hotspot_vouchers SET status = 'expired' WHERE id = {$voucher['id']}");
+            db_exec($this->conn, "UPDATE hotspot_vouchers SET status = 'expired' WHERE id = ?", [(int) $voucher['id']]);
             $this->logAccess(null, '', $ip, $mac, 'login', 'voucher', 'failed', 'PIN expired');
             return ['status' => 'error', 'message' => 'PIN has expired'];
         }
@@ -208,7 +214,7 @@ class HotspotAuth {
         $voucherId = $voucher['id'];
         
         // Mark voucher as used
-        $this->conn->query("UPDATE hotspot_vouchers SET status = 'used', used_by = '$username', used_at = NOW() WHERE id = $voucherId");
+        db_exec($this->conn, "UPDATE hotspot_vouchers SET status = 'used', used_by = ?, used_at = NOW() WHERE id = ?", [$username, (int) $voucherId]);
         
         // Create session
         $this->createSession(null, $username, $mac, $ip, $voucher['profile_id']);
@@ -228,21 +234,21 @@ class HotspotAuth {
      */
     private function authenticateWithMAC($mac, $username = '') {
         $mac = strtoupper($mac);
-        
-        $query = "SELECT * FROM hotspot_users WHERE mac_address = '$mac'";
+
+        $sql    = "SELECT * FROM hotspot_users WHERE mac_address = ?";
+        $params = [$mac];
         if (!empty($username)) {
-            $username = $this->conn->real_escape_string($username);
-            $query .= " OR username = '$username'";
+            $sql     .= " OR username = ?";
+            $params[] = $username;
         }
-        
-        $result = $this->conn->query($query);
-        
-        if (!$result || $result->num_rows == 0) {
+
+        $user = db_one($this->conn, $sql . " LIMIT 1", $params);
+
+        if (!$user) {
             $this->logAccess(null, $username, '', $mac, 'login', 'mac', 'failed', 'MAC not registered');
             return ['status' => 'error', 'message' => 'Device not authorized'];
         }
-        
-        $user = $result->fetch_assoc();
+
         
         if ($user['status'] != 'active') {
             return ['status' => 'error', 'message' => 'Account is ' . $user['status']];
@@ -264,19 +270,19 @@ class HotspotAuth {
      * Authenticate with IP address only
      */
     private function authenticateWithIP($ip, $username = '') {
-        $query = "SELECT * FROM hotspot_users WHERE ip_address = '$ip'";
+        $sql    = "SELECT * FROM hotspot_users WHERE ip_address = ?";
+        $params = [$ip];
         if (!empty($username)) {
-            $username = $this->conn->real_escape_string($username);
-            $query .= " OR username = '$username'";
+            $sql     .= " OR username = ?";
+            $params[] = $username;
         }
-        
-        $result = $this->conn->query($query);
-        
-        if (!$result || $result->num_rows == 0) {
+
+        $user = db_one($this->conn, $sql . " LIMIT 1", $params);
+
+        if (!$user) {
             return ['status' => 'error', 'message' => 'IP not authorized'];
         }
-        
-        $user = $result->fetch_assoc();
+
         
         if ($user['status'] != 'active') {
             return ['status' => 'error', 'message' => 'Account is ' . $user['status']];
@@ -299,23 +305,23 @@ class HotspotAuth {
     private function authenticateWithIPMAC($ip, $mac, $username = '') {
         $mac = strtoupper($mac);
         
-        $query = "SELECT * FROM hotspot_users WHERE ip_mac_binding = 1 AND (
-            (ip_address = '$ip' AND mac_address = '$mac') OR 
-            (allowed_ips LIKE '%$ip%' AND allowed_ips LIKE '%$mac%')
+        $sql = "SELECT * FROM hotspot_users WHERE ip_mac_binding = 1 AND (
+            (ip_address = ? AND mac_address = ?) OR
+            (allowed_ips LIKE ? AND allowed_ips LIKE ?)
         )";
-        
+        $params = [$ip, $mac, db_like($ip), db_like($mac)];
+
         if (!empty($username)) {
-            $username = $this->conn->real_escape_string($username);
-            $query .= " OR username = '$username'";
+            $sql     .= " OR username = ?";
+            $params[] = $username;
         }
-        
-        $result = $this->conn->query($query);
-        
-        if (!$result || $result->num_rows == 0) {
+
+        $user = db_one($this->conn, $sql . " LIMIT 1", $params);
+
+        if (!$user) {
             return ['status' => 'error', 'message' => 'IP/MAC combination not authorized'];
         }
-        
-        $user = $result->fetch_assoc();
+
         
         if ($user['status'] != 'active') {
             return ['status' => 'error', 'message' => 'Account is ' . $user['status']];
@@ -335,31 +341,34 @@ class HotspotAuth {
      */
     private function authenticateWithPPPoE($username, $password) {
         // Check against RADIUS tables
-        $username = $this->conn->real_escape_string($username);
-        
-        $result = $this->conn->query("SELECT * FROM radcheck WHERE username = '$username' AND attribute = 'Cleartext-Password'");
-        
-        if (!$result || $result->num_rows == 0) {
+        $rad = db_one(
+            $this->conn,
+            "SELECT * FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password'",
+            [$username]
+        );
+
+        if (!$rad) {
             $this->logAccess(null, $username, '', '', 'login', 'pppoe', 'failed', 'User not found in RADIUS');
             return ['status' => 'error', 'message' => 'Invalid PPPoE credentials'];
         }
-        
-        $rad = $result->fetch_assoc();
-        
-        if ($rad['value'] != $password) {
+
+        // Constant-time comparison so the password cannot be guessed by timing
+        if (!hash_equals((string) $rad['value'], (string) $password)) {
             $this->logAccess(null, $username, '', '', 'login', 'pppoe', 'failed', 'Invalid password');
             return ['status' => 'error', 'message' => 'Invalid PPPoE credentials'];
         }
         
         // Get user profile from radusergroup
-        $group = $this->conn->query("SELECT groupname FROM radusergroup WHERE username = '$username' LIMIT 1");
+        $group = db_one($this->conn, "SELECT groupname FROM radusergroup WHERE username = ? LIMIT 1", [$username]);
         $profileId = 1;
-        if ($group && $group->num_rows > 0) {
-            $g = $group->fetch_assoc();
-            $profile = $this->conn->query("SELECT id FROM hotspot_profiles WHERE name LIKE '%{$g['groupname']}%' LIMIT 1");
-            if ($profile && $profile->num_rows > 0) {
-                $p = $profile->fetch_assoc();
-                $profileId = $p['id'];
+        if ($group) {
+            $profile = db_one(
+                $this->conn,
+                "SELECT id FROM hotspot_profiles WHERE name LIKE ? LIMIT 1",
+                [db_like((string) $group['groupname'])]
+            );
+            if ($profile) {
+                $profileId = (int) $profile['id'];
             }
         }
         
@@ -389,37 +398,31 @@ class HotspotAuth {
             return ['status' => 'error', 'message' => 'Phone and OTP required'];
         }
         
-        $phone = $this->conn->real_escape_string($phone);
-        $otp = $this->conn->real_escape_string($otp);
-        
         // Verify OTP
-        $result = $this->conn->query("
-            SELECT * FROM hotspot_sms_otp 
-            WHERE phone = '$phone' AND otp_code = '$otp' 
+        $otpRecord = db_one($this->conn, "
+            SELECT * FROM hotspot_sms_otp
+            WHERE phone = ? AND otp_code = ?
             AND status = 'pending' AND expires_at > NOW()
             ORDER BY created_at DESC LIMIT 1
-        ");
-        
-        if (!$result || $result->num_rows == 0) {
+        ", [$phone, $otp]);
+
+        if (!$otpRecord) {
             $this->logAccess(null, $phone, '', '', 'login', 'sms', 'failed', 'Invalid OTP');
             return ['status' => 'error', 'message' => 'Invalid or expired OTP'];
         }
-        
-        $otpRecord = $result->fetch_assoc();
-        
+
         // Mark OTP as used
-        $this->conn->query("UPDATE hotspot_sms_otp SET status = 'used', used_at = NOW() WHERE id = {$otpRecord['id']}");
-        
+        db_exec($this->conn, "UPDATE hotspot_sms_otp SET status = 'used', used_at = NOW() WHERE id = ?", [(int) $otpRecord['id']]);
+
         // Find or create user
-        $user = $this->conn->query("SELECT * FROM hotspot_users WHERE phone = '$phone'")->fetch_assoc();
-        
+        $user = db_one($this->conn, "SELECT * FROM hotspot_users WHERE phone = ?", [$phone]);
+
         if (!$user) {
             // Create temporary user
             $tempPass = password_hash(bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
-            $this->conn->query("INSERT INTO hotspot_users (phone, username, password, auth_method, status) 
-                VALUES ('$phone', 'SMS_$phone', '$tempPass', 'sms', 'active')");
-            $userId = $this->conn->insert_id;
             $username = "SMS_$phone";
+            $userId = db_insert($this->conn, "INSERT INTO hotspot_users (phone, username, password, auth_method, status)
+                VALUES (?, ?, ?, 'sms', 'active')", [$phone, $username, $tempPass]);
         } else {
             $userId = $user['id'];
             $username = $user['username'];
@@ -444,15 +447,14 @@ class HotspotAuth {
      * Send SMS OTP
      */
     public function sendSMSOTP($phone) {
-        $phone = $this->conn->real_escape_string($phone);
-        $otp = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-        
+        $otp = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
         // Save OTP
-        $this->conn->query("DELETE FROM hotspot_sms_otp WHERE phone = '$phone' AND status = 'pending'");
-        $this->conn->query("INSERT INTO hotspot_sms_otp (phone, otp_code, expires_at) VALUES ('$phone', '$otp', DATE_ADD(NOW(), INTERVAL 5 MINUTE))");
-        
+        db_exec($this->conn, "DELETE FROM hotspot_sms_otp WHERE phone = ? AND status = 'pending'", [$phone]);
+        db_exec($this->conn, "INSERT INTO hotspot_sms_otp (phone, otp_code, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))", [$phone, $otp]);
+
         // Send SMS
-        include_once 'hotspot/includes/sms.php';
+        include_once __DIR__ . '/sms.php';
         $sms = new SMSGateway();
         $result = $sms->send($phone, "Your OTP is: $otp. Valid for 5 minutes.");
         
@@ -464,9 +466,9 @@ class HotspotAuth {
      */
     private function createSession($userId, $username, $mac, $ip, $profileId) {
         $sessionId = bin2hex(random_bytes(16));
-        
-        $this->conn->query("INSERT INTO hotspot_sessions (session_id, username, mac, ip_address, profile_id, login_time, status) 
-            VALUES ('$sessionId', '$username', '$mac', '$ip', $profileId, NOW(), 'active')");
+
+        db_exec($this->conn, "INSERT INTO hotspot_sessions (session_id, username, mac, ip_address, profile_id, login_time, status)
+            VALUES (?, ?, ?, ?, ?, NOW(), 'active')", [$sessionId, $username, $mac, $ip, (int) $profileId]);
         
         $_SESSION['hotspot_user_id'] = $userId;
         $_SESSION['hotspot_username'] = $username;
@@ -481,7 +483,7 @@ class HotspotAuth {
         $sessionId = $sessionId ?? $_SESSION['hotspot_session_id'] ?? '';
         
         if (!empty($sessionId)) {
-            $this->conn->query("UPDATE hotspot_sessions SET logout_time = NOW(), status = 'closed' WHERE session_id = '$sessionId'");
+            db_exec($this->conn, "UPDATE hotspot_sessions SET logout_time = NOW(), status = 'closed' WHERE session_id = ?", [$sessionId]);
             
             $username = $_SESSION['hotspot_username'] ?? '';
             $ip = $this->getClientIP();
@@ -499,17 +501,18 @@ class HotspotAuth {
      * Check if IP/MAC is blocked
      */
     private function isBlocked($ip, $mac) {
-        $ip = $this->conn->real_escape_string($ip);
-        $mac = strtoupper($this->conn->real_escape_string($mac));
-        
+        $mac = strtoupper((string) $mac);
+
         // Check IP blacklist
-        $result = $this->conn->query("SELECT id FROM hotspot_access_lists WHERE list_type = 'ip' AND value = '$ip' AND is_active = 1");
-        if ($result && $result->num_rows > 0) return true;
-        
+        if (db_one($this->conn, "SELECT id FROM hotspot_access_lists WHERE list_type = 'ip' AND value = ? AND is_active = 1", [$ip])) {
+            return true;
+        }
+
         // Check MAC blacklist
-        $result = $this->conn->query("SELECT id FROM hotspot_access_lists WHERE list_type = 'mac' AND value = '$mac' AND is_active = 1");
-        if ($result && $result->num_rows > 0) return true;
-        
+        if (db_one($this->conn, "SELECT id FROM hotspot_access_lists WHERE list_type = 'mac' AND value = ? AND is_active = 1", [$mac])) {
+            return true;
+        }
+
         return false;
     }
     
@@ -517,17 +520,17 @@ class HotspotAuth {
      * Log access attempt
      */
     private function logAccess($userId, $username, $ip, $mac, $action, $authMethod, $status, $message) {
-        $userId = $userId ? (int)$userId : 'NULL';
-        $username = $this->conn->real_escape_string($username);
-        $ip = $this->conn->real_escape_string($ip);
-        $mac = $this->conn->real_escape_string($mac);
-        $action = $this->conn->real_escape_string($action);
-        $authMethod = $this->conn->real_escape_string($authMethod);
-        $status = $this->conn->real_escape_string($status);
-        $message = $this->conn->real_escape_string($message);
-        
-        $this->conn->query("INSERT INTO hotspot_access_logs (user_id, username, ip_address, mac_address, action, auth_method, status, message) 
-            VALUES ($userId, '$username', '$ip', '$mac', '$action', '$authMethod', '$status', '$message')");
+        db_exec($this->conn, "INSERT INTO hotspot_access_logs (user_id, username, ip_address, mac_address, action, auth_method, status, message)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
+            $userId ? (int) $userId : null,
+            (string) $username,
+            (string) $ip,
+            (string) $mac,
+            (string) $action,
+            (string) $authMethod,
+            (string) $status,
+            (string) $message,
+        ]);
     }
     
     /**
@@ -554,7 +557,13 @@ class HotspotAuth {
             // Try to get from router
             $mac = $_SERVER['HTTP_X_REAL_IP'] ?? '';
         }
-        return strtoupper($mac);
+        $mac = strtoupper(trim((string) $mac));
+
+        // This value is fully client-controlled; only accept a real MAC.
+        if (!preg_match('/^([0-9A-F]{2}[:-]){5}[0-9A-F]{2}$/', $mac)) {
+            return '';
+        }
+        return $mac;
     }
     
     /**
@@ -566,29 +575,25 @@ class HotspotAuth {
         }
         
         $sessionId = $_SESSION['hotspot_session_id'];
-        $result = $this->conn->query("SELECT * FROM hotspot_sessions WHERE session_id = '$sessionId' AND status = 'active'");
-        
-        if ($result && $result->num_rows > 0) {
-            return $result->fetch_assoc();
-        }
-        
-        return null;
+
+        return db_one(
+            $this->conn,
+            "SELECT * FROM hotspot_sessions WHERE session_id = ? AND status = 'active'",
+            [$sessionId]
+        );
     }
     
     /**
      * Get user by username
      */
     public function getUser($username) {
-        $username = $this->conn->real_escape_string($username);
-        $result = $this->conn->query("SELECT * FROM hotspot_users WHERE username = '$username'");
-        return $result ? $result->fetch_assoc() : null;
+        return db_one($this->conn, "SELECT * FROM hotspot_users WHERE username = ?", [$username]);
     }
     
     /**
      * Get profile details
      */
     public function getProfile($profileId) {
-        $result = $this->conn->query("SELECT * FROM hotspot_profiles WHERE id = $profileId");
-        return $result ? $result->fetch_assoc() : null;
+        return db_one($this->conn, "SELECT * FROM hotspot_profiles WHERE id = ?", [(int) $profileId]);
     }
 }

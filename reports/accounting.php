@@ -1,7 +1,7 @@
 <?php
 $base_path = '../';
-include '../config.php';
-include '../includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "VAT & TSC Accounting Report";
 $active = "reports";
@@ -27,13 +27,18 @@ $monthly = $conn->query("
         SUM(base_amount) as base
     FROM invoices 
     WHERE status = 'paid'
-    GROUP BY month 
-    ORDER BY created_at DESC
+    GROUP BY month
+    /* ORDER BY created_at is rejected under only_full_group_by, which
+       is the default in MySQL 8: created_at is not grouped and not
+       aggregated, so there is no single value to sort by. Sort by the
+       largest date within each month instead - which is what the
+       original was reaching for. */
+    ORDER BY MAX(created_at) DESC
 ");
 
-include '../includes/header.php';
-include '../includes/sidebar.php';
-include '../includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -163,7 +168,7 @@ include '../includes/topbar.php';
                     <?php if($monthly->num_rows > 0): ?>
                         <?php while($m = $monthly->fetch_assoc()): ?>
                         <tr>
-                            <td><span class="badge-period"><?= $m['month'] ?></span></td>
+                            <td><span class="badge-period"><?= e($m['month']) ?></span></td>
                             <td class="amount-neutral">NPR <?= number_format($m['gross'], 2) ?></td>
                             <td style="color:#8b5cf6; font-weight:600;">NPR <?= number_format($m['tsc'], 2) ?></td>
                             <td style="color:#10b981; font-weight:600;">NPR <?= number_format($m['vat'], 2) ?></td>
@@ -187,4 +192,4 @@ include '../includes/topbar.php';
     </div>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

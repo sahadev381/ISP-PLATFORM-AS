@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Network Device Monitoring";
 $active = "nas";
@@ -26,9 +26,9 @@ while($d = $devices->fetch_assoc()) {
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 25px;">
@@ -45,9 +45,9 @@ include 'includes/topbar.php';
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 25px; border-radius: 16px; color: #fff; position: relative; overflow: hidden;">
             <div style="position: absolute; right: -20px; top: -20px; opacity: 0.2; font-size: 80px;"><i class="fa fa-server"></i></div>
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">OLT DEVICES</div>
-            <div style="font-size: 36px; font-weight: 800; margin: 10px 0;"><?= $olt_count ?></div>
+            <div style="font-size: 36px; font-weight: 800; margin: 10px 0;"><?= e($olt_count) ?></div>
             <div style="display: flex; gap: 20px; font-size: 13px; opacity: 0.85;">
-                <span><i class="fa fa-check-circle"></i> Online: <?= $olt_online ?></span>
+                <span><i class="fa fa-check-circle"></i> Online: <?= e($olt_online) ?></span>
                 <span><i class="fa fa-times-circle"></i> Offline: <?= $olt_count - $olt_online ?></span>
             </div>
             <a href="olt_dashboard.php" style="display: inline-block; margin-top: 15px; color: #fff; font-size: 13px; font-weight: 600;">
@@ -59,9 +59,9 @@ include 'includes/topbar.php';
         <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 25px; border-radius: 16px; color: #fff; position: relative; overflow: hidden;">
             <div style="position: absolute; right: -20px; top: -20px; opacity: 0.2; font-size: 80px;"><i class="fa fa-microchip"></i></div>
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">MIKROTIK ROUTERS</div>
-            <div style="font-size: 36px; font-weight: 800; margin: 10px 0;"><?= $mikrotik_count ?></div>
+            <div style="font-size: 36px; font-weight: 800; margin: 10px 0;"><?= e($mikrotik_count) ?></div>
             <div style="display: flex; gap: 20px; font-size: 13px; opacity: 0.85;">
-                <span><i class="fa fa-check-circle"></i> Online: <?= $mikrotik_online ?></span>
+                <span><i class="fa fa-check-circle"></i> Online: <?= e($mikrotik_online) ?></span>
                 <span><i class="fa fa-times-circle"></i> Offline: <?= $mikrotik_count - $mikrotik_online ?></span>
             </div>
             <a href="mikrotik_dashboard.php" style="display: inline-block; margin-top: 15px; color: #fff; font-size: 13px; font-weight: 600;">
@@ -73,9 +73,9 @@ include 'includes/topbar.php';
         <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 25px; border-radius: 16px; color: #fff; position: relative; overflow: hidden;">
             <div style="position: absolute; right: -20px; top: -20px; opacity: 0.2; font-size: 80px;"><i class="fa fa-network-wired"></i></div>
             <div style="font-size: 14px; opacity: 0.9; font-weight: 600;">SWITCH DEVICES</div>
-            <div style="font-size: 36px; font-weight: 800; margin: 10px 0;"><?= $switch_count ?></div>
+            <div style="font-size: 36px; font-weight: 800; margin: 10px 0;"><?= e($switch_count) ?></div>
             <div style="display: flex; gap: 20px; font-size: 13px; opacity: 0.85;">
-                <span><i class="fa fa-check-circle"></i> Online: <?= $switch_online ?></span>
+                <span><i class="fa fa-check-circle"></i> Online: <?= e($switch_online) ?></span>
                 <span><i class="fa fa-times-circle"></i> Offline: <?= $switch_count - $switch_online ?></span>
             </div>
             <a href="switch_dashboard.php" style="display: inline-block; margin-top: 15px; color: #fff; font-size: 13px; font-weight: 600;">
@@ -129,7 +129,7 @@ include 'includes/topbar.php';
             </thead>
             <tbody>
                 <?php foreach($device_list as $dev): ?>
-                <tr class="device-row" data-type="<?= $dev['device_type'] ?>">
+                <tr class="device-row" data-type="<?= e($dev['device_type']) ?>">
                     <td style="padding: 15px;">
                         <div style="font-weight: 700; color: #1e293b;"><?= htmlspecialchars($dev['nasname']) ?></div>
                         <small style="color:#94a3b8;"><?= htmlspecialchars($dev['shortname'] ?? '') ?></small>
@@ -143,20 +143,20 @@ include 'includes/topbar.php';
                         ];
                         $type_info = $type_labels[$dev['device_type']] ?? ['label' => 'Unknown', 'color' => '#64748b'];
                         ?>
-                        <span style="padding: 5px 12px; border-radius: 20px; background: <?= $type_info['color'] ?>20; color: <?= $type_info['color'] ?>; font-weight: 600; font-size: 12px;">
-                            <?= $type_info['label'] ?>
+                        <span style="padding: 5px 12px; border-radius: 20px; background: <?= e($type_info['color']) ?>20; color: <?= e($type_info['color']) ?>; font-weight: 600; font-size: 12px;">
+                            <?= e($type_info['label']) ?>
                         </span>
                     </td>
-                    <td style="padding: 15px; font-family: monospace; color: #3b82f6;"><?= $dev['ip_address'] ?></td>
+                    <td style="padding: 15px; font-family: monospace; color: #3b82f6;"><?= e($dev['ip_address']) ?></td>
                     <td style="padding: 15px; color: #64748b;"><?= htmlspecialchars($dev['model'] ?? 'N/A') ?></td>
                     <td style="padding: 15px;">
                         <span class="badge active"><i class="fa fa-check-circle"></i> Online</span>
                     </td>
                     <td style="padding: 15px;">
-                        <a href="<?= 
-                            $dev['device_type'] == 'olt' ? 'olt_dashboard.php?id=' . $dev['id'] : 
-                            ($dev['device_type'] == 'mikrotik' ? 'mikrotik_dashboard.php?id=' . $dev['id'] : 
-                            'switch_dashboard.php?id=' . $dev['id'])
+                        <a href="<?=
+                            $dev['device_type'] == 'olt' ? 'olt_dashboard.php?id=' . (int) $dev['id'] :
+                            ($dev['device_type'] == 'mikrotik' ? 'mikrotik_dashboard.php?id=' . (int) $dev['id'] :
+                            'switch_dashboard.php?id=' . (int) $dev['id'])
                         ?>" class="btn btn-sm" style="background:#3b82f6; color:#fff; padding:8px 15px; border-radius:8px; text-decoration:none; font-size:12px;">
                             <i class="fa fa-eye"></i> Manage
                         </a>
@@ -214,4 +214,4 @@ function searchDevices() {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

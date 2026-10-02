@@ -1,18 +1,24 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session.php';
+session_boot();
 $page_title = "Payment Gateways";
 
-chdir(__DIR__ . '/..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
-include_once 'includes/payment_gateway.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/auth.php';
+include_once __DIR__ . '/../includes/payment_gateway.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit;
 }
+
+// Payment gateway API keys live on this page - superadmin only.
+require_role('superadmin');
 
 $message = '';
 
@@ -20,46 +26,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $gateway_id = intval($_POST['gateway_id'] ?? 0);
     
     if ($_POST['action'] == 'add_gateway') {
-        $gateway_name = $conn->real_escape_string($_POST['gateway_name']);
-        $display_name = $conn->real_escape_string($_POST['display_name']);
-        $api_key = $conn->real_escape_string($_POST['api_key']);
-        $api_secret = $conn->real_escape_string($_POST['api_secret']);
-        $merchant_id = $conn->real_escape_string($_POST['merchant_id']);
-        $public_key = $conn->real_escape_string($_POST['public_key']);
         $is_active = intval($_POST['is_active'] ?? 1);
         $is_test_mode = intval($_POST['is_test_mode'] ?? 0);
-        
-        $conn->query("INSERT INTO payment_gateways (gateway_name, display_name, api_key, api_secret, merchant_id, public_key, is_active, is_test_mode, created_at) 
-                      VALUES ('$gateway_name', '$display_name', '$api_key', '$api_secret', '$merchant_id', '$public_key', $is_active, $is_test_mode, NOW())");
+
+        db_exec($conn, "INSERT INTO payment_gateways (gateway_name, display_name, api_key, api_secret, merchant_id, public_key, is_active, is_test_mode, created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())", [
+            $_POST['gateway_name'] ?? '',
+            $_POST['display_name'] ?? '',
+            $_POST['api_key'] ?? '',
+            $_POST['api_secret'] ?? '',
+            $_POST['merchant_id'] ?? '',
+            $_POST['public_key'] ?? '',
+            $is_active,
+            $is_test_mode,
+        ]);
         $message = 'Gateway added successfully';
     }
     
     if ($_POST['action'] == 'update_gateway') {
-        $gateway_name = $conn->real_escape_string($_POST['gateway_name']);
-        $display_name = $conn->real_escape_string($_POST['display_name']);
-        $api_key = $conn->real_escape_string($_POST['api_key']);
-        $api_secret = $conn->real_escape_string($_POST['api_secret']);
-        $merchant_id = $conn->real_escape_string($_POST['merchant_id']);
-        $public_key = $conn->real_escape_string($_POST['public_key']);
         $is_active = intval($_POST['is_active'] ?? 1);
         $is_test_mode = intval($_POST['is_test_mode'] ?? 0);
-        
-        $conn->query("UPDATE payment_gateways SET 
-                      gateway_name = '$gateway_name', display_name = '$display_name',
-                      api_key = '$api_key', api_secret = '$api_secret',
-                      merchant_id = '$merchant_id', public_key = '$public_key',
-                      is_active = $is_active, is_test_mode = $is_test_mode,
-                      updated_at = NOW() WHERE id = $gateway_id");
+
+        // The edit form never receives the stored key and secret, so an
+        // empty field means "unchanged", not "erase it". Writing the blank
+        // straight through would silently break every payment.
+        $secretSets = [];
+        $secretVals = [];
+        foreach (['api_key', 'api_secret'] as $secret) {
+            if (($_POST[$secret] ?? '') !== '') {
+                $secretSets[] = "$secret = ?";
+                $secretVals[] = $_POST[$secret];
+            }
+        }
+        $secretSql = $secretSets ? implode(', ', $secretSets) . ',' : '';
+
+        db_exec($conn, "UPDATE payment_gateways SET
+                      gateway_name = ?, display_name = ?,
+                      $secretSql
+                      merchant_id = ?, public_key = ?,
+                      is_active = ?, is_test_mode = ?,
+                      updated_at = NOW() WHERE id = ?", array_merge([
+            $_POST['gateway_name'] ?? '',
+            $_POST['display_name'] ?? '',
+        ], $secretVals, [
+            $_POST['merchant_id'] ?? '',
+            $_POST['public_key'] ?? '',
+            $is_active,
+            $is_test_mode,
+            $gateway_id,
+        ]));
         $message = 'Gateway updated successfully';
     }
     
     if ($_POST['action'] == 'delete_gateway') {
-        $conn->query("DELETE FROM payment_gateways WHERE id = $gateway_id");
+        db_exec($conn, "DELETE FROM payment_gateways WHERE id = ?", [(int) $gateway_id]);
         $message = 'Gateway deleted';
     }
     
     if ($_POST['action'] == 'toggle_gateway') {
-        $conn->query("UPDATE payment_gateways SET is_active = IF(is_active = 1, 0, 1), updated_at = NOW() WHERE id = $gateway_id");
+        db_exec($conn, "UPDATE payment_gateways SET is_active = IF(is_active = 1, 0, 1), updated_at = NOW() WHERE id = ?", [(int) $gateway_id]);
         $message = 'Gateway status updated';
     }
 }
@@ -74,7 +99,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -293,6 +318,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
             color: #64748b;
         }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -321,7 +347,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -342,7 +368,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -354,7 +380,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-label">Active Gateways</div>
-                        <div class="stat-value"><?= $active_count ?></div>
+                        <div class="stat-value"><?= e($active_count) ?></div>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -363,7 +389,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                             <i class="fas fa-times-circle"></i>
                         </div>
                         <div class="stat-label">Inactive Gateways</div>
-                        <div class="stat-value"><?= $inactive_count ?></div>
+                        <div class="stat-value"><?= e($inactive_count) ?></div>
                     </div>
                 </div>
             </div>
@@ -396,11 +422,11 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                                         <div class="gateway-icon" style="background: #dbeafe; color: #1d4ed8;">
                                             <i class="fas fa-credit-card"></i>
                                         </div>
-                                        <strong><?= strtoupper($gw['gateway_name']) ?></strong>
+                                        <strong><?= e(strtoupper($gw['gateway_name'])) ?></strong>
                                     </div>
                                 </td>
-                                <td><?= $gw['display_name'] ?></td>
-                                <td><?= $gw['merchant_id'] ?: '-' ?></td>
+                                <td><?= e($gw['display_name']) ?></td>
+                                <td><?= e($gw['merchant_id'] ?: '-') ?></td>
                                 <td>
                                     <span class="badge <?= $gw['is_test_mode'] ? 'badge-warning' : 'badge-success' ?>">
                                         <?= $gw['is_test_mode'] ? 'Test' : 'Live' ?>
@@ -413,13 +439,13 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                                 </td>
                                 <td>
                                     <div class="btn-group">
-                                        <button class="btn btn-primary btn-sm" onclick="editGateway(<?= $gw['id'] ?>, '<?= $gw['gateway_name'] ?>', '<?= $gw['display_name'] ?>', '<?= $gw['merchant_id'] ?>', '<?= $gw['api_key'] ?>', '<?= $gw['api_secret'] ?>', '<?= $gw['public_key'] ?>', <?= $gw['is_active'] ?>, <?= $gw['is_test_mode'] ?>)" title="Edit">
+                                        <button class="btn btn-primary btn-sm" <?= action_attr('editGateway', [(int) $gw['id'], $gw['gateway_name'], $gw['display_name']]) ?> title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" onclick="submitAction('toggle_gateway', <?= $gw['id'] ?>)" title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
+                                        <button class="btn <?= $gw['is_active'] ? 'btn-warning' : 'btn-success' ?> btn-sm" <?= action_attr('submitAction', ['toggle_gateway', (int) $gw['id']]) ?> title="<?= $gw['is_active'] ? 'Disable' : 'Enable' ?>">
                                             <i class="fas <?= $gw['is_active'] ? 'fa-ban' : 'fa-check' ?>"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteGateway(<?= $gw['id'] ?>)" title="Delete">
+                                        <button class="btn btn-danger btn-sm" <?= action_attr('deleteGateway', [(int) $gw['id']]) ?> title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -444,6 +470,7 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
                 <button class="close" onclick="document.getElementById('addModal').style.display='none'">&times;</button>
             </div>
             <form method="POST" action="">
+<?= csrf_field() ?>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add_gateway">
                     <div class="form-group">
@@ -507,7 +534,10 @@ $inactive_count = $conn->query("SELECT COUNT(*) as c FROM payment_gateways WHERE
             }
         }
         
-        function editGateway(id, name, display, merchant, apiKey, apiSecret, pubKey, active, testMode) {
+        // Credentials are deliberately not passed in: they must never be
+        // written into the page. Fetch them server-side when this grows a
+        // real edit form.
+        function editGateway(id, name, display) {
             alert('Edit gateway ID: ' + id + '\n' + name);
         }
         

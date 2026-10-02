@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Switch Management";
 $active = "nas";
@@ -13,7 +13,7 @@ $switch_ports = [];
 $switch_stats = ['online' => 0, 'offline' => 0];
 
 if ($nas_id) {
-    $selected_switch = $conn->query("SELECT * FROM nas WHERE id = $nas_id")->fetch_assoc();
+    $selected_switch = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $nas_id]);
     if ($selected_switch) {
         if ($selected_switch['snmp_community'] && $selected_switch['snmp_port']) {
             $switch_ports = getSwitchPorts($selected_switch['ip_address'], $selected_switch['snmp_community'], $selected_switch['snmp_port'] ?? 161);
@@ -58,9 +58,9 @@ function getSwitchPorts($ip, $community, $port = 161) {
     return $ports;
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -72,7 +72,7 @@ include 'includes/topbar.php';
             <select name="id" class="form-control" onchange="this.form.submit()" style="padding:10px; border-radius:8px;">
                 <option value="">-- Select Switch --</option>
                 <?php while($s = $switches->fetch_assoc()): ?>
-                    <option value="<?= $s['id'] ?>" <?= $nas_id == $s['id'] ? 'selected' : '' ?>><?= $s['nasname'] ?> (<?= $s['ip_address'] ?>)</option>
+                    <option value="<?= e($s['id']) ?>" <?= $nas_id == $s['id'] ? 'selected' : '' ?>><?= e($s['nasname']) ?> (<?= e($s['ip_address']) ?>)</option>
                 <?php endwhile; ?>
             </select>
         </form>
@@ -91,15 +91,15 @@ include 'includes/topbar.php';
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px;">
                 <div>
                     <small style="color:#64748b; font-weight:600; text-transform:uppercase;">Switch Name</small>
-                    <div style="font-size:20px; font-weight:700; color:#1e293b;"><?= $selected_switch['nasname'] ?></div>
+                    <div style="font-size:20px; font-weight:700; color:#1e293b;"><?= e($selected_switch['nasname']) ?></div>
                 </div>
                 <div>
                     <small style="color:#64748b; font-weight:600; text-transform:uppercase;">IP Address</small>
-                    <div style="font-size:20px; font-weight:700; color:#3b82f6; font-family:monospace;"><?= $selected_switch['ip_address'] ?></div>
+                    <div style="font-size:20px; font-weight:700; color:#3b82f6; font-family:monospace;"><?= e($selected_switch['ip_address']) ?></div>
                 </div>
                 <div>
                     <small style="color:#64748b; font-weight:600; text-transform:uppercase;">Vendor/Model</small>
-                    <div style="font-size:20px; font-weight:700; color:#1e293b;"><?= $selected_switch['model'] ?? 'Generic' ?></div>
+                    <div style="font-size:20px; font-weight:700; color:#1e293b;"><?= e($selected_switch['model'] ?? 'Generic') ?></div>
                 </div>
                 <div>
                     <small style="color:#64748b; font-weight:600; text-transform:uppercase;">SNMP Community</small>
@@ -121,7 +121,7 @@ include 'includes/topbar.php';
                     if($status) $online_ports++; else $offline_ports++;
                 ?>
                 <div style="padding: 15px; border-radius: 12px; border: 2px solid <?= $status ? '#10b981' : '#e2e8f0' ?>; background: <?= $status ? '#10b98110' : '#f8fafc' ?>;">
-                    <div style="font-weight: 700; color: <?= $status ? '#10b981' : '#94a3b8' ?>;"><?= $port['ifDescr'] ?></div>
+                    <div style="font-weight: 700; color: <?= $status ? '#10b981' : '#94a3b8' ?>;"><?= e($port['ifDescr']) ?></div>
                     <div style="font-size: 12px; margin-top: 5px;">
                         <span class="badge <?= $status ? 'active' : 'inactive' ?>" style="font-size: 10px;">
                             <?= $status ? 'UP' : 'DOWN' ?>
@@ -145,11 +145,11 @@ include 'includes/topbar.php';
             <div style="display:flex; gap:30px; margin-top:20px; padding-top:20px; border-top:1px solid #f1f5f9;">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="width:12px; height:12px; background:#10b981; border-radius:50%;"></span>
-                    <span>Online: <?= $online_ports ?></span>
+                    <span>Online: <?= e($online_ports) ?></span>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="width:12px; height:12px; background:#e2e8f0; border-radius:50%;"></span>
-                    <span>Offline: <?= $offline_ports ?></span>
+                    <span>Offline: <?= e($offline_ports) ?></span>
                 </div>
             </div>
         </div>
@@ -171,7 +171,7 @@ include 'includes/topbar.php';
                     <?php foreach($switch_ports as $port): ?>
                     <?php $status = $port['ifOperStatus'] == '1'; ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 15px; font-weight: 600;"><?= $port['ifDescr'] ?></td>
+                        <td style="padding: 15px; font-weight: 600;"><?= e($port['ifDescr']) ?></td>
                         <td style="padding: 15px;">
                             <span class="badge <?= $status ? 'active' : 'inactive' ?>">
                                 <?= $status ? 'UP' : 'DOWN' ?>
@@ -194,4 +194,4 @@ include 'includes/topbar.php';
 
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

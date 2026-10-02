@@ -1,13 +1,16 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $username = $_GET['user'] ?? '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 if (!$username) die('User not specified');
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main">
@@ -33,5 +36,5 @@ const username = <?= json_encode($username) ?>;
 
 <script src="assets/js/chart.js"></script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

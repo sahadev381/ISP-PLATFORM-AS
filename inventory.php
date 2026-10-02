@@ -1,6 +1,9 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "Stock Management Dashboard";
 $active = "inventory";
@@ -23,13 +26,13 @@ if (isset($_POST['issue_stock'])) {
     $stmt = $conn->prepare("UPDATE inventory_items SET status='issued', issued_to_user=? WHERE id=?");
     $stmt->bind_param("si", $user, $id);
     $stmt->execute();
-    $conn->query("UPDATE customers SET onu_mac = (SELECT mac_address FROM inventory_items WHERE id=$id) WHERE username='$user'");
+    db_exec($conn, "UPDATE customers SET onu_mac = (SELECT mac_address FROM inventory_items WHERE id = ?) WHERE username = ?", [(int) $id, $user]);
 }
 
 // 3. Handle Item Return
 if (isset($_GET['return'])) {
     $id = intval($_GET['return']);
-    $conn->query("UPDATE inventory_items SET status='in_stock', issued_to_user=NULL WHERE id=$id");
+    db_exec($conn, "UPDATE inventory_items SET status = 'in_stock', issued_to_user = NULL WHERE id = ?", [(int) $id]);
     header("Location: inventory.php?msg=returned");
     exit;
 }
@@ -37,7 +40,7 @@ if (isset($_GET['return'])) {
 // 4. Handle Mark Faulty
 if (isset($_GET['faulty'])) {
     $id = intval($_GET['faulty']);
-    $conn->query("UPDATE inventory_items SET status='faulty' WHERE id=$id");
+    db_exec($conn, "UPDATE inventory_items SET status = 'faulty' WHERE id = ?", [(int) $id]);
     header("Location: inventory.php?msg=faulty");
     exit;
 }
@@ -48,9 +51,9 @@ $status_stats = $conn->query("SELECT status, COUNT(*) as count FROM inventory_it
 $recent = $conn->query("SELECT * FROM inventory_items WHERE status != 'in_stock' ORDER BY created_at DESC LIMIT 5");
 $items = $conn->query("SELECT * FROM inventory_items ORDER BY status ASC, created_at DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 25px;">
@@ -75,8 +78,8 @@ include 'includes/topbar.php';
                 $color = ($s['status'] == 'in_stock') ? '#10b981' : (($s['status'] == 'issued') ? '#3b82f6' : '#ef4444');
             ?>
                 <div style="display:flex; justify-content:space-between; margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-                    <span><?= ucfirst(str_replace('_', ' ', $s['status'])) ?></span>
-                    <b style="color:<?= $color ?>;"><?= $s['count'] ?></b>
+                    <span><?= e(ucfirst(str_replace('_', ' ', $s['status']))) ?></span>
+                    <b style="color:<?= e($color) ?>;"><?= e($s['count']) ?></b>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -85,7 +88,7 @@ include 'includes/topbar.php';
             <h4 style="margin-top:0; font-size:14px; color:#64748b; text-transform:uppercase;">Recent Activity</h4>
             <?php while($r = $recent->fetch_assoc()): ?>
                 <div style="margin-top:10px; font-size:12px; border-left:3px solid #3b82f6; padding-left:10px;">
-                    <b><?= $r['item_name'] ?></b><br><small>Issued to: <?= $r['issued_to_user'] ?></small>
+                    <b><?= e($r['item_name']) ?></b><br><small>Issued to: <?= e($r['issued_to_user']) ?></small>
                 </div>
             <?php endwhile; ?>
         </div>
@@ -106,18 +109,18 @@ include 'includes/topbar.php';
             <tbody>
                 <?php while($i = $items->fetch_assoc()): ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 15px;"><b><?= $i['item_name'] ?></b><br><small><?= $i['brand'] ?></small></td>
-                    <td style="padding: 15px; font-size:11px;">SN: <?= $i['serial_number'] ?><br>MAC: <?= $i['mac_address'] ?></td>
-                    <td style="padding: 15px;"><span class="badge" style="background:<?= ($i['status'] == 'in_stock') ? '#dcfce7; color:#16a34a;' : '#eff6ff; color:#3b82f6;' ?>"><?= strtoupper($i['status']) ?></span></td>
-                    <td style="padding: 15px;"><?= $i['issued_to_user'] ?: 'Warehouse' ?></td>
+                    <td style="padding: 15px;"><b><?= e($i['item_name']) ?></b><br><small><?= e($i['brand']) ?></small></td>
+                    <td style="padding: 15px; font-size:11px;">SN: <?= e($i['serial_number']) ?><br>MAC: <?= e($i['mac_address']) ?></td>
+                    <td style="padding: 15px;"><span class="badge" style="background:<?= ($i['status'] == 'in_stock') ? '#dcfce7; color:#16a34a;' : '#eff6ff; color:#3b82f6;' ?>"><?= e(strtoupper($i['status'])) ?></span></td>
+                    <td style="padding: 15px;"><?= e($i['issued_to_user'] ?: 'Warehouse') ?></td>
                     <td style="padding: 15px;">
                         <div style="display:flex; gap:5px;">
                             <?php if($i['status'] == 'in_stock'): ?>
-                                <button onclick="openIssueModal(<?= $i['id'] ?>, '<?= $i['item_name'] ?>')" class="btn-action-sm" style="background:#3b82f6; color:#fff; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Issue</button>
+                                <button <?= action_attr('openIssueModal', [(int) $i['id'], $i['item_name']]) ?> class="btn-action-sm" style="background:#3b82f6; color:#fff; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Issue</button>
                             <?php else: ?>
-                                <a href="?return=<?= $i['id'] ?>" class="btn-action-sm" style="background:#64748b; color:#fff; padding:5px 8px; border-radius:4px; text-decoration:none; font-size:11px;">Return</a>
+                                <a href="?return=<?= e($i['id']) ?>" class="btn-action-sm" style="background:#64748b; color:#fff; padding:5px 8px; border-radius:4px; text-decoration:none; font-size:11px;">Return</a>
                             <?php endif; ?>
-                            <a href="?faulty=<?= $i['id'] ?>" style="color:#ef4444; padding:5px;"><i class="fa fa-triangle-exclamation"></i></a>
+                            <a href="?faulty=<?= e($i['id']) ?>" style="color:#ef4444; padding:5px;"><i class="fa fa-triangle-exclamation"></i></a>
                         </div>
                     </td>
                 </tr>
@@ -132,6 +135,7 @@ include 'includes/topbar.php';
     <div style="background:#fff; margin:5% auto; padding:25px; border-radius:15px; width:400px; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
         <h3>Register New Hardware</h3>
         <form method="POST">
+<?= csrf_field() ?>
             <label>Category</label>
             <select name="item_name" class="form-control" style="width:100%; padding:10px; margin-bottom:15px;">
                 <option value="XPON ONU">XPON ONU</option>
@@ -153,6 +157,7 @@ include 'includes/topbar.php';
         <h3>Issue Hardware</h3>
         <p id="issueItemName" style="color:#64748b; font-weight:600;"></p>
         <form method="POST">
+<?= csrf_field() ?>
             <input type="hidden" name="item_id" id="issueItemId">
             <label>Customer Username</label>
             <input type="text" name="customer_user" class="form-control" style="width:100%; padding:10px; margin-bottom:15px;" required>
@@ -178,4 +183,4 @@ include 'includes/topbar.php';
         document.getElementById('issueModal').style.display = 'block';
     }
 </script>
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

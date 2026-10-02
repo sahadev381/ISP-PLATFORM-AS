@@ -57,7 +57,8 @@ class Notification {
     }
     
     public function notifyCustomerRegistration($customer_id) {
-        $customer = $this->conn->query("SELECT * FROM customers WHERE id=$customer_id")->fetch_assoc();
+        $customer = db_one($this->conn, "SELECT * FROM customers WHERE id = ?", [(int) $customer_id]);
+        if (!$customer) return;
         
         $message = "Welcome {$customer['full_name']}! Your ISP account has been created. " .
                    "Username: {$customer['username']}. " .
@@ -68,7 +69,8 @@ class Notification {
     }
     
     public function notifyPaymentReceived($username, $amount) {
-        $customer = $this->conn->query("SELECT * FROM customers WHERE username='$username'")->fetch_assoc();
+        $customer = db_one($this->conn, "SELECT * FROM customers WHERE username = ?", [$username]);
+        if (!$customer) return;
         
         $message = "Payment of NPR $amount received! Thank you for your payment.";
         
@@ -81,7 +83,8 @@ class Notification {
     }
     
     public function notifyExpiryReminder($username) {
-        $customer = $this->conn->query("SELECT * FROM customers WHERE username='$username'")->fetch_assoc();
+        $customer = db_one($this->conn, "SELECT * FROM customers WHERE username = ?", [$username]);
+        if (!$customer) return;
         
         $message = "Dear {$customer['full_name']}, your internet service will expire on {$customer['expiry']}. " .
                    "Please renew to avoid interruption.";
@@ -101,8 +104,7 @@ class Notification {
     }
     
     private function getSetting($key, $default = '') {
-        $result = $this->conn->query("SELECT setting_value FROM system_settings WHERE setting_key='$key'");
-        $row = $result->fetch_assoc();
+        $row = db_one($this->conn, "SELECT setting_value FROM system_settings WHERE setting_key = ?", [$key]);
         return $row ? $row['setting_value'] : $default;
     }
 }

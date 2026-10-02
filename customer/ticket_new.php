@@ -1,7 +1,10 @@
 <?php
-include '../includes/customer.php';
-include '../includes/user-header.php';
-include '../user-config.php';
+include __DIR__ . '/../includes/customer.php';
+include __DIR__ . '/../includes/user-header.php';
+include __DIR__ . '/../user-config.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $error = '';
 $success = '';
@@ -38,10 +41,11 @@ if(isset($_POST['submit'])){
 ?>
 <div class="container">
     <h2>Create New Ticket</h2>
-    <?php if($error){ ?><p style="color:red"><?= $error ?></p><?php } ?>
-    <?php if($success){ ?><p style="color:lightgreen"><?= $success ?></p><?php } ?>
+    <?php if($error){ ?><p style="color:red"><?= e($error) ?></p><?php } ?>
+    <?php if($success){ ?><p style="color:lightgreen"><?= e($success) ?></p><?php } ?>
 
     <form method="post">
+<?= csrf_field() ?>
         <label>Subject</label><br>
         <input type="text" name="subject" required style="width:100%; padding:8px; margin-bottom:10px;"><br>
 

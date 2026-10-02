@@ -1,0 +1,84 @@
+<?php
+/* Sessions are started in exactly one place so the hardened cookie
+   flags always apply - see includes/session.php. */
+require_once __DIR__ . '/session.php';
+/**
+ * CSRF protection helpers.
+ *
+ * In a form:
+ *     <?= csrf_field() ?>
+ *
+ * At the top of the POST handler:
+ *     csrf_check();
+ *
+ * For fetch()/AJAX, send the token as the `_csrf` field or the
+ * `X-CSRF-Token` header.
+ */
+
+if (!function_exists('csrf_token')) {
+
+    function csrf_token(): string
+    {
+        session_boot();
+        if (empty($_SESSION['_csrf_token'])) {
+            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['_csrf_token'];
+    }
+
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="_csrf" value="' . htmlspecialchars(csrf_token(), ENT_QUOTES) . '">';
+    }
+
+    function csrf_valid(): bool
+    {
+        $sent = $_POST['_csrf']
+            ?? $_SERVER['HTTP_X_CSRF_TOKEN']
+            ?? '';
+        return is_string($sent)
+            && $sent !== ''
+            && hash_equals(csrf_token(), $sent);
+    }
+
+    /**
+     * Same check, but also accepting the token from the query string.
+     *
+     * Only for destructive actions that are still wired up as GET links
+     * (for example tickets.php?delete=12). csrf_check() deliberately lets
+     * GET through, so those paths would otherwise be unprotected. Prefer
+     * converting the link to a POST form and using csrf_check() instead.
+     */
+    function csrf_valid_request(): bool
+    {
+        if (csrf_valid()) {
+            return true;
+        }
+        $sent = $_GET['_csrf'] ?? '';
+        return is_string($sent)
+            && $sent !== ''
+            && hash_equals(csrf_token(), $sent);
+    }
+
+    function csrf_check_request(): void
+    {
+        if (!csrf_valid_request()) {
+            http_response_code(419);
+            exit('CSRF token mismatch. Please reload the page and try again.');
+        }
+    }
+
+    /**
+     * Abort the request when the token is missing or wrong.
+     */
+    function csrf_check(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            return;
+        }
+        if (!csrf_valid()) {
+            http_response_code(419);
+            exit('CSRF token mismatch. Please reload the page and try again.');
+        }
+    }
+}

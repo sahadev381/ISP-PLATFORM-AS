@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/mikrotik_api.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/mikrotik_api.php';
 
 header('Content-Type: application/json');
 
@@ -12,7 +12,7 @@ if (!$nas_id || !$interface) {
     die(json_encode(['error' => 'Missing parameters']));
 }
 
-$nas = $conn->query("SELECT * FROM nas WHERE id = $nas_id")->fetch_assoc();
+$nas = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $nas_id]);
 if (!$nas) die(json_encode(['error' => 'NAS not found']));
 
 $api = new RouterosAPI();

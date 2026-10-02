@@ -49,10 +49,10 @@ $title = $page_title ?? 'ISP Management';
             </div>
         </div>
         <!-- Notification / Tickets -->
-        <a href="<?= $base_path ?? '' ?>tickets.php" class="ticket-bell <?= ($openTickets > 0) ? 'has-ticket' : '' ?>" style="position: relative; text-decoration: none; color: inherit;">
+        <a href="<?= e($base_path ?? '') ?>tickets.php" class="ticket-bell <?= ($openTickets > 0) ? 'has-ticket' : '' ?>" style="position: relative; text-decoration: none; color: inherit;">
             <i class="fa fa-bell" style="font-size: 18px;"></i>
             <?php if($openTickets > 0): ?>
-                <span style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #fff;"><?= $openTickets ?></span>
+                <span style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #fff;"><?= e($openTickets) ?></span>
             <?php endif; ?>
         </a>
 
@@ -64,7 +64,7 @@ $title = $page_title ?? 'ISP Management';
         <!-- Profile & Logout Dropdown -->
         <div class="profile-container" style="position: relative; display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 5px 15px; border-radius: 20px; cursor: pointer;">
             <div style="width: 30px; height: 30px; background: #3b82f6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
-                <?= strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1)) ?>
+                <?= e(strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
             </div>
             <span style="font-size: 14px; font-weight: 600; color: #1e293b;">
                 <?= htmlspecialchars($_SESSION['username'] ?? 'Admin') ?>
@@ -73,10 +73,10 @@ $title = $page_title ?? 'ISP Management';
             
             <!-- Hidden Dropdown -->
             <div class="profile-dropdown" style="display: none; position: absolute; top: 110%; right: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); width: 160px; z-index: 1000; overflow: hidden;">
-                <a href="<?= $base_path ?? '' ?>change_password.php" style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; text-decoration: none; color: #475569; font-size: 13px; transition: background 0.2s;">
+                <a href="<?= e($base_path ?? '') ?>change_password.php" style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; text-decoration: none; color: #475569; font-size: 13px; transition: background 0.2s;">
                     <i class="fa fa-key" style="width: 15px;"></i> Change Password
                 </a>
-                <a href="<?= $base_path ?? '' ?>logout.php" style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; text-decoration: none; color: #ef4444; font-size: 13px; border-top: 1px solid #f1f5f9; transition: background 0.2s;">
+                <a href="<?= e($base_path ?? '') ?>logout.php" style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; text-decoration: none; color: #ef4444; font-size: 13px; border-top: 1px solid #f1f5f9; transition: background 0.2s;">
                     <i class="fa fa-sign-out-alt" style="width: 15px;"></i> Logout
                 </a>
             </div>

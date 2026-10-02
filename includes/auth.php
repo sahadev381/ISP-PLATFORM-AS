@@ -1,7 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/session.php';
+session_boot();
 
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])){
@@ -14,9 +13,10 @@ $timeout = 30; // default 30 minutes
 $idleTimeout = 15; // default 15 minutes
 
 // Load settings from database if available
-if (isset($conn)) {
-    $result = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('session_timeout', 'session_idle_timeout')");
-    while ($row = $result->fetch_assoc()) {
+if (isset($conn) && function_exists('db_all')) {
+    $result = db_all($conn, "SELECT setting_key, setting_value FROM system_settings
+                             WHERE setting_key IN ('session_timeout', 'session_idle_timeout')");
+    foreach ($result as $row) {
         if ($row['setting_key'] == 'session_timeout') {
             $timeout = (int)$row['setting_value'];
         }
@@ -26,13 +26,20 @@ if (isset($conn)) {
     }
 }
 
+// A session with no login_time recorded never hit the absolute timeout
+// below, because the whole check was wrapped in isset(). Treat a missing
+// value as "started now" so the clock at least starts.
+if (!isset($_SESSION['login_time'])) {
+    $_SESSION['login_time'] = time();
+}
+
 // Check if session is expired (absolute timeout)
 if (isset($_SESSION['login_time'])) {
     $sessionDuration = time() - $_SESSION['login_time'];
     $maxDuration = $timeout * 60;
     
     if ($sessionDuration > $maxDuration) {
-        session_destroy();
+        session_kill();
         header("Location: /index.php?timeout=1");
         exit;
     }
@@ -44,7 +51,7 @@ if (isset($_SESSION['last_activity'])) {
     $maxIdle = $idleTimeout * 60;
     
     if ($idleTime > $maxIdle) {
-        session_destroy();
+        session_kill();
         header("Location: /index.php?idle=1");
         exit;
     }
@@ -63,18 +70,9 @@ if($ROLE !== 'superadmin' && empty($BRANCH_ID)){
     die("Branch not assigned");
 }
 
-/* Helpers */
-function isSuperAdmin(){
-    return ($_SESSION['role'] ?? '') === 'superadmin';
-}
-
-function isBranchAdmin(){
-    return ($_SESSION['role'] ?? '') === 'branchadmin';
-}
-
-function isStaff(){
-    return ($_SESSION['role'] ?? '') === 'staff';
-}
+/* Role helpers and branch scoping live in rbac.php. It also keeps
+   isSuperAdmin()/isBranchAdmin()/isStaff() working for existing callers. */
+require_once __DIR__ . '/rbac.php';
 
 /* Log activity function */
 function logActivity($action, $description = '') {

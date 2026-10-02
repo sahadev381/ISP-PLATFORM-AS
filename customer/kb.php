@@ -1,5 +1,5 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
 
 $search = $_GET['search'] ?? '';
 $category = $_GET['category'] ?? '';
@@ -225,7 +225,7 @@ $popular = $conn->query("SELECT * FROM knowledge_base WHERE is_public=1 ORDER BY
             <div class="popular-articles" style="margin-top: 30px;">
                 <h3><i class="fa fa-fire"></i> Popular</h3>
                 <?php while($pop = $popular->fetch_assoc()): ?>
-                    <a href="kb_article.php?id=<?= $pop['id'] ?>">
+                    <a href="kb_article.php?id=<?= e($pop['id']) ?>">
                         <?= htmlspecialchars($pop['title']) ?>
                     </a>
                 <?php endwhile; ?>
@@ -239,7 +239,7 @@ $popular = $conn->query("SELECT * FROM knowledge_base WHERE is_public=1 ORDER BY
                 <?php while($article = $articles->fetch_assoc()): ?>
                     <div class="article-card">
                         <h3>
-                            <a href="kb_article.php?id=<?= $article['id'] ?>">
+                            <a href="kb_article.php?id=<?= e($article['id']) ?>">
                                 <?= htmlspecialchars($article['title']) ?>
                             </a>
                         </h3>

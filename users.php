@@ -1,11 +1,8 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 $base_path = './';
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Customer Management";
 $active = "users";
@@ -26,13 +23,17 @@ if($res_online){
    STATS CALCULATION
    Optimization: Combine multiple COUNT queries into one using conditional aggregation
 ============================ */
-$stats = $conn->query("
+// A non-superadmin only ever counts and lists its own branch.
+[$branch_sql, $branch_params] = branch_scope();
+
+$stats = db_one($conn, "
     SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active,
         SUM(CASE WHEN expiry < CURDATE() THEN 1 ELSE 0 END) as expired
     FROM customers
-")->fetch_assoc();
+    WHERE 1=1 $branch_sql
+", $branch_params) ?: [];
 
 $total_users   = $stats['total'] ?? 0;
 $active_users  = $stats['active'] ?? 0;
@@ -45,11 +46,16 @@ $online_users  = count($online_list);
 ============================ */
 $q = $_GET['q'] ?? '';
 $status_filter = $_GET['status'] ?? '';
-$q_safe = $conn->real_escape_string($q);
-
 $where_clauses = [];
+$where_params = [];
+if ($branch_sql !== '') {
+    $where_clauses[] = "c.branch_id = ?";
+    $where_params[] = $branch_params[0];
+}
 if ($q) {
-    $where_clauses[] = "(c.username LIKE '%$q_safe%' OR c.full_name LIKE '%$q_safe%' OR c.phone LIKE '%$q_safe%' OR c.address LIKE '%$q_safe%')";
+    $where_clauses[] = "(c.username LIKE ? OR c.full_name LIKE ? OR c.phone LIKE ? OR c.address LIKE ?)";
+    $like = db_like($q);
+    array_push($where_params, $like, $like, $like, $like);
 }
 if ($status_filter == 'active') {
     $where_clauses[] = "c.expiry >= CURDATE()";
@@ -67,11 +73,11 @@ $query = "
     $where_sql
     ORDER BY c.created_at DESC
 ";
-$users = $conn->query($query);
+$users = db_all($conn, $query, $where_params);
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -168,8 +174,8 @@ include 'includes/topbar.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if ($users && $users->num_rows > 0): ?>
-                        <?php while($u = $users->fetch_assoc()): 
+                    <?php if (count($users) > 0): ?>
+                        <?php foreach($users as $u): 
                             $initials = strtoupper(substr($u['username'], 0, 2));
                             // Optimization: O(1) lookup instead of O(N) in_array()
                             $is_online = isset($online_list[$u['username']]);
@@ -178,7 +184,7 @@ include 'includes/topbar.php';
                         <tr>
                             <td>
                                 <div class="user-info-cell">
-                                    <div class="user-avatar"><?= $initials ?></div>
+                                    <div class="user-avatar"><?= e($initials) ?></div>
                                     <div>
                                         <div style="font-weight: 600;"><?= htmlspecialchars($u['username']) ?></div>
                                         <div style="font-size: 12px; color: #64748b;"><?= htmlspecialchars($u['full_name'] ?? 'No Name') ?></div>
@@ -217,13 +223,13 @@ include 'includes/topbar.php';
                                     <a href="user_edit.php?user=<?= urlencode($u['username']) ?>" class="btn-icon btn-edit" title="Edit Customer">
                                         <i class="fa fa-edit"></i>
                                     </a>
-                                    <a href="users.php?del=<?= urlencode($u['username']) ?>" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Permanently delete this customer?')">
+                                    <a href="users.php?del=<?= urlencode($u['username']) ?>" class="btn-icon btn-delete" title="Delete" <?= action_attr('confirmFirst', ['Permanently delete this customer?']) ?>>
                                         <i class="fa fa-trash"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <tr><td colspan="6" style="text-align: center; padding: 50px; color: #94a3b8;">No customers found.</td></tr>
                     <?php endif; ?>
@@ -233,4 +239,4 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

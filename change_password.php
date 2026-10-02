@@ -1,10 +1,14 @@
 <?php
-include 'config.php';
-include 'includes/auth.php'; // must contain session check
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php'; // must contain session check
+require_once __DIR__ . '/includes/csrf.php';
 
 $msg = "";
 
 if (isset($_POST['change'])) {
+    // This branch writes; the token must be checked before it does.
+    csrf_check();
+
 
     $new_password = $_POST['password'];
 
@@ -13,22 +17,32 @@ if (isset($_POST['change'])) {
     } else {
         $hash = password_hash($new_password, PASSWORD_DEFAULT);
 
-        // assuming auth.php sets admin ID
-        //$admin_id = $_SESSION['admin_id'];
+        // $admin_id was never defined - the line that would have set it
+        // was commented out. bind_param() therefore bound null, the
+        // statement became "WHERE id = NULL", it matched no rows, and
+        // execute() still returned true. The page reported "Password
+        // updated successfully!" every time without changing anything.
+        $admin_id = (int) ($_SESSION['user_id'] ?? 0);
 
-        $stmt = $conn->prepare("UPDATE admins SET password=? WHERE id=?");
-        $stmt->bind_param("si", $hash, $admin_id);
-
-        if ($stmt->execute()) {
-            $msg = "Password updated successfully!";
+        if ($admin_id <= 0) {
+            $msg = "Your session has expired. Please sign in again.";
         } else {
-            $msg = "Failed to update password!";
+            // Report on rows actually changed, not on "the query ran" -
+            // and read that count from db_exec()'s return value, because
+            // it closes the statement before $conn->affected_rows is read.
+            $changed = db_exec($conn, "UPDATE admins SET password = ? WHERE id = ?", [$hash, $admin_id]);
+
+            if ($changed === 1) {
+                $msg = "Password updated successfully!";
+            } else {
+                $msg = "Failed to update password!";
+            }
         }
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -41,11 +55,12 @@ include 'includes/sidebar.php';
 <?php } ?>
 
 <form method="post" class="table-box">
+<?= csrf_field() ?>
     <input class="input" type="password" name="password" placeholder="New password" required>
     <br><br>
     <button class="btn" name="change">Change Password</button>
 </form>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

@@ -157,40 +157,38 @@ class PaymentGateway {
     
     private function onPaymentSuccess($transactionId) {
         // Get transaction details
-        $result = $this->conn->query("SELECT * FROM payment_transactions WHERE transaction_id = '$transactionId'");
-        $txn = $result->fetch_assoc();
-        
+        $txn = db_one($this->conn, "SELECT * FROM payment_transactions WHERE transaction_id = ?", [$transactionId]);
+
         if (!$txn) return;
-        
+
         // Create billing history
-        $this->conn->query("INSERT INTO billing_history (customer_id, billing_date, amount, total_amount, status, payment_method, transaction_id) 
-            VALUES ({$txn['customer_id']}, CURDATE(), {$txn['amount']}, {$txn['amount']}, 'paid', '{$txn['payment_method']}', '$transactionId')");
-        
+        db_exec($this->conn, "INSERT INTO billing_history (customer_id, billing_date, amount, total_amount, status, payment_method, transaction_id)
+            VALUES (?, CURDATE(), ?, ?, 'paid', ?, ?)",
+            [(int) $txn['customer_id'], $txn['amount'], $txn['amount'], $txn['payment_method'], $transactionId]);
+
         // Update customer subscription if exists
-        $sub = $this->conn->query("SELECT * FROM customer_subscriptions WHERE customer_id = {$txn['customer_id']} AND status = 'active' ORDER BY id DESC LIMIT 1")->fetch_assoc();
-        
+        $sub = db_one($this->conn, "SELECT * FROM customer_subscriptions WHERE customer_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
+            [(int) $txn['customer_id']]);
+
         if ($sub) {
             // Calculate next billing date
-            $cycle = $this->conn->query("SELECT days FROM billing_cycles WHERE id = " . $sub['billing_cycle_id'])->fetch_assoc();
+            $cycle = db_one($this->conn, "SELECT days FROM billing_cycles WHERE id = ?", [(int) $sub['billing_cycle_id']]);
             $days = $cycle['days'] ?? 30;
             $nextDate = date('Y-m-d', strtotime("+$days days"));
-            
-            $this->conn->query("UPDATE customer_subscriptions SET next_billing_date = '$nextDate' WHERE id = {$sub['id']}");
+
+            db_exec($this->conn, "UPDATE customer_subscriptions SET next_billing_date = ? WHERE id = ?",
+                [$nextDate, (int) $sub['id']]);
         }
     }
     
     public function getTransaction($transactionId) {
-        $result = $this->conn->query("SELECT * FROM payment_transactions WHERE transaction_id = '$transactionId'");
-        return $result ? $result->fetch_assoc() : null;
+        return db_one($this->conn, "SELECT * FROM payment_transactions WHERE transaction_id = ?", [$transactionId]);
     }
     
     public function getCustomerTransactions($customerId, $limit = 50) {
-        $result = $this->conn->query("SELECT * FROM payment_transactions WHERE customer_id = $customerId ORDER BY created_at DESC LIMIT $limit");
-        $txns = [];
-        while ($row = $result->fetch_assoc()) {
-            $txns[] = $row;
-        }
-        return $txns;
+        return db_all($this->conn,
+            "SELECT * FROM payment_transactions WHERE customer_id = ? ORDER BY created_at DESC LIMIT ?",
+            [(int) $customerId, (int) $limit]);
     }
     
     public function calculateFees($gatewayName, $amount) {

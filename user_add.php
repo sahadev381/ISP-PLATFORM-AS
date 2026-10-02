@@ -1,11 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 $base_path = './';
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 $page_title = "Add New Customer";
 $active = "users";
@@ -60,12 +60,12 @@ if (isset($_POST['add'])) {
 
         // Auto-generate Wi-Fi credentials
         $wifi_ssid = "ISP_" . $username;
-        $wifi_password = substr(md5($username . time()), 0, 10);
+        $wifi_password = generate_wifi_password();
 
         $conn->begin_transaction();
         try {
             // RADIUS CONFIG
-            $conn->query("INSERT INTO radreply (username, attribute, op, value) VALUES ('$username','Mikrotik-Rate-Limit',':=','$speed')");
+            db_exec($conn, "INSERT INTO radreply (username, attribute, op, value) VALUES (?, 'Mikrotik-Rate-Limit', ':=', ?)", [$username, $speed]);
             
             $stmt1 = $conn->prepare("INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Cleartext-Password', ':=', ?)");
             $stmt1->bind_param("ss", $username, $password);
@@ -96,9 +96,9 @@ if (isset($_POST['add'])) {
     }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -154,7 +154,7 @@ include 'includes/topbar.php';
 
 <div class="form-container">
     <?php if($msg): ?>
-        <div class="alert <?= $msg_type ?>"><?= htmlspecialchars($msg) ?></div>
+        <div class="alert <?= e($msg_type) ?>"><?= htmlspecialchars($msg) ?></div>
     <?php endif; ?>
 
     <div class="card">
@@ -165,6 +165,7 @@ include 'includes/topbar.php';
         
         <div class="card-body">
             <form method="POST">
+<?= csrf_field() ?>
                 <!-- Personal Information -->
                 <div class="form-section">
                     <div class="section-title"><i class="fa fa-info-circle"></i> Personal Information</div>
@@ -208,7 +209,7 @@ include 'includes/topbar.php';
                                     <i class="fa fa-map-pin"></i>
                                     <input type="text" name="lng" id="lng" class="form-control" placeholder="Longitude (e.g. 85.3240)">
                                 </div>
-                                <button type="button" onclick="getLocation()" class="btn-submit" style="width: auto; margin-top: 0; padding: 10px 15px;">
+                                <button type="button" data-action="getLocation" class="btn-submit" style="width: auto; margin-top: 0; padding: 10px 15px;">
                                     <i class="fa fa-crosshairs"></i> Get Location
                                 </button>
                             </div>
@@ -293,7 +294,7 @@ include 'includes/topbar.php';
                                 <select name="plan_id" class="form-control" required style="padding-left: 38px;">
                                     <option value="">Select a plan</option>
                                     <?php while($p = $plans->fetch_assoc()): ?>
-                                        <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?> (<?= $p['speed'] ?>)</option>
+                                        <option value="<?= e($p['id']) ?>"><?= htmlspecialchars($p['name']) ?> (<?= e($p['speed']) ?>)</option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>
@@ -312,7 +313,7 @@ include 'includes/topbar.php';
                                 <select name="branch_id" class="form-control" style="padding-left: 38px;">
                                     <option value="">Main Branch</option>
                                     <?php while($b = $branches->fetch_assoc()): ?>
-                                        <option value="<?= $b['id'] ?>"><?= htmlspecialchars($b['name']) ?></option>
+                                        <option value="<?= e($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>
@@ -342,7 +343,7 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 
 <script>
 function getLocation() {

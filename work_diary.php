@@ -1,13 +1,13 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "Daily Work Diary & Action Log";
 $active = "logs";
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -39,7 +39,7 @@ include 'includes/topbar.php';
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h2 style="margin:0;"><i class="fa fa-book-open"></i> Work Diary</h2>
         <div style="display: flex; gap: 10px;">
-            <select id="filterCategory" class="form-control" onchange="loadDiary()" style="border-radius:8px; padding:8px;">
+            <select id="filterCategory" class="form-control" data-action="loadDiary" data-action-on="change" style="border-radius:8px; padding:8px;">
                 <option value="">All Categories</option>
                 <option value="Installation">Installation</option>
                 <option value="Maintenance">Maintenance</option>
@@ -98,6 +98,18 @@ include 'includes/topbar.php';
 </div>
 
 <script>
+// Server-side authorisation still gates the delete endpoint; this flag only
+// controls whether the button is rendered.
+const IS_SUPERADMIN = <?= e_js(($_SESSION['role'] ?? '') === 'superadmin') ?>;
+
+// Diary entries and comments are user-written and get rendered with
+// innerHTML below, so every interpolated value must be escaped first -
+// otherwise a title of `<img src=x onerror=...>` is stored XSS.
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
 function openModal(id) { document.getElementById(id).style.display = 'block'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
@@ -105,7 +117,7 @@ function loadDiary() {
     let cat = document.getElementById('filterCategory').value;
     let search = document.getElementById('searchDiary').value;
     
-    fetch(`work_diary_api.php?action=get_entries&category=${cat}&search=${search}`)
+    fetch(`work_diary_api.php?action=get_entries&category=${encodeURIComponent(cat)}&search=${encodeURIComponent(search)}`)
     .then(r => r.json())
     .then(data => {
         let feed = document.getElementById('diaryFeed');
@@ -118,34 +130,34 @@ function loadDiary() {
             <div class="diary-card">
                 <div class="diary-header">
                     <div>
-                        <div class="cat-badge cat-${entry.category.toLowerCase()}">${entry.category}</div>
-                        <h4 style="margin:10px 0 5px 0; color:#1e293b;">${entry.title}</h4>
-                        <small style="color:#64748b;"><i class="fa fa-user"></i> ${entry.username} • <i class="fa fa-clock"></i> ${new Date(entry.created_at).toLocaleString()}</small>
+                        <div class="cat-badge cat-${esc(String(entry.category).toLowerCase())}">${esc(entry.category)}</div>
+                        <h4 style="margin:10px 0 5px 0; color:#1e293b;">${esc(entry.title)}</h4>
+                        <small style="color:#64748b;"><i class="fa fa-user"></i> ${esc(entry.username)} • <i class="fa fa-clock"></i> ${new Date(entry.created_at).toLocaleString()}</small>
                     </div>
-                    ${'<?php echo $_SESSION['role'] ?>' === 'superadmin' ? `<button onclick="deleteEntry(${entry.id})" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fa fa-trash"></i></button>` : ''}
+                    ${IS_SUPERADMIN ? `<button onclick="deleteEntry(${Number(entry.id)})" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fa fa-trash"></i></button>` : ''}
                 </div>
                 <div class="diary-body">
-                    <div style="white-space: pre-wrap; color:#334155; line-height:1.6;">${entry.content}</div>
-                    ${entry.image_path ? `<img src="uploads/${entry.image_path}" class="diary-img" onclick="window.open(this.src)">` : ''}
+                    <div style="white-space: pre-wrap; color:#334155; line-height:1.6;">${esc(entry.content)}</div>
+                    ${entry.image_path ? `<img src="uploads/${encodeURIComponent(entry.image_path)}" class="diary-img" onclick="window.open(this.src)">` : ''}
                 </div>
                 <div class="diary-footer">
-                    <div class="comments-list" id="comments-${entry.id}">
+                    <div class="comments-list" id="comments-${Number(entry.id)}">
                         ${entry.comments.map(c => `
                             <div class="comment-item">
-                                <div class="comment-avatar">${c.username[0].toUpperCase()}</div>
+                                <div class="comment-avatar">${esc(String(c.username || '?')[0].toUpperCase())}</div>
                                 <div class="comment-content">
                                     <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                        <b style="font-size:11px;">${c.username}</b>
+                                        <b style="font-size:11px;">${esc(c.username)}</b>
                                         <small style="font-size:10px; color:#94a3b8;">${new Date(c.created_at).toLocaleTimeString()}</small>
                                     </div>
-                                    <div style="font-size:12px; color:#475569;">${c.comment}</div>
+                                    <div style="font-size:12px; color:#475569;">${esc(c.comment)}</div>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                     <div style="display:flex; gap:10px; margin-top:15px;">
-                        <input type="text" id="comInput-${entry.id}" class="form-control" placeholder="Add a comment or feedback..." style="border-radius:20px; padding:8px 15px; font-size:12px;">
-                        <button class="btn btn-sm btn-primary" onclick="addComment(${entry.id})" style="border-radius:20px; padding:0 20px;">Post</button>
+                        <input type="text" id="comInput-${Number(entry.id)}" class="form-control" placeholder="Add a comment or feedback..." style="border-radius:20px; padding:8px 15px; font-size:12px;">
+                        <button class="btn btn-sm btn-primary" onclick="addComment(${Number(entry.id)})" style="border-radius:20px; padding:0 20px;">Post</button>
                     </div>
                 </div>
             </div>
@@ -201,4 +213,4 @@ function deleteEntry(id) {
 window.onload = loadDiary;
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

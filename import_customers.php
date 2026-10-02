@@ -1,11 +1,17 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+
+// Bulk customer creation is a manager-level action.
+require_role('manager');
 
 $page_title = "Import Customers";
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <div class="main">
@@ -19,6 +25,7 @@ include 'includes/sidebar.php';
         </p>
         
         <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
             <div class="form-group">
                 <label class="form-label">Select CSV File</label>
                 <input type="file" name="csv_file" class="form-control" accept=".csv" required>
@@ -47,20 +54,20 @@ include 'includes/sidebar.php';
                         $plan_id = intval($row[5] ?? 1);
                         $address = trim($row[6] ?? '');
                         
-                        $conn->query("
+                        db_exec($conn, "
                             INSERT INTO customers (username, password, full_name, email, phone, plan_id, address, status, created_at)
-                            VALUES ('$username', '$password', '$full_name', '$email', '$phone', $plan_id, '$address', 'active', CURDATE())
-                        ");
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'active', CURDATE())
+                        ", [$username, $password, $full_name, $email, $phone, $plan_id, $address]);
                         $count++;
                     }
                 }
                 
                 fclose($file);
-                echo "<div class='alert alert-success'>Successfully imported $count customers!</div>";
+                echo "<div class='alert alert-success'>Successfully imported " . (int) $count . " customers!</div>";
             }
         }
         ?>
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

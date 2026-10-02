@@ -1,30 +1,32 @@
 <?php
-include '../config.php';
+include __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/csrf.php';
 // session_start(); removed as it's in config.php
 
 $error = '';
 
 if (isset($_POST['login'])) {
-    $username = $conn->real_escape_string($_POST['username']);
-    $password = $_POST['password'];
+    csrf_check();
 
-    $result = $conn->query("SELECT * FROM customers WHERE username='$username' LIMIT 1");
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        // Check if password matches (Assuming plain text for PPPoE sync or hashed)
-        // For ISP systems, often we sync plain pass to OLT but hashed for portal is better.
-        // Let's assume the password in DB is the one we use for portal.
-        if (password_verify($password, $user['password']) || $password === $user['password']) {
-            $_SESSION['customer_id'] = $user['id'];
-            $_SESSION['customer_user'] = $user['username'];
-            header("Location: dashboard.php");
-            exit;
-        } else {
-            $error = "Incorrect password.";
-        }
-    } else {
-        $error = "Customer not found.";
+    $username = trim($_POST['username'] ?? '');
+    $password = (string) ($_POST['password'] ?? '');
+
+    $user = db_one($conn, "SELECT * FROM customers WHERE username = ? LIMIT 1", [$username]);
+
+    // Always run a verify so the response time does not reveal whether the
+    // account exists, and never fall back to a plaintext comparison.
+    $hash = $user['password'] ?? '$2y$10$usesomesillystringforsalt0000000000000000000000000000000';
+
+    if ($user && password_verify($password, $hash)) {
+        session_regenerate_id(true);
+        $_SESSION['customer_id']   = $user['id'];
+        $_SESSION['customer_user'] = $user['username'];
+        header("Location: dashboard.php");
+        exit;
     }
+
+    // Generic message: do not leak which customers exist.
+    $error = "Invalid username or password.";
 }
 ?>
 <!DOCTYPE html>
@@ -51,8 +53,9 @@ if (isset($_POST['login'])) {
     <div class="login-card">
         <div class="logo"><i class="fa fa-wifi"></i> ISP Portal</div>
         <h3>Customer Login</h3>
-        <?php if($error): ?><div class="alert"><?= $error ?></div><?php endif; ?>
+        <?php if($error): ?><div class="alert"><?= e($error) ?></div><?php endif; ?>
         <form method="POST">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label>Username</label>
                 <input type="text" name="username" placeholder="Enter your username" required>

@@ -1,21 +1,24 @@
 <?php
-include '../config.php';
+require_once __DIR__ . '/../config.php';
 
 function getSpeedByUsage($username) {
     global $conn;
     
-    $result = $conn->query("
-        SELECT 
+    $row = db_one($conn, "
+        SELECT
             COALESCE(u.used_quota, 0) as used,
             COALESCE(p.data_limit, 1073741824000) as total
         FROM customers c
         LEFT JOIN data_usage u ON c.username = u.username
         LEFT JOIN plans p ON c.plan_id = p.id
-        WHERE c.username = '$username'
-    ");
-    
-    $row = $result->fetch_assoc();
-    
+        WHERE c.username = ?
+    ", [$username]);
+
+    // An unknown username produced a fatal on the array access below.
+    if (!$row) {
+        return null;
+    }
+
     $used = floatval($row['used']);
     $total = floatval($row['total']);
     
@@ -52,14 +55,17 @@ function setRadiusSpeed($username, $download_bps, $upload_bps) {
     $download_kbps = $download_bps / 1000;
     $upload_kbps = $upload_bps / 1000;
     
-    $conn->query("DELETE FROM radreply WHERE username='$username' AND attribute LIKE 'Mikrotik-%'");
-    
-    $conn->query("
+    db_exec($conn, "DELETE FROM radreply WHERE username = ? AND attribute LIKE 'Mikrotik-%'", [$username]);
+
+    db_exec($conn, "
         INSERT INTO radreply (username, attribute, op, value)
-        VALUES 
-        ('$username', 'Mikrotik-Rate-Limit', ':=', '${download_kbps}k/${upload_kbps}k'),
-        ('$username', 'Ascend-Data-Rate', ':=', '${download_kbps}000 ${upload_kbps}000')
-    ");
+        VALUES
+        (?, 'Mikrotik-Rate-Limit', ':=', ?),
+        (?, 'Ascend-Data-Rate', ':=', ?)
+    ", [
+        $username, $download_kbps . 'k/' . $upload_kbps . 'k',
+        $username, $download_kbps . '000 ' . $upload_kbps . '000',
+    ]);
 }
 
 if (isset($_GET['username'])) {

@@ -1,8 +1,9 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
+session_boot();
 
-chdir(__DIR__ . '/../..');
-include_once 'config.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../index.php');
@@ -10,6 +11,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
+
     $name = $_POST['name'] ?? '';
     $type = $_POST['type'] ?? 'data';
     $dataLimitMb = intval($_POST['data_limit_mb'] ?? 0);
@@ -18,10 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $speedKbps = intval($_POST['speed_kbps'] ?? 1024);
     
     if ($name && $price >= 0) {
-        $conn->query("
+        db_exec($conn, "
             INSERT INTO hotspot_profiles (name, type, data_limit_mb, validity_hours, price, speed_kbps)
-            VALUES ('$name', '$type', $dataLimitMb, $validityHours, $price, $speedKbps)
-        ");
+            VALUES (?, ?, ?, ?, ?, ?)
+        ", [$name, $type, $dataLimitMb, $validityHours, $price, $speedKbps]);
     }
 }
 

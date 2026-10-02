@@ -1,6 +1,9 @@
 <?php
-require_once 'config.php';
-require_once 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+
+// SMTP/SMS credentials are readable on this page - superadmin only.
+require_role('superadmin');
 
 $page_title = "Notification Settings";
 $active = "settings";
@@ -21,11 +24,11 @@ if (isset($_POST['save'])) {
     ];
     
     foreach ($settings as $key => $value) {
-        $conn->query("
+        db_exec($conn, "
             INSERT INTO system_settings (setting_key, setting_value)
-            VALUES ('$key', '$value')
-            ON DUPLICATE KEY UPDATE setting_value = '$value'
-        ");
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        ", [$key, $value]);
     }
     
     $success = "Settings saved successfully!";
@@ -38,8 +41,11 @@ while ($row = $result->fetch_assoc()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+require_once __DIR__ . '/includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 ?>
 
 <div class="main">
@@ -49,10 +55,11 @@ include 'includes/sidebar.php';
         </div>
         
         <?php if(isset($success)): ?>
-            <div class="alert alert-success"><?= $success ?></div>
+            <div class="alert alert-success"><?= e($success) ?></div>
         <?php endif; ?>
         
         <form method="POST">
+<?= csrf_field() ?>
             <!-- Email Settings -->
             <h4 style="margin: 20px 0 15px; color: var(--text-main);">
                 <i class="fa fa-envelope"></i> Email Settings (SMTP)
@@ -129,4 +136,4 @@ include 'includes/sidebar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

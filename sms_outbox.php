@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "SMS Outbox & Logs";
 $active = "sms";
@@ -8,9 +8,9 @@ $active = "sms";
 $logs = $conn->query("SELECT * FROM sms_logs ORDER BY sent_at DESC LIMIT 500");
 $stats = $conn->query("SELECT status, COUNT(*) as count FROM sms_logs GROUP BY status")->fetch_all(MYSQLI_ASSOC);
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -19,9 +19,9 @@ include 'includes/topbar.php';
         <?php foreach($stats as $s): 
             $color = ($s['status'] == 'sent') ? '#10b981' : (($s['status'] == 'failed') ? '#ef4444' : '#f59e0b');
         ?>
-            <div style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid <?= $color ?>; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                <div style="font-size: 13px; color: #64748b; font-weight: 600;"><?= strtoupper($s['status']) ?> MESSAGES</div>
-                <div style="font-size: 24px; font-weight: 700; color: #1e293b;"><?= $s['count'] ?></div>
+            <div style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid <?= e($color) ?>; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                <div style="font-size: 13px; color: #64748b; font-weight: 600;"><?= e(strtoupper($s['status'])) ?> MESSAGES</div>
+                <div style="font-size: 24px; font-weight: 700; color: #1e293b;"><?= e($s['count']) ?></div>
             </div>
         <?php endforeach; ?>
     </div>
@@ -43,12 +43,12 @@ include 'includes/topbar.php';
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 15px;">
                         <b><?= htmlspecialchars($l['customer_user']) ?></b><br>
-                        <small style="color: #64748b;"><?= $l['phone_number'] ?></small>
+                        <small style="color: #64748b;"><?= e($l['phone_number']) ?></small>
                     </td>
                     <td style="padding: 15px; font-size: 13px; max-width: 400px;"><?= htmlspecialchars($l['message']) ?></td>
                     <td style="padding: 15px;">
                         <span class="badge" style="background: <?= ($l['status'] == 'sent') ? '#dcfce7; color: #16a34a;' : '#fee2e2; color: #ef4444;' ?>">
-                            <?= strtoupper($l['status']) ?>
+                            <?= e(strtoupper($l['status'])) ?>
                         </span>
                     </td>
                     <td style="padding: 15px; font-size: 12px; color: #64748b;">
@@ -61,4 +61,4 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

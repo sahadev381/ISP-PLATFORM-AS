@@ -1,6 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $page_title = "Branches";
 $active = "branches";
@@ -12,8 +13,8 @@ if(!isSuperAdmin()){
 // Fetch all branches
 $branches = $conn->query("SELECT * FROM branches ORDER BY id DESC");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -40,24 +41,29 @@ include 'includes/sidebar.php';
             <tbody>
                 <?php while($b = $branches->fetch_assoc()): ?>
                     <tr>
-                        <td><?= $b['id'] ?></td>
+                        <td><?= e($b['id']) ?></td>
                         <td><?= htmlspecialchars($b['name']) ?></td>
                         <td><?= htmlspecialchars($b['code'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($b['address'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($b['phone'] ?? '-') ?></td>
                         <td>
                             <span class="badge <?= $b['status'] == 'active' ? 'active' : 'inactive' ?>">
-                                <?= ucfirst($b['status']) ?>
+                                <?= e(ucfirst($b['status'])) ?>
                             </span>
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <a href="branch_edit.php?id=<?= $b['id'] ?>" class="btn btn-sm edit">
+                                <a href="branch_edit.php?id=<?= e($b['id']) ?>" class="btn btn-sm edit">
                                     <i class="fa fa-edit"></i>
                                 </a>
-                                <a href="branch_delete.php?id=<?= $b['id'] ?>" class="btn btn-sm danger" onclick="return confirm('Delete this branch?');">
-                                    <i class="fa fa-trash"></i>
-                                </a>
+                                <form action="branch_delete.php" method="POST" style="display:inline"
+                                      <?= action_attr('confirmFirst', ['Delete this branch?'], 'submit') ?>>
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+                                    <button type="submit" class="btn btn-sm danger">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -67,4 +73,4 @@ include 'includes/sidebar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

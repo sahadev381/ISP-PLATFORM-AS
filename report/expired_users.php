@@ -1,7 +1,7 @@
 <?php
 $base_path = '../';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "Expired Customers List";
 $active = "reports";
@@ -27,9 +27,9 @@ $query = "
 ";
 $result = $conn->query($query);
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -56,6 +56,7 @@ include $base_path . 'includes/topbar.php';
         <div class="card-header">
             <h2>Expired Customers (<?= $result ? $result->num_rows : 0 ?>)</h2>
             <form method="post" action="export_expired_users.php">
+<?= csrf_field() ?>
                 <button type="submit" class="btn-export"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
         </div>
@@ -83,13 +84,13 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= htmlspecialchars($row['phone'] ?? 'N/A') ?></td>
                                 <td>
                                     <div style="color: #ef4444; font-weight: 500;"><?= date('M d, Y', strtotime($row['expiry'])) ?></div>
-                                    <div style="font-size: 12px; color: #94a3b8;"><?= floor((time() - strtotime($row['expiry'])) / 86400) ?> days ago</div>
+                                    <div style="font-size: 12px; color: #94a3b8;"><?= (int) floor((time() - strtotime($row['expiry'])) / 86400) ?> days ago</div>
                                 </td>
                                 <td><span class="badge badge-expired">Expired</span></td>
                                 <td>
                                     <div style="display: flex; gap: 8px;">
-                                        <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view" title="View Details"><i class="fa fa-eye"></i></a>
-                                        <a href="<?= $base_path ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew" title="Recharge Now"><i class="fa fa-bolt"></i> Renew</a>
+                                        <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view" title="View Details"><i class="fa fa-eye"></i></a>
+                                        <a href="<?= e($base_path) ?>recharge.php?user=<?= urlencode($row['username']) ?>" class="btn-action btn-renew" title="Recharge Now"><i class="fa fa-bolt"></i> Renew</a>
                                     </div>
                                 </td>
                             </tr>
@@ -102,4 +103,4 @@ include $base_path . 'includes/topbar.php';
         </div>
     </div>
 </div>
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

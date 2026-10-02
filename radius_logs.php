@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
 
 $page_title = "RADIUS Authentication Logs";
 $active = "nas";
@@ -12,9 +12,9 @@ $logs = $conn->query("
     LIMIT 100
 ");
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main-content-inner" style="padding: 20px;">
@@ -39,7 +39,7 @@ include 'includes/topbar.php';
                 <?php if($logs->num_rows > 0): ?>
                     <?php while($l = $logs->fetch_assoc()): ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 15px; font-size: 12px; color: #64748b;"><?= $l['authdate'] ?></td>
+                        <td style="padding: 15px; font-size: 12px; color: #64748b;"><?= e($l['authdate']) ?></td>
                         <td style="padding: 15px;"><b><?= htmlspecialchars($l['username']) ?></b></td>
                         <td style="padding: 15px; font-family: monospace; font-size: 12px;"><?= htmlspecialchars($l['pass']) ?></td>
                         <td style="padding: 15px;">
@@ -59,4 +59,4 @@ include 'includes/topbar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

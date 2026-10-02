@@ -2,8 +2,11 @@ console.log('Live chart JS loaded');
 
 const canvas = document.getElementById('liveChart');
 if (!canvas) {
-    console.error('Canvas not found');
-}
+    /* This used to log and then call getContext() on null anyway, so
+       the "helpful" message was immediately followed by a TypeError
+       that stopped the rest of the file - including the poller. */
+    console.warn('live_chart.js: no #liveChart on this page, nothing to draw.');
+} else {
 
 const ctx = canvas.getContext('2d');
 
@@ -58,3 +61,4 @@ function fetchLive() {
 fetchLive();
 setInterval(fetchLive, 3000);
 
+} // end: only when #liveChart is present

@@ -1,25 +1,29 @@
 <?php
 $base_path = './';
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/genieacs_api.php';
-include 'includes/tr069_pppoe.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/genieacs_api.php';
+include __DIR__ . '/includes/tr069_pppoe.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 /* ============================
    LOAD USER
 ============================ */
-$username = $_GET['user'] ?? '';
-$user = $conn->query("
+$username = trim($_GET['user'] ?? '');
+$user = db_one($conn, "
     SELECT u.*, p.name as plan_name, p.speed as plan_speed, p.data_limit, b.name as branch_name,
     COALESCE(du.used_quota, 0) as used_quota
-    FROM customers u 
-    LEFT JOIN plans p ON u.plan_id = p.id 
-    LEFT JOIN branches b ON u.branch_id = b.id 
+    FROM customers u
+    LEFT JOIN plans p ON u.plan_id = p.id
+    LEFT JOIN branches b ON u.branch_id = b.id
     LEFT JOIN data_usage du ON u.username = du.username
-    WHERE u.username='$username'
-")->fetch_assoc();
+    WHERE u.username = ?
+", [$username]);
 
 if (!$user) die("User not found");
+
+// The row carries branch_id, so check it directly.
+require_branch_access($user);
 
 /* ============================
    POST ACTIONS (TAB HANDLERS)
@@ -28,54 +32,71 @@ $success_msg = "";
 $error_msg = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
     
     if ($action === 'add_grace') {
         $days = (int)$_POST['grace_days'];
-        if ($days > 0) {
-            $conn->query("UPDATE customers SET expiry = DATE_ADD(expiry, INTERVAL $days DAY), status='active' WHERE username='$username'");
+        if ($days > 0 && $days <= 365) {
+            db_exec($conn, "UPDATE customers SET expiry = DATE_ADD(expiry, INTERVAL ? DAY), status='active' WHERE username = ?", [$days, $username]);
             $success_msg = "Grace period of $days days added successfully.";
             // Reload user data
             $user['expiry'] = date('Y-m-d', strtotime($user['expiry'] . " + $days days"));
         }
     } elseif ($action === 'lock_pppoe') {
         $mac = '';
-        $session_res = $conn->query("SELECT callingstationid FROM radacct WHERE username='$username' AND acctstoptime IS NULL LIMIT 1");
-        if ($session_res->num_rows > 0) {
-            $mac = $session_res->fetch_assoc()['callingstationid'];
+        $session_res = db_one($conn, "SELECT callingstationid FROM radacct WHERE username = ? AND acctstoptime IS NULL LIMIT 1", [$username]);
+        if ($session_res) {
+            $mac = $session_res['callingstationid'];
         } else {
-            $history_res = $conn->query("SELECT callingstationid FROM radacct WHERE username='$username' AND callingstationid != '' ORDER BY acctstarttime DESC LIMIT 1");
-            if ($history_res && $history_res->num_rows > 0) $mac = $history_res->fetch_assoc()['callingstationid'];
+            $history_res = db_one($conn, "SELECT callingstationid FROM radacct WHERE username = ? AND callingstationid != '' ORDER BY acctstarttime DESC LIMIT 1", [$username]);
+            if ($history_res) $mac = $history_res['callingstationid'];
         }
         if ($mac) {
-            $conn->query("DELETE FROM radcheck WHERE username='$username' AND attribute='Calling-Station-Id'");
-            $conn->query("INSERT INTO radcheck (username, attribute, op, value) VALUES ('$username', 'Calling-Station-Id', '==', '$mac')");
+            db_exec($conn, "DELETE FROM radcheck WHERE username = ? AND attribute='Calling-Station-Id'", [$username]);
+            db_exec($conn, "INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Calling-Station-Id', '==', ?)", [$username, $mac]);
             $success_msg = "Locked to MAC: $mac";
         }
     } elseif ($action === 'unlock_pppoe') {
-        $conn->query("DELETE FROM radcheck WHERE username='$username' AND attribute='Calling-Station-Id'");
+        db_exec($conn, "DELETE FROM radcheck WHERE username = ? AND attribute='Calling-Station-Id'", [$username]);
         $success_msg = "MAC Lock Removed";
     } elseif ($action === 'reset_fup') {
         // 1. Set fup_reset flag to reset usage tracking
-        $conn->query("UPDATE data_usage SET used_quota = 0, fup_reset = 1, updated_at = NOW() WHERE username = '$username'");
-        
+        db_exec($conn, "UPDATE data_usage SET used_quota = 0, fup_reset = 1, updated_at = NOW() WHERE username = ?", [$username]);
+
         // 2. Get base plan speed
-        $plan = $conn->query("SELECT p.speed FROM plans p JOIN customers c ON c.plan_id = p.id WHERE c.username = '$username'")->fetch_assoc();
+        $plan = db_one($conn, "SELECT p.speed FROM plans p JOIN customers c ON c.plan_id = p.id WHERE c.username = ?", [$username]);
         $plan_speed = $plan['speed'] ?? '10M/10M';
-        
+
         // 3. Reset Speed in radreply to base plan speed
-        $conn->query("DELETE FROM radreply WHERE username='$username' AND attribute='Mikrotik-Rate-Limit'");
-        $conn->query("INSERT INTO radreply (username, attribute, op, value) VALUES ('$username', 'Mikrotik-Rate-Limit', ':=', '$plan_speed')");
+        db_exec($conn, "DELETE FROM radreply WHERE username = ? AND attribute='Mikrotik-Rate-Limit'", [$username]);
+        db_exec($conn, "INSERT INTO radreply (username, attribute, op, value) VALUES (?, 'Mikrotik-Rate-Limit', ':=', ?)", [$username, $plan_speed]);
         
         $success_msg = "FUP reset! Usage cleared. Speed restored to $plan_speed.";
         $user['used_quota'] = 0;
     } elseif ($action === 'disconnect') {
-        $nas = $conn->query("SELECT * FROM nas WHERE status=1 LIMIT 1")->fetch_assoc();
-        if ($nas) {
-            $nas_ip = $nas['ip_address'];
-            $nas_secret = $nas['secret'];
-            shell_exec("echo 'User-Name = $username' | /usr/bin/radclient -x $nas_ip:3799 disconnect $nas_secret 2>&1");
+        $nas = db_one($conn, "SELECT ip_address, secret FROM nas WHERE status = 1 LIMIT 1");
+        if ($nas && filter_var($nas['ip_address'], FILTER_VALIDATE_IP)) {
+            // Values are passed to radclient via stdin/escaped args — never
+            // interpolated into a shell string (that was a command injection).
+            $cmd = sprintf(
+                '/usr/bin/radclient -x %s disconnect %s 2>&1',
+                escapeshellarg($nas['ip_address'] . ':3799'),
+                escapeshellarg((string) $nas['secret'])
+            );
+            $proc = proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            if (is_resource($proc)) {
+                fwrite($pipes[0], 'User-Name = "' . str_replace('"', '\\"', $username) . "\"\n");
+                fclose($pipes[0]);
+                $radOut = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+                proc_close($proc);
+                error_log("radclient disconnect for $username: $radOut");
+            }
             $success_msg = "Disconnect command sent to NAS.";
+        } else {
+            $error_msg = "NAS is not configured correctly.";
         }
     } elseif (isset($_POST['reboot'])) {
         $deviceId = $_POST['deviceId'] ?? '';
@@ -95,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase", $pass, "xsd:string"]
                 ]
             ]);
-            $conn->query("UPDATE customers SET wifi_ssid='$ssid', wifi_password='$pass' WHERE username='$username'");
+            db_exec($conn, "UPDATE customers SET wifi_ssid = ?, wifi_password = ? WHERE username = ?", [$ssid, $pass, $username]);
             $success_msg = "WiFi updated and synced.";
         }
     }
@@ -115,7 +136,7 @@ if (!empty($target_serial)) {
         if (is_array($devices) && count($devices) > 0) {
             $device = $devices[0];
             $deviceId = $device['_id'];
-            $conn->query("UPDATE customers SET tr069_device_id='$deviceId' WHERE username='$username'");
+            db_exec($conn, "UPDATE customers SET tr069_device_id = ? WHERE username = ?", [$deviceId, $username]);
         }
     }
     
@@ -134,12 +155,12 @@ if (!empty($target_serial)) {
 /* ============================
    CURRENT SESSION
 ============================ */
-$session = $conn->query("
-    SELECT *, TIMESTAMPDIFF(SECOND, acctstarttime, NOW()) AS duration 
-    FROM radacct 
-    WHERE username='$username' AND acctstoptime IS NULL 
+$session = db_one($conn, "
+    SELECT *, TIMESTAMPDIFF(SECOND, acctstarttime, NOW()) AS duration
+    FROM radacct
+    WHERE username = ? AND acctstoptime IS NULL
     ORDER BY acctstarttime DESC LIMIT 1
-")->fetch_assoc();
+", [$username]);
 
 function formatBytes($bytes, $precision = 2) {
     $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -151,13 +172,16 @@ function formatBytes($bytes, $precision = 2) {
 }
 
 $page_title = "Profile: " . $user['username'];
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <script>
 function showTab(tabId, btn) {
+    /* The tab buttons passed `this`; the dispatcher supplies it as
+       the calling context instead. */
+    btn = (btn && btn.classList) ? btn : ((this && this.classList) ? this : null);
     var contents = document.querySelectorAll('.tab-content');
     contents.forEach(function(c) {
         c.classList.remove('active');
@@ -225,24 +249,25 @@ function showTab(tabId, btn) {
 <div class="profile-container">
     
     <?php if($success_msg): ?>
-        <div style="background: #dcfce7; color: #16a34a; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bbf7d0;"><i class="fa fa-check-circle"></i> <?= $success_msg ?></div>
+        <div style="background: #dcfce7; color: #16a34a; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bbf7d0;"><i class="fa fa-check-circle"></i> <?= e($success_msg) ?></div>
     <?php endif; ?>
 
     <!-- Header -->
     <div class="profile-header">
         <div class="profile-id">
-            <div class="profile-avatar"><?= strtoupper(substr($user['username'], 0, 1)) ?></div>
+            <div class="profile-avatar"><?= e(strtoupper(substr($user['username'], 0, 1))) ?></div>
             <div class="profile-name">
                 <h1 style="display:flex; align-items:center; gap:10px;">
                     <?= htmlspecialchars($user['full_name']) ?>
-                    <a href="map.php?user=<?= $username ?>" title="View on Map" style="font-size:18px; color:#3b82f6;"><i class="fa fa-map-location-dot"></i></a>
+                    <a href="map.php?user=<?= e($username) ?>" title="View on Map" style="font-size:18px; color:#3b82f6;"><i class="fa fa-map-location-dot"></i></a>
                 </h1>
                 <p>@<?= htmlspecialchars($user['username']) ?> &bull; <?= htmlspecialchars($user['phone']) ?></p>
             </div>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="recharge.php?user=<?= urlencode($user['username']) ?>" class="btn-action btn-primary"><i class="fa fa-bolt"></i> Renew Account</a>
-            <form method="POST" onsubmit="return confirm('Disconnect session?')">
+            <form method="POST" <?= action_attr('confirmFirst', ['Disconnect session?'], 'submit') ?>>
+                <?= csrf_field() ?>
                 <input type="hidden" name="action" value="disconnect">
                 <button type="submit" class="btn-action btn-danger"><i class="fa fa-power-off"></i> Disconnect</button>
             </form>
@@ -251,16 +276,16 @@ function showTab(tabId, btn) {
 
     <!-- Tabs Navigation -->
     <div class="nav-tabs">
-        <button class="nav-tab active" onclick="showTab('overview', this)"><i class="fa fa-th-large"></i> Overview</button>
-        <button class="nav-tab" onclick="showTab('usage_history', this)"><i class="fa fa-chart-area"></i> Usage History</button>
-        <button class="nav-tab" onclick="window.open('map.php?user=<?= $username ?>', '_blank')"><i class="fa fa-map-location-dot"></i> Map View</button>
-        <button class="nav-tab" onclick="showTab('livegraph', this)"><i class="fa fa-chart-line"></i> Live Graph</button>
-        <button class="nav-tab" onclick="showTab('tickets', this)"><i class="fa fa-headset"></i> Tickets</button>
-        <button class="nav-tab" onclick="showTab('invoices', this)"><i class="fa fa-file-invoice"></i> Invoices</button>
-        <button class="nav-tab" onclick="showTab('grace', this)"><i class="fa fa-gift"></i> Add Grace</button>
-        <button class="nav-tab" onclick="showTab('optical_power', this)"><i class="fa fa-signal"></i> Optical Power</button>
-        <button class="nav-tab" onclick="showTab('acspush', this)"><i class="fa fa-microchip"></i> ACS Push</button>
-        <button class="nav-tab" onclick="showTab('authlog', this)"><i class="fa fa-history"></i> Auth Log</button>
+        <button class="nav-tab active" <?= action_attr('showTab', ['overview']) ?>><i class="fa fa-th-large"></i> Overview</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['usage_history']) ?>><i class="fa fa-chart-area"></i> Usage History</button>
+        <button class="nav-tab" <?= action_attr('openInNewTab', ['map.php?user=' . rawurlencode($username)]) ?>><i class="fa fa-map-location-dot"></i> Map View</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['livegraph']) ?>><i class="fa fa-chart-line"></i> Live Graph</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['tickets']) ?>><i class="fa fa-headset"></i> Tickets</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['invoices']) ?>><i class="fa fa-file-invoice"></i> Invoices</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['grace']) ?>><i class="fa fa-gift"></i> Add Grace</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['optical_power']) ?>><i class="fa fa-signal"></i> Optical Power</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['acspush']) ?>><i class="fa fa-microchip"></i> ACS Push</button>
+        <button class="nav-tab" <?= action_attr('showTab', ['authlog']) ?>><i class="fa fa-history"></i> Auth Log</button>
     </div>
 
     <!-- TAB: Overview -->
@@ -268,11 +293,11 @@ function showTab(tabId, btn) {
         <div class="info-grid">
             <div class="info-card">
                 <h3><i class="fa fa-info-circle"></i> Basic Info</h3>
-                <div class="detail-row"><label>Username</label><span><?= $user['username'] ?></span></div>
-                <div class="detail-row"><label>Status</label><span style="color:<?= $user['status']=='active'?'#10b981':'#ef4444' ?>;"><?= ucfirst($user['status']) ?></span></div>
+                <div class="detail-row"><label>Username</label><span><?= e($user['username']) ?></span></div>
+                <div class="detail-row"><label>Status</label><span style="color:<?= $user['status']=='active'?'#10b981':'#ef4444' ?>;"><?= e(ucfirst($user['status'])) ?></span></div>
                 <div class="detail-row"><label>Plan</label><span><?= htmlspecialchars($user['plan_name']) ?></span></div>
-                <div class="detail-row"><label>Expiry</label><span style="color: #ef4444;"><?= $user['expiry'] ?></span></div>
-                <div class="detail-row"><label>Address</label><span><?= $user['address'] ?: '-' ?></span></div>
+                <div class="detail-row"><label>Expiry</label><span style="color: #ef4444;"><?= e($user['expiry']) ?></span></div>
+                <div class="detail-row"><label>Address</label><span><?= e($user['address'] ?: '-') ?></span></div>
             </div>
             
             <div class="session-card">
@@ -282,11 +307,11 @@ function showTab(tabId, btn) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                         <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
                             <small style="opacity: 0.6;">User IP</small><br>
-                            <b style="font-size: 16px;"><?= $session['framedipaddress'] ?? '-' ?></b>
+                            <b style="font-size: 16px;"><?= e($session['framedipaddress'] ?? '-') ?></b>
                         </div>
                         <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
                             <small style="opacity: 0.6;">User MAC</small><br>
-                            <b style="font-size: 16px;"><?= $session['callingstationid'] ?? '-' ?></b>
+                            <b style="font-size: 16px;"><?= e($session['callingstationid'] ?? '-') ?></b>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
@@ -300,9 +325,10 @@ function showTab(tabId, btn) {
 
             <div class="info-card">
                 <h3><i class="fa fa-shield-alt"></i> Account Security</h3>
-                <?php $is_locked = $conn->query("SELECT * FROM radcheck WHERE username='$username' AND attribute='Calling-Station-Id' LIMIT 1")->num_rows > 0; ?>
+                <?php $is_locked = (bool) db_one($conn, "SELECT id FROM radcheck WHERE username = ? AND attribute='Calling-Station-Id' LIMIT 1", [$username]); ?>
                 <p>MAC Lock Status: <b style="color:<?= $is_locked?'#ef4444':'#10b981' ?>;"><?= $is_locked?'LOCKED':'UNLOCKED' ?></b></p>
                 <form method="POST" style="margin-top: 15px;">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="<?= $is_locked ? 'unlock_pppoe' : 'lock_pppoe' ?>">
                     <button type="submit" class="btn-action <?= $is_locked ? 'btn-danger' : 'btn-primary' ?>" style="width: 100%; justify-content: center;">
                         <?= $is_locked ? 'Unlock Account' : 'Lock to Current MAC' ?>
@@ -315,7 +341,7 @@ function showTab(tabId, btn) {
                 <h3><i class="fa fa-chart-pie"></i> Monthly FUP Usage</h3>
                 <?php 
                     $limit = (float)($user['data_limit'] ?? 0);
-                    $monthly = $conn->query("SELECT SUM(acctoutputoctets+acctinputoctets) as total FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc();
+                    $monthly = db_one($conn, "SELECT SUM(acctoutputoctets+acctinputoctets) as total FROM radacct WHERE username = ? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())", [$username]);
                     $used = (float)($monthly['total'] ?? 0);
                     $percent = ($limit > 0) ? min(100, round(($used / $limit) * 100, 1)) : 0;
                     $color = ($percent > 90) ? '#ef4444' : (($percent > 70) ? '#f59e0b' : '#10b981');
@@ -330,19 +356,20 @@ function showTab(tabId, btn) {
                 </div>
                 <div class="detail-row">
                     <label>Downloaded</label>
-                    <span><?= formatBytes($conn->query("SELECT SUM(acctoutputoctets) as d FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc()['d'] ?? 0) ?></span>
+                    <span><?= formatBytes(db_value($conn, "SELECT SUM(acctoutputoctets) FROM radacct WHERE username = ? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())", [$username], 0)) ?></span>
                 </div>
                 <div class="detail-row">
                     <label>Uploaded</label>
-                    <span><?= formatBytes($conn->query("SELECT SUM(acctinputoctets) as u FROM radacct WHERE username='$username' AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())")->fetch_assoc()['u'] ?? 0) ?></span>
+                    <span><?= formatBytes(db_value($conn, "SELECT SUM(acctinputoctets) FROM radacct WHERE username = ? AND MONTH(acctstarttime)=MONTH(NOW()) AND YEAR(acctstarttime)=YEAR(NOW())", [$username], 0)) ?></span>
                 </div>
                 <?php if($limit > 0): ?>
                 <div class="usage-bar-bg">
-                    <div class="usage-bar-fill" style="width: <?= $percent ?>%; background: <?= $color ?>;"></div>
+                    <div class="usage-bar-fill" style="width: <?= e($percent) ?>%; background: <?= e($color) ?>;"></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                    <span style="font-size: 12px; color: #64748b; font-weight: 600;"><?= $percent ?>% used</span>
-                    <form method="POST" onsubmit="return confirm('Reset FUP usage for this user?');">
+                    <span style="font-size: 12px; color: #64748b; font-weight: 600;"><?= e($percent) ?>% used</span>
+                    <form method="POST" <?= action_attr('confirmFirst', ['Reset FUP usage for this user?'], 'submit') ?>>
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="reset_fup">
                         <button type="submit" class="btn-action" style="padding: 4px 10px; font-size: 11px; background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2;">
                             <i class="fa fa-rotate-left"></i> Reset FUP
@@ -357,10 +384,10 @@ function showTab(tabId, btn) {
             <div class="info-card">
                 <h3><i class="fa fa-network-wired"></i> FTTH & Inventory</h3>
                 <div class="detail-row"><label>OLT Name/ID</label><span><?= htmlspecialchars($user['olt'] ?: '-') ?></span></div>
-                <div class="detail-row"><label>OLT Port</label><span><?= $user['olt_port'] ?: '-' ?></span></div>
+                <div class="detail-row"><label>OLT Port</label><span><?= e($user['olt_port'] ?: '-') ?></span></div>
                 <div class="detail-row"><label>Master Box</label><span><?= htmlspecialchars($user['master_box'] ?: '-') ?></span></div>
                 <div class="detail-row"><label>DB Name/ID</label><span><?= htmlspecialchars($user['db_box'] ?: '-') ?></span></div>
-                <div class="detail-row"><label>DB Port</label><span><?= $user['db_port'] ?: '-' ?></span></div>
+                <div class="detail-row"><label>DB Port</label><span><?= e($user['db_port'] ?: '-') ?></span></div>
             </div>
 
             <!-- Map Card -->
@@ -372,7 +399,7 @@ function showTab(tabId, btn) {
                     <div style="height: 200px; background: #f8fafc; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #94a3b8; flex-direction: column; gap: 10px; margin-top: 15px;">
                         <i class="fa fa-map-marked-alt" style="font-size: 30px;"></i>
                         <span>No coordinates set</span>
-                        <a href="user_edit.php?user=<?= $username ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 11px;">Add Location</a>
+                        <a href="user_edit.php?user=<?= e($username) ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 11px;">Add Location</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -394,26 +421,26 @@ function showTab(tabId, btn) {
                 </thead>
                 <tbody>
                     <?php 
-                    $usage_history = $conn->query("
-                        SELECT 
+                    $usage_history = db_all($conn, "
+                        SELECT
                             DATE_FORMAT(acctstarttime, '%Y-%M') as month,
                             SUM(acctoutputoctets) as download,
                             SUM(acctinputoctets) as upload
-                        FROM radacct 
-                        WHERE username = '$username' 
-                        GROUP BY month 
-                        ORDER BY acctstarttime DESC 
+                        FROM radacct
+                        WHERE username = ?
+                        GROUP BY month
+                        ORDER BY acctstarttime DESC
                         LIMIT 12
-                    ");
-                    if($usage_history->num_rows > 0):
-                        while($uh = $usage_history->fetch_assoc()): ?>
+                    ", [$username]);
+                    if($usage_history):
+                        foreach($usage_history as $uh): ?>
                             <tr>
-                                <td><b><?= $uh['month'] ?></b></td>
+                                <td><b><?= e($uh['month']) ?></b></td>
                                 <td><?= formatBytes($uh['download']) ?></td>
                                 <td><?= formatBytes($uh['upload']) ?></td>
                                 <td><span class="badge" style="background:#eff6ff; color:#3b82f6;"><?= formatBytes($uh['download'] + $uh['upload']) ?></span></td>
                             </tr>
-                        <?php endwhile; 
+                        <?php endforeach; 
                     else: ?>
                         <tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No usage history found for this user.</td></tr>
                     <?php endif; ?>
@@ -435,22 +462,22 @@ function showTab(tabId, btn) {
         <div class="info-card">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
                 <h3><i class="fa fa-headset"></i> Support Tickets</h3>
-                <a href="ticket_new.php?user=<?= $username ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 12px;"><i class="fa fa-plus"></i> New Ticket</a>
+                <a href="ticket_new.php?user=<?= e($username) ?>" class="btn-action btn-primary" style="padding: 5px 12px; font-size: 12px;"><i class="fa fa-plus"></i> New Ticket</a>
             </div>
             <table>
                 <thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
                 <tbody>
                     <?php 
-                    $tks = $conn->query("SELECT * FROM tickets WHERE customer_id = (SELECT id FROM customers WHERE username='$username') ORDER BY id DESC");
-                    while($tk = $tks->fetch_assoc()): ?>
+                    $tks = db_all($conn, "SELECT * FROM tickets WHERE customer_id = (SELECT id FROM customers WHERE username = ?) ORDER BY id DESC", [$username]);
+                    foreach($tks as $tk): ?>
                         <tr>
-                            <td>#<?= $tk['id'] ?></td>
-                            <td><a href="ticket_view.php?id=<?= $tk['id'] ?>"><?= htmlspecialchars($tk['subject']) ?></a></td>
-                            <td><?= $tk['priority'] ?></td>
-                            <td><?= $tk['status'] ?></td>
+                            <td>#<?= e($tk['id']) ?></td>
+                            <td><a href="ticket_view.php?id=<?= e($tk['id']) ?>"><?= htmlspecialchars($tk['subject']) ?></a></td>
+                            <td><?= e($tk['priority']) ?></td>
+                            <td><?= e($tk['status']) ?></td>
                             <td><?= date('M d, Y', strtotime($tk['created_at'])) ?></td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -464,16 +491,16 @@ function showTab(tabId, btn) {
                 <thead><tr><th>ID</th><th>Amount</th><th>Months</th><th>Expiry</th><th>Date</th></tr></thead>
                 <tbody>
                     <?php 
-                    $invs = $conn->query("SELECT * FROM invoices WHERE username='$username' ORDER BY id DESC");
-                    while($inv = $invs->fetch_assoc()): ?>
+                    $invs = db_all($conn, "SELECT * FROM invoices WHERE username = ? ORDER BY id DESC", [$username]);
+                    foreach($invs as $inv): ?>
                         <tr>
-                            <td>#<?= $inv['id'] ?></td>
+                            <td>#<?= e($inv['id']) ?></td>
                             <td>NPR <?= number_format($inv['amount'], 2) ?></td>
-                            <td><?= $inv['months'] ?></td>
-                            <td><?= $inv['expiry_date'] ?></td>
+                            <td><?= e($inv['months']) ?></td>
+                            <td><?= e($inv['expiry_date']) ?></td>
                             <td><?= date('M d, Y', strtotime($inv['created_at'])) ?></td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -484,6 +511,7 @@ function showTab(tabId, btn) {
         <div class="info-card" style="max-width: 500px; margin: 0 auto;">
             <h3><i class="fa fa-gift"></i> Add Grace Period</h3>
             <form method="POST">
+                <?= csrf_field() ?>
                 <input type="hidden" name="action" value="add_grace">
                 <div style="margin-bottom: 15px;">
                     <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:#64748b;">Days to Extend</label>
@@ -512,7 +540,7 @@ function showTab(tabId, btn) {
                 <hr style="margin:20px 0; border:0; border-top:1px solid #f1f5f9;">
                 <div class="detail-row"><label>TX Power</label><span id="currentTx">-- dBm</span></div>
                 <div class="detail-row"><label>Last Update</label><span id="lastPowerUpdate">Never</span></div>
-                <button onclick="refreshPower()" id="refreshBtn" class="btn-action btn-primary" style="width:100%; justify-content:center; margin-top:20px;">
+                <button data-action="refreshPower" id="refreshBtn" class="btn-action btn-primary" style="width:100%; justify-content:center; margin-top:20px;">
                     <i class="fa fa-sync"></i> Refresh Power
                 </button>
             </div>
@@ -532,12 +560,13 @@ function showTab(tabId, btn) {
             <?php if($genieacsDevice): ?>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
                     <div>
-                        <div class="detail-row"><label>Manufacturer</label><span><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['Manufacturer']['_value'] ?? 'N/A' ?></span></div>
-                        <div class="detail-row"><label>Model</label><span><?= $genieacsDevice['InternetGatewayDevice']['DeviceInfo']['ProductClass']['_value'] ?? 'N/A' ?></span></div>
+                        <div class="detail-row"><label>Manufacturer</label><span><?= e($genieacsDevice['InternetGatewayDevice']['DeviceInfo']['Manufacturer']['_value'] ?? 'N/A') ?></span></div>
+                        <div class="detail-row"><label>Model</label><span><?= e($genieacsDevice['InternetGatewayDevice']['DeviceInfo']['ProductClass']['_value'] ?? 'N/A') ?></span></div>
                         <button type="submit" name="reboot" class="btn-action btn-danger" style="margin-top:20px;"><i class="fa fa-power-off"></i> Reboot ONU</button>
                     </div>
                     <form method="POST">
-                        <input type="hidden" name="deviceId" value="<?= $deviceId ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="deviceId" value="<?= e($deviceId) ?>">
                         <div style="margin-bottom:10px;"><label style="font-size:12px; font-weight:600;">WiFi Name (SSID)</label><input type="text" name="ssid" value="<?= htmlspecialchars($user['wifi_ssid']) ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
                         <div style="margin-bottom:15px;"><label style="font-size:12px; font-weight:600;">WiFi Password</label><input type="text" name="wifi_pass" value="<?= htmlspecialchars($user['wifi_password']) ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
                         <button type="submit" name="setwifi" class="btn-action btn-primary" style="width:100%; justify-content:center;">Push to ONU</button>
@@ -557,8 +586,8 @@ function showTab(tabId, btn) {
                 <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Reason</th></tr></thead>
                 <tbody>
                     <?php 
-                    $logs = $conn->query("SELECT * FROM radpostauth WHERE username='$username' ORDER BY authdate DESC LIMIT 20");
-                    $i=1; while($log = $logs->fetch_assoc()): 
+                    $logs = db_all($conn, "SELECT * FROM radpostauth WHERE username = ? ORDER BY authdate DESC LIMIT 20", [$username]);
+                    $i=1; foreach($logs as $log): 
                         $success = ($log['reply'] === 'Access-Accept');
                     ?>
                         <tr>
@@ -567,7 +596,7 @@ function showTab(tabId, btn) {
                             <td><span class="badge <?= $success?'bg-success':'bg-danger' ?>"><?= $success?'Success':'Failed' ?></span></td>
                             <td><?= htmlspecialchars($log['reply']) ?></td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -704,4 +733,4 @@ function updatePowerUI(rx, tx, time) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

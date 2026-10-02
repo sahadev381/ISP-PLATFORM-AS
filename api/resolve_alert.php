@@ -1,14 +1,19 @@
 <?php
 header('Content-Type: application/json');
-include_once '../config.php';
+include_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/api_auth.php';
 
-$id = intval($_GET['id'] ?? 0);
+api_require_auth();
+api_require_post();
+api_csrf_check();
+
+$id = (int) ($_POST['id'] ?? 0);
 
 if (!$id) {
     echo json_encode(['success' => false, 'message' => 'Alert ID required']);
     exit;
 }
 
-$conn->query("UPDATE network_alerts SET status = 'resolved', resolved_at = NOW() WHERE id = $id");
+db_exec($conn, "UPDATE network_alerts SET status = 'resolved', resolved_at = NOW() WHERE id = ?", [$id]);
 
 echo json_encode(['success' => true, 'message' => 'Alert resolved']);

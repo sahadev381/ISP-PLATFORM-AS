@@ -1,13 +1,17 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+define('RBAC_JSON_ENDPOINT', true); // errors from the RBAC guards must be JSON
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
 
 header('Content-Type: application/json');
 
 $username = $_GET['user'] ?? '';
+// Refuse customers belonging to another branch.
+require_customer_access($conn, $username);
+
 $range    = $_GET['range'] ?? 'daily';
 
-$username = $conn->real_escape_string($username);
+$username = (string) $username;
 
 $labels = [];
 $upload = [];
@@ -22,7 +26,7 @@ switch ($range) {
                 SUM(acctinputoctets) upload,
                 SUM(acctoutputoctets) download
             FROM radacct
-            WHERE username='$username'
+            WHERE username = ?
               AND DATE(acctstarttime) = CURDATE()
             GROUP BY HOUR(acctstarttime)
             ORDER BY acctstarttime
@@ -36,7 +40,7 @@ switch ($range) {
                 SUM(acctinputoctets) upload,
                 SUM(acctoutputoctets) download
             FROM radacct
-            WHERE username='$username'
+            WHERE username = ?
               AND acctstarttime >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
             GROUP BY DATE(acctstarttime)
             ORDER BY acctstarttime
@@ -50,7 +54,7 @@ switch ($range) {
                 SUM(acctinputoctets) upload,
                 SUM(acctoutputoctets) download
             FROM radacct
-            WHERE username='$username'
+            WHERE username = ?
               AND MONTH(acctstarttime) = MONTH(CURDATE())
               AND YEAR(acctstarttime) = YEAR(CURDATE())
             GROUP BY DATE(acctstarttime)
@@ -65,7 +69,7 @@ switch ($range) {
                 SUM(acctinputoctets) upload,
                 SUM(acctoutputoctets) download
             FROM radacct
-            WHERE username='$username'
+            WHERE username = ?
               AND YEAR(acctstarttime) = YEAR(CURDATE())
             GROUP BY YEAR(acctstarttime), MONTH(acctstarttime)
             ORDER BY acctstarttime
@@ -77,9 +81,9 @@ switch ($range) {
         exit;
 }
 
-$q = $conn->query($sql);
+$q = db_all($conn, $sql, [$username]);
 
-while ($r = $q->fetch_assoc()) {
+foreach ($q as $r) {
     $labels[]   = $r['label'];
     $upload[]   = round($r['upload'] / 1024 / 1024, 2);
     $download[] = round($r['download'] / 1024 / 1024, 2);

@@ -1,12 +1,15 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session.php';
+session_boot();
 $page_title = "Payment History";
 
-chdir(__DIR__ . '/..');
 $base_path = '.';
 
-include_once 'config.php';
-include_once 'includes/auth.php';
+include_once __DIR__ . '/../config.php';
+include_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/csrf.php';
+// Rejects a POST that did not come from one of our own forms.
+csrf_check();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -19,12 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $payment_id = intval($_POST['payment_id'] ?? 0);
     
     if ($_POST['action'] == 'verify_payment') {
-        $conn->query("UPDATE payment_transactions SET status = 'completed', completed_at = NOW() WHERE id = $payment_id");
+        db_exec($conn, "UPDATE payment_transactions SET status = 'completed', completed_at = NOW() WHERE id = ?", [(int) $payment_id]);
         $message = 'Payment verified successfully';
     }
     
     if ($_POST['action'] == 'reject_payment') {
-        $conn->query("UPDATE payment_transactions SET status = 'failed', notes = 'Rejected by admin' WHERE id = $payment_id");
+        db_exec($conn, "UPDATE payment_transactions SET status = 'failed', notes = 'Rejected by admin' WHERE id = ?", [(int) $payment_id]);
         $message = 'Payment rejected';
     }
 }
@@ -32,10 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 $filter_status = $_GET['status'] ?? '';
 
 $where = [];
-if ($filter_status) $where[] = "t.status = '$filter_status'";
+$where_params = [];
+if ($filter_status) {
+    $where[] = "t.status = ?";
+    $where_params[] = $filter_status;
+}
 $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-$transactions = $conn->query("
+$transactions = db_all($conn, "
     SELECT t.*, c.username, c.full_name, c.email, c.phone,
            g.gateway_name
     FROM payment_transactions t
@@ -43,18 +50,18 @@ $transactions = $conn->query("
     LEFT JOIN payment_gateways g ON t.gateway_id = g.id
     $where_clause
     ORDER BY t.created_at DESC
-");
+", $where_params);
 
-$total_received = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions WHERE status = 'completed'")->fetch_assoc()['total'] ?? 0;
-$total_pending = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions WHERE status = 'pending'")->fetch_assoc()['total'] ?? 0;
-$total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions WHERE status = 'failed'")->fetch_assoc()['total'] ?? 0;
+$total_received = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_transactions WHERE status = 'completed'", [], 0);
+$total_pending = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_transactions WHERE status = 'pending'", [], 0);
+$total_failed = db_value($conn, "SELECT COALESCE(SUM(amount), 0) FROM payment_transactions WHERE status = 'failed'", [], 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title><?= e($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -214,6 +221,7 @@ $total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM paym
         
         code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     </style>
+<?php include_once __DIR__ . '/../includes/actions_tag.php'; ?>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -242,7 +250,7 @@ $total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM paym
         <div class="top-nav-actions">
             <div class="top-nav-user">
                 <i class="fas fa-user-circle" style="font-size: 24px;"></i>
-                <span><?= $_SESSION['username'] ?? 'Admin' ?></span>
+                <span><?= e($_SESSION['username'] ?? 'Admin') ?></span>
                 <a href="../logout.php" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; margin-left: 10px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -263,7 +271,7 @@ $total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM paym
             
             <?php if ($message): ?>
                 <div style="background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <?= $message ?>
+                    <?= e($message) ?>
                 </div>
             <?php endif; ?>
             
@@ -318,41 +326,41 @@ $total_failed = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM paym
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($t = $transactions->fetch_assoc()): ?>
+                            <?php foreach ($transactions as $t): ?>
                             <tr>
-                                <td><code><?= substr($t['transaction_id'], 0, 16) ?>...</code></td>
+                                <td><code><?= e(substr($t['transaction_id'], 0, 16)) ?>...</code></td>
                                 <td>
-                                    <strong><?= $t['full_name'] ?></strong><br>
-                                    <small style="color: #64748b;"><?= $t['username'] ?></small>
+                                    <strong><?= e($t['full_name']) ?></strong><br>
+                                    <small style="color: #64748b;"><?= e($t['username']) ?></small>
                                 </td>
-                                <td><?= $t['gateway_name'] ?: '-' ?></td>
+                                <td><?= e($t['gateway_name'] ?: '-') ?></td>
                                 <td><strong>Rs.<?= number_format($t['amount'], 2) ?></strong></td>
-                                <td><?= $t['payment_method'] ?: '-' ?></td>
+                                <td><?= e($t['payment_method'] ?: '-') ?></td>
                                 <td>
                                     <span class="badge <?= 
                                         $t['status'] == 'completed' ? 'badge-success' : 
                                         ($t['status'] == 'pending' ? 'badge-warning' : 
                                         ($t['status'] == 'failed' ? 'badge-danger' : 'badge-secondary'))
                                     ?>">
-                                        <?= ucfirst($t['status']) ?>
+                                        <?= e(ucfirst($t['status'])) ?>
                                     </span>
                                 </td>
                                 <td><?= date('M d, Y H:i', strtotime($t['created_at'])) ?></td>
                                 <td>
                                     <div class="btn-group">
                                         <?php if ($t['status'] == 'pending'): ?>
-                                            <button class="btn btn-success btn-sm" onclick="submitAction('verify_payment', <?= $t['id'] ?>)" title="Verify">
+                                            <button class="btn btn-success btn-sm" <?= action_attr('submitAction', ['verify_payment', (int) $t['id']]) ?> title="Verify">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button class="btn btn-danger btn-sm" onclick="submitAction('reject_payment', <?= $t['id'] ?>)" title="Reject">
+                                            <button class="btn btn-danger btn-sm" <?= action_attr('submitAction', ['reject_payment', (int) $t['id']]) ?> title="Reject">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
-                            <?php endwhile; ?>
-                            <?php if ($transactions->num_rows == 0): ?>
+                            <?php endforeach; ?>
+                            <?php if (count($transactions) == 0): ?>
                             <tr><td colspan="8" style="text-align: center; color: #64748b; padding: 40px;">No transactions found</td></tr>
                             <?php endif; ?>
                         </tbody>

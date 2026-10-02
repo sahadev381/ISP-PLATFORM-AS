@@ -1,5 +1,5 @@
 <?php
-include "db.php";
+include __DIR__ . '/db.php';
 
 // Fetch all devices from the database
 $result = $conn->query("SELECT * FROM devices");

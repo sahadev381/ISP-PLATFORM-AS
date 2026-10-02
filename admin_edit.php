@@ -1,6 +1,13 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+
+csrf_check();
+
+// Without this, any logged-in account could open admin_edit.php?id=1 and
+// give itself the superadmin role.
+require_role('superadmin');
 
 $page_title = "Edit Admin";
 $active = "admin";
@@ -9,7 +16,7 @@ $active = "admin";
    GET ADMIN DATA
 ========================= */
 $id = (int)($_GET['id'] ?? 0);
-$admin = $conn->query("SELECT * FROM admins WHERE id=$id")->fetch_assoc();
+$admin = db_one($conn, "SELECT * FROM admins WHERE id = ?", [$id]);
 if (!$admin) die("Admin not found");
 
 /* =========================
@@ -38,7 +45,7 @@ if (isset($_POST['update'])) {
     if ($stmt->execute()) {
         $msg = "Admin updated successfully!";
         // Refresh data
-        $admin = $conn->query("SELECT * FROM admins WHERE id=$id")->fetch_assoc();
+        $admin = db_one($conn, "SELECT * FROM admins WHERE id = ?", [$id]);
     } else {
         $msg = "Error: " . $stmt->error;
     }
@@ -48,14 +55,21 @@ if (isset($_POST['update'])) {
    HANDLE PASSWORD CHANGE
 ========================= */
 if (isset($_POST['change_password'])) {
-    $new_password = password_hash(trim($_POST['new_password']), PASSWORD_DEFAULT);
-    $conn->query("UPDATE admins SET password='$new_password' WHERE id=$id");
-    $msg = "Password changed successfully!";
+    $plain = trim($_POST['new_password'] ?? '');
+
+    if (strlen($plain) < 8) {
+        $msg = "Password must be at least 8 characters.";
+    } else {
+        $new_password = password_hash($plain, PASSWORD_DEFAULT);
+        db_exec($conn, "UPDATE admins SET password = ? WHERE id = ?", [$new_password, $id]);
+        logActivity('admin_password_change', "Changed password for admin #$id");
+        $msg = "Password changed successfully!";
+    }
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <div class="main">
@@ -68,6 +82,7 @@ include 'includes/topbar.php';
 
 <div class="table-box">
 <form method="post">
+<?= csrf_field() ?>
 <table>
 <tr>
     <td>Username</td>
@@ -82,7 +97,7 @@ include 'includes/topbar.php';
             $roles = ['superadmin','manager','support'];
             foreach ($roles as $r) {
                 $sel = ($admin['role'] === $r) ? 'selected' : '';
-                echo "<option value='$r' $sel>" . strtoupper($r) . "</option>";
+                echo "<option value='" . e($r) . "' $sel>" . e(strtoupper($r)) . "</option>";
             }
             ?>
         </select>
@@ -96,7 +111,7 @@ include 'includes/topbar.php';
             <option value="">All</option>
             <?php while($b=$branches->fetch_assoc()) {
                 $sel = ($admin['branch_id'] == $b['id']) ? 'selected' : '';
-                echo "<option value='{$b['id']}' $sel>{$b['name']}</option>";
+                echo "<option value='" . (int) $b['id'] . "' $sel>" . e($b['name']) . "</option>";
             } ?>
         </select>
     </td>
@@ -116,6 +131,7 @@ include 'includes/topbar.php';
 <div class="table-box" style="margin-top:20px;">
 <h3>Change Password</h3>
 <form method="post">
+<?= csrf_field() ?>
 <table>
 <tr>
     <td>New Password</td>
@@ -133,5 +149,5 @@ include 'includes/topbar.php';
 
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 

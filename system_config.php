@@ -1,10 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
-include 'config.php';
-include 'includes/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+
+// Global platform configuration - superadmin only.
+require_role('superadmin');
 
 $page_title = "System Configuration";
 $active = "Config";
@@ -14,33 +15,47 @@ $error = '';
 
 // Handle form submission
 if (isset($_POST['save'])) {
+    csrf_check();
+
+    $upload_dir = __DIR__ . '/uploads/';
+
     // Logo Upload
     if (isset($_FILES['logo']) && $_FILES['logo']['error'] == 0) {
         $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif'])) {
-            $filename = 'logo.' . $ext;
-            $target = 'uploads/' . $filename;
-            if (move_uploaded_file($_FILES['logo']['tmp_name'], $target)) {
-                $conn->query("UPDATE system_config SET logo='$filename' ORDER BY id LIMIT 1");
-                $success = "Logo uploaded successfully!";
-            }
-        } else {
+        // The extension alone is attacker-chosen, so also confirm the bytes
+        // really are an image before moving the file into a web-served dir.
+        $info = @getimagesize($_FILES['logo']['tmp_name']);
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif'], true)) {
             $error = "Invalid logo format. Only PNG/JPG/GIF allowed.";
+        } elseif ($info === false) {
+            $error = "Logo is not a valid image file.";
+        } else {
+            $filename = 'logo.' . $ext;
+            if (move_uploaded_file($_FILES['logo']['tmp_name'], $upload_dir . $filename)) {
+                db_exec($conn, "UPDATE system_config SET logo = ? ORDER BY id LIMIT 1", [$filename]);
+                $success = "Logo uploaded successfully!";
+            } else {
+                $error = "Could not save the uploaded logo.";
+            }
         }
     }
-    
+
     // Favicon Upload
     if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] == 0) {
         $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['png', 'ico'])) {
-            $filename = 'favicon.' . $ext;
-            $target = 'uploads/' . $filename;
-            if (move_uploaded_file($_FILES['favicon']['tmp_name'], $target)) {
-                $conn->query("UPDATE system_config SET favicon='$filename' ORDER BY id LIMIT 1");
-                $success = "Favicon uploaded successfully!";
-            }
-        } else {
+        $info = @getimagesize($_FILES['favicon']['tmp_name']);
+        if (!in_array($ext, ['png', 'ico'], true)) {
             $error = "Invalid favicon format. Only PNG/ICO allowed.";
+        } elseif ($ext === 'png' && $info === false) {
+            $error = "Favicon is not a valid image file.";
+        } else {
+            $filename = 'favicon.' . $ext;
+            if (move_uploaded_file($_FILES['favicon']['tmp_name'], $upload_dir . $filename)) {
+                db_exec($conn, "UPDATE system_config SET favicon = ? ORDER BY id LIMIT 1", [$filename]);
+                $success = "Favicon uploaded successfully!";
+            } else {
+                $error = "Could not save the uploaded favicon.";
+            }
         }
     }
     
@@ -57,7 +72,7 @@ if (isset($_POST['save'])) {
     ];
     
     foreach ($settings_to_save as $key => $value) {
-        $conn->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('$key', '$value') ON DUPLICATE KEY UPDATE setting_value='$value'");
+        db_exec($conn, "INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", [$key, $value]);
     }
     
     if (empty($error)) {
@@ -67,19 +82,17 @@ if (isset($_POST['save'])) {
 
 // Get current settings
 $settings = [];
-$result = $conn->query("SELECT setting_key, setting_value FROM system_settings");
-while ($row = $result->fetch_assoc()) {
+foreach (db_all($conn, "SELECT setting_key, setting_value FROM system_settings") as $row) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 
 // Get logo/favicon from system_config table
-$config_result = $conn->query("SELECT * FROM system_config LIMIT 1");
-$config_data = $config_result->fetch_assoc() ?? [];
+$config_data = db_one($conn, "SELECT * FROM system_config LIMIT 1") ?? [];
 $logo = $config_data['logo'] ?? '';
 $favicon = $config_data['favicon'] ?? '';
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/sidebar.php';
 ?>
 
 <div class="main">
@@ -89,14 +102,15 @@ include 'includes/sidebar.php';
         </div>
         
         <?php if($success): ?>
-            <div class="alert alert-success"><?= $success ?></div>
+            <div class="alert alert-success"><?= e($success) ?></div>
         <?php endif; ?>
         
         <?php if($error): ?>
-            <div class="alert alert-danger"><?= $error ?></div>
+            <div class="alert alert-danger"><?= e($error) ?></div>
         <?php endif; ?>
         
         <form method="post" enctype="multipart/form-data">
+            <?= csrf_field() ?>
             <!-- Branding Section -->
             <h4 style="margin: 25px 0 15px; color: var(--text-main);">
                 <i class="fa fa-image"></i> Branding
@@ -105,7 +119,7 @@ include 'includes/sidebar.php';
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div class="form-group">
                     <label class="form-label">Company Logo</label>
-                    <?php if(!empty($logo) && file_exists('uploads/'.$logo)): ?>
+                    <?php if(!empty($logo) && file_exists(__DIR__ . '/uploads/' . $logo)): ?>
                         <div style="margin-bottom: 10px;">
                             <img src="uploads/<?= htmlspecialchars($logo) ?>" alt="Logo" style="max-height:60px; border-radius: 8px;">
                         </div>
@@ -116,7 +130,7 @@ include 'includes/sidebar.php';
                 
                 <div class="form-group">
                     <label class="form-label">Favicon</label>
-                    <?php if(!empty($favicon) && file_exists('uploads/'.$favicon)): ?>
+                    <?php if(!empty($favicon) && file_exists(__DIR__ . '/uploads/' . $favicon)): ?>
                         <div style="margin-bottom: 10px;">
                             <img src="uploads/<?= htmlspecialchars($favicon) ?>" alt="Favicon" style="max-height:40px; border-radius: 8px;">
                         </div>
@@ -200,4 +214,4 @@ include 'includes/sidebar.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

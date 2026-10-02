@@ -1,4 +1,6 @@
 <?php
+/* env() backs the TRUSTED_PROXIES lookup in getClientIP(). */
+require_once __DIR__ . '/env.php';
 class Security {
     private $conn;
     private $maxAttempts = 5;
@@ -23,16 +25,55 @@ class Security {
         }
     }
     
+    /**
+     * The client's IP address, for the audit trail.
+     *
+     * X-Forwarded-For and Client-IP are just request headers: anyone can
+     * send them. The old version preferred them unconditionally, so every
+     * address recorded in login_attempts and activity_log could be set to
+     * whatever the attacker liked - which is worse than having no IP at
+     * all, because it reads as evidence.
+     *
+     * They are only honoured now when the request actually arrived from a
+     * proxy we were told to trust (TRUSTED_PROXIES in .env). Otherwise the
+     * connecting address is used, which cannot be forged.
+     */
     public function getClientIP() {
-        $ip = '';
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } else {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $remote = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        if (!$this->isTrustedProxy($remote)) {
+            return $remote;
         }
-        return $ip;
+
+        // Left-most entry is the original client; the rest were added by
+        // intermediate hops.
+        $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_CLIENT_IP'] ?? '';
+        foreach (explode(',', (string) $forwarded) as $candidate) {
+            $candidate = trim($candidate);
+            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                return $candidate;
+            }
+        }
+
+        return $remote;
+    }
+
+    /** Is $ip listed in TRUSTED_PROXIES? */
+    private function isTrustedProxy(string $ip): bool
+    {
+        if (!function_exists('env')) {
+            return false;
+        }
+        $list = (string) env('TRUSTED_PROXIES', '');
+        if (trim($list) === '') {
+            return false;   // no proxy configured: trust nothing
+        }
+        foreach (explode(',', $list) as $trusted) {
+            if (trim($trusted) === $ip) {
+                return true;
+            }
+        }
+        return false;
     }
     
     public function getUserAgent() {
@@ -128,28 +169,29 @@ class Security {
             $stmt->execute();
             return $stmt->get_result();
         } else {
-            return $this->conn->query("
-                SELECT * FROM activity_log 
+            $stmt = $this->conn->prepare("
+                SELECT * FROM activity_log
                 ORDER BY created_at DESC
-                LIMIT $limit
+                LIMIT ?
             ");
+            $stmt->bind_param("i", $limit);
+            $stmt->execute();
+            return $stmt->get_result();
         }
     }
     
     public function clearOldAttempts($days = 30) {
-        $this->conn->query("
-            DELETE FROM login_attempts 
-            WHERE attempt_time < DATE_SUB(NOW(), INTERVAL $days DAY)
-        ");
+        db_exec($this->conn, "
+            DELETE FROM login_attempts
+            WHERE attempt_time < DATE_SUB(NOW(), INTERVAL ? DAY)
+        ", [(int) $days]);
     }
     
     public function getSetting($key, $default = '') {
-        $result = $this->conn->query("
-            SELECT setting_value FROM system_settings 
-            WHERE setting_key = '$key'
-        ");
-        $row = $result->fetch_assoc();
-        return $row ? $row['setting_value'] : $default;
+        return db_value($this->conn, "
+            SELECT setting_value FROM system_settings
+            WHERE setting_key = ?
+        ", [$key], $default);
     }
     
     public function updateSetting($key, $value) {

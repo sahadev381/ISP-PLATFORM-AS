@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/http_headers.php';
+send_security_headers();
 /* =================== USER HEADER =================== */
 ?>
 <!DOCTYPE html>

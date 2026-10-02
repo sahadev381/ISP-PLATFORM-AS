@@ -1,0 +1,72 @@
+<?php
+/**
+ * ISP Platform — main bootstrap / configuration.
+ *
+ * SETUP:
+ *   1.  cp config.php.example config.php
+ *   2.  cp .env.example .env   and fill in your real credentials
+ *   3.  never commit `config.php` or `.env` (both are in .gitignore)
+ *
+ * Every page in this project starts with `include 'config.php';`, so this
+ * file is responsible for: environment loading, error reporting policy,
+ * secure session startup and the shared $conn database handle.
+ */
+
+require_once __DIR__ . '/includes/env.php';
+
+/* ---------------------------------------------------------------
+ | Error reporting
+ |---------------------------------------------------------------
+ | Errors are NEVER printed to the browser in production - they leak
+ | file paths, SQL and credentials. They always go to the PHP error log.
+ */
+$APP_DEBUG = (bool) env('APP_DEBUG', false);
+
+error_reporting($APP_DEBUG ? E_ALL : E_ALL & ~E_DEPRECATED & ~E_NOTICE);
+ini_set('display_errors', $APP_DEBUG ? '1' : '0');
+ini_set('display_startup_errors', $APP_DEBUG ? '1' : '0');
+ini_set('log_errors', '1');
+
+/* Capture every warning, exception and fatal as a searchable record
+   with a reference the user can quote. Installed before the database
+   connection so that a failure to connect is captured too. */
+require_once __DIR__ . '/includes/errors.php';
+error_boot($APP_DEBUG);
+
+/* ---------------------------------------------------------------
+ | Session (hardened cookie flags)
+ |--------------------------------------------------------------- */
+/* Hardened cookie flags live in one place - see includes/session.php for
+   why this must not be inlined here again. */
+require_once __DIR__ . '/includes/session.php';
+session_boot();
+
+/* ---------------------------------------------------------------
+ | Database
+ |--------------------------------------------------------------- */
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+try {
+    $conn = new mysqli(
+        env('DB_HOST', 'localhost'),
+        env('DB_USER', 'radius'),
+        env('DB_PASS', ''),
+        env('DB_NAME', 'radius'),
+        (int) env('DB_PORT', 3306)
+    );
+    $conn->set_charset('utf8mb4');
+} catch (Throwable $e) {
+    error_log('DB connection failed: ' . $e->getMessage());
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, "Database connection failed. Check .env\n");
+        exit(1);
+    }
+    http_response_code(503);
+    exit('Service temporarily unavailable.');
+}
+
+/* Shared prepared-statement helpers (db_one/db_all/db_exec) */
+require_once __DIR__ . '/includes/db.php';
+
+/* Output escaping — e() for HTML, e_js() in <script>, e_url()/e_href() for links */
+require_once __DIR__ . '/includes/html.php';

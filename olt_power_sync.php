@@ -6,21 +6,24 @@
 
 header('Content-Type: application/json');
 
-include 'config.php';
-include 'includes/bdcom_telnet.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/bdcom_telnet.php';
+require_once __DIR__ . '/includes/api_auth.php';
+api_require_auth();
+
 
 $olt_id = $_GET['olt_id'] ?? null;
 
 if (!$olt_id) {
     // Get all active OLTs
-    $olts = $conn->query("SELECT * FROM nas WHERE device_type = 'olt' AND status = 1");
+    $olts = db_all($conn, "SELECT * FROM nas WHERE device_type = 'olt' AND status = 1");
 } else {
-    $olts = $conn->query("SELECT * FROM nas WHERE id = $olt_id");
+    $olts = db_all($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
 }
 
 $results = [];
 
-while ($olt = $olts->fetch_assoc()) {
+foreach ($olts as $olt) {
     $oltResult = [
         'olt' => $olt['nasname'],
         'ip' => $olt['ip_address'],

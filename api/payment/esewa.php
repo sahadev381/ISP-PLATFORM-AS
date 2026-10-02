@@ -1,15 +1,17 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../includes/cors.php';
 
-include_once '../../config.php';
+// This endpoint used to answer every origin with a wildcard. Gateway
+// callbacks are server-to-server and our own pages are same-origin, so
+// neither needs CORS; anything else must be listed in
+// CORS_ALLOWED_ORIGINS. Also handles the preflight.
+cors_apply(['POST', 'GET']);
+
+require_once __DIR__ . '/../../includes/api_auth.php';
+require_once __DIR__ . '/../../includes/billing.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -21,6 +23,7 @@ $action = $input['action'] ?? ($_GET['action'] ?? '');
 
 switch ($action) {
     case 'initiate':
+        api_require_payment_caller();
         initiatePayment($input);
         break;
     case 'callback':
@@ -41,8 +44,34 @@ function initiatePayment($data) {
         echo json_encode(['success' => false, 'error' => 'Missing required parameters']);
         return;
     }
-    
-    $gateway = $conn->query("SELECT * FROM payment_gateways WHERE type = 'esewa' AND status = 'active' LIMIT 1")->fetch_assoc();
+
+    // The amount must come from the invoice, not from the request body —
+    // otherwise a caller can settle a Rs 5000 invoice by posting amount=1.
+    $invoice = invoice_find($conn, $invoice_id);
+    if (!$invoice) {
+        echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+        return;
+    }
+
+    // A customer may only pay their own invoice; an admin or API key
+    // caller may act for anyone.
+    $caller_customer_id = api_customer_id();
+    if ($caller_customer_id !== null && !api_is_logged_in() && !api_has_valid_key()
+        && (int) $invoice['customer_id'] !== $caller_customer_id) {
+        echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+        return;
+    }
+    if ($invoice['status'] === 'paid') {
+        echo json_encode(['success' => false, 'error' => 'Invoice is already paid']);
+        return;
+    }
+    // `invoices` calls this column `amount`; billing_invoices called it
+    // total_amount. Reading the old name here would have silently
+    // produced an amount of 0.00 on every payment.
+    $amount = (float) $invoice['amount'];
+    $customer_id = (int) $invoice['customer_id'];
+
+    $gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE type = 'esewa' AND status = 'active' LIMIT 1");
     
     if (!$gateway) {
         echo json_encode(['success' => false, 'error' => 'eSewa gateway not configured']);
@@ -52,8 +81,9 @@ function initiatePayment($data) {
     $transaction_id = 'ESW' . time() . rand(1000, 9999);
     $callback_url = 'https://' . $_SERVER['HTTP_HOST'] . '/api/payment/esewa.php?action=callback';
     
-    $conn->query("INSERT INTO payment_transactions (transaction_id, gateway_id, customer_id, invoice_id, amount, status, created_at) 
-                  VALUES ('$transaction_id', {$gateway['id']}, $customer_id, $invoice_id, $amount, 'pending', NOW())");
+    db_exec($conn, "INSERT INTO payment_transactions (transaction_id, gateway_id, customer_id, invoice_id, amount, status, created_at)
+                  VALUES (?, ?, ?, ?, ?, 'pending', NOW())",
+        [$transaction_id, (int) $gateway['id'], $customer_id, $invoice_id, $amount]);
     
     $encrypted = base64_encode($invoice_id . '|' . $amount . '|' . $transaction_id);
     
@@ -91,15 +121,22 @@ function handleCallback($data) {
         return;
     }
     
-    $transaction = $conn->query("SELECT * FROM payment_transactions WHERE transaction_id = '$transaction_id'")->fetch_assoc();
-    
+    $transaction = db_one($conn, "SELECT * FROM payment_transactions WHERE transaction_id = ?", [$transaction_id]);
+
     if (!$transaction) {
         echo json_encode(['success' => false, 'error' => 'Transaction not found']);
         return;
     }
-    
-    $gateway = $conn->query("SELECT * FROM payment_gateways WHERE id = {$transaction['gateway_id']}")->fetch_assoc();
-    
+
+    // A transaction may only be completed once — otherwise a replayed
+    // callback can credit the same payment repeatedly.
+    if ($transaction['status'] === 'completed') {
+        echo json_encode(['success' => true, 'message' => 'Payment already verified']);
+        return;
+    }
+
+    $gateway = db_one($conn, "SELECT * FROM payment_gateways WHERE id = ?", [(int) $transaction['gateway_id']]);
+
     if ($status === 'success') {
         $ref_id = $_GET['refId'] ?? '';
         
@@ -118,29 +155,37 @@ function handleCallback($data) {
         $response = curl_exec($ch);
         curl_close($ch);
         
-        if (strpos($response, 'Success') !== false) {
-            $conn->query("UPDATE payment_transactions SET 
+        if (strpos((string) $response, 'Success') !== false) {
+            db_exec($conn, "UPDATE payment_transactions SET
                           status = 'completed',
-                          gateway_response = '" . $conn->real_escape_string($response) . "',
-                          ref_id = '$ref_id',
+                          gateway_response = ?,
+                          reference_id = ?,
                           verified_at = NOW()
-                          WHERE id = {$transaction['id']}");
-            
+                          WHERE id = ? AND status <> 'completed'",
+                [$response, $ref_id, (int) $transaction['id']]);
+
             if ($transaction['invoice_id']) {
-                $conn->query("UPDATE billing_invoices SET status = 'paid', paid_at = NOW() WHERE id = {$transaction['invoice_id']}");
+                // Settles `invoices` - the table the business actually
+                // uses - and extends the customer's service. See
+                // includes/billing.php.
+                $settled = invoice_settle($conn, (int) $transaction['invoice_id'], (string) $ref_id);
+                if (!$settled['ok']) {
+                    error_log('esewa callback: payment verified but settlement failed for invoice '
+                        . $transaction['invoice_id']);
+                }
             }
-            
+
             echo json_encode(['success' => true, 'message' => 'Payment verified successfully']);
         } else {
-            $conn->query("UPDATE payment_transactions SET 
+            db_exec($conn, "UPDATE payment_transactions SET
                           status = 'failed',
-                          gateway_response = '" . $conn->real_escape_string($response) . "'
-                          WHERE id = {$transaction['id']}");
-            
+                          gateway_response = ?
+                          WHERE id = ?", [$response, (int) $transaction['id']]);
+
             echo json_encode(['success' => false, 'error' => 'Payment verification failed']);
         }
     } else {
-        $conn->query("UPDATE payment_transactions SET status = 'failed' WHERE id = {$transaction['id']}");
+        db_exec($conn, "UPDATE payment_transactions SET status = 'failed' WHERE id = ?", [(int) $transaction['id']]);
         
         echo json_encode(['success' => false, 'error' => 'Payment failed']);
     }
@@ -156,7 +201,7 @@ function verifyPayment($data) {
         return;
     }
     
-    $transaction = $conn->query("SELECT * FROM payment_transactions WHERE transaction_id = '$transaction_id'")->fetch_assoc();
+    $transaction = db_one($conn, "SELECT * FROM payment_transactions WHERE transaction_id = ?", [$transaction_id]);
     
     if (!$transaction) {
         echo json_encode(['success' => false, 'error' => 'Transaction not found']);

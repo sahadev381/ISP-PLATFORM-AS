@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'includes/auth.php';
-include 'includes/olt_api.php';
+include __DIR__ . '/config.php';
+include __DIR__ . '/includes/auth.php';
+include __DIR__ . '/includes/olt_api.php';
 
 $page_title = "OLT Management & ZTP Dashboard";
 $active = "nas";
@@ -13,21 +13,21 @@ $olts = $conn->query("SELECT * FROM nas WHERE device_type = 'olt'");
 $olt_id = $_GET['id'] ?? null;
 $selected_olt = null;
 if ($olt_id) {
-    $selected_olt = $conn->query("SELECT * FROM nas WHERE id = $olt_id")->fetch_assoc();
+    $selected_olt = db_one($conn, "SELECT * FROM nas WHERE id = ?", [(int) $olt_id]);
 }
 
 // Get OLT stats from database
 $oltStats = [];
 if ($olt_id) {
-    $oltStats['total'] = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id")->fetch_assoc()['c'] ?? 0;
-    $oltStats['online'] = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND status = 'online'")->fetch_assoc()['c'] ?? 0;
+    $oltStats['total'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ?", [(int) $olt_id], 0);
+    $oltStats['online'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND status = 'online'", [(int) $olt_id], 0);
     $oltStats['offline'] = $oltStats['total'] - $oltStats['online'];
-    $oltStats['critical'] = $conn->query("SELECT COUNT(*) as c FROM olt_onu_signal WHERE olt_id = $olt_id AND rx_power < -28")->fetch_assoc()['c'] ?? 0;
+    $oltStats['critical'] = db_value($conn, "SELECT COUNT(*) FROM olt_onu_signal WHERE olt_id = ? AND rx_power < -28", [(int) $olt_id], 0);
 }
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include 'includes/topbar.php';
+include __DIR__ . '/includes/header.php';
+include __DIR__ . '/includes/sidebar.php';
+include __DIR__ . '/includes/topbar.php';
 ?>
 
 <style>
@@ -439,13 +439,13 @@ include 'includes/topbar.php';
                     $olts->data_seek(0);
                     while($o = $olts->fetch_assoc()): 
                     ?>
-                        <option value="<?= $o['id'] ?>" <?= $olt_id == $o['id'] ? 'selected' : '' ?>>
-                            <?= $o['nasname'] ?> (<?= $o['ip_address'] ?>)
+                        <option value="<?= e($o['id']) ?>" <?= $olt_id == $o['id'] ? 'selected' : '' ?>>
+                            <?= e($o['nasname']) ?> (<?= e($o['ip_address']) ?>)
                         </option>
                     <?php endwhile; ?>
                 </select>
             </form>
-            <button class="btn btn-primary" onclick="loadOLTData()">
+            <button class="btn btn-primary" data-action="loadOLTData">
                 <i class="fa fa-sync"></i> Refresh
             </button>
         </div>
@@ -460,7 +460,7 @@ include 'includes/topbar.php';
                 <i class="fa fa-network-wired"></i>
             </div>
             <div class="stat-label">Total ONTs</div>
-            <div class="stat-value"><?= $oltStats['total'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($oltStats['total'] ?? 0) ?></div>
             <div class="stat-trend up"><i class="fa fa-arrow-up"></i> Connected</div>
         </div>
         
@@ -469,7 +469,7 @@ include 'includes/topbar.php';
                 <i class="fa fa-check-circle"></i>
             </div>
             <div class="stat-label">Online</div>
-            <div class="stat-value"><?= $oltStats['online'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($oltStats['online'] ?? 0) ?></div>
             <div class="stat-trend up"><i class="fa fa-arrow-up"></i> Active</div>
         </div>
         
@@ -478,7 +478,7 @@ include 'includes/topbar.php';
                 <i class="fa fa-times-circle"></i>
             </div>
             <div class="stat-label">Offline</div>
-            <div class="stat-value"><?= $oltStats['offline'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($oltStats['offline'] ?? 0) ?></div>
             <div class="stat-trend down"><i class="fa fa-arrow-down"></i> Needs Attention</div>
         </div>
         
@@ -487,7 +487,7 @@ include 'includes/topbar.php';
                 <i class="fa fa-exclamation-triangle"></i>
             </div>
             <div class="stat-label">Critical</div>
-            <div class="stat-value"><?= $oltStats['critical'] ?? 0 ?></div>
+            <div class="stat-value"><?= e($oltStats['critical'] ?? 0) ?></div>
             <div class="stat-trend down"><i class="fa fa-warning"></i> Weak Signal</div>
         </div>
     </div>
@@ -506,7 +506,7 @@ include 'includes/topbar.php';
             <h3><i class="fa fa-list"></i> ONT List</h3>
             <div class="ont-filters">
                 <input type="text" id="ontSearch" placeholder="Search by Serial, Port..." onkeyup="filterONTs()">
-                <select id="ontStatusFilter" onchange="filterONTs()">
+                <select id="ontStatusFilter" data-action="filterONTs" data-action-on="change">
                     <option value="">All Status</option>
                     <option value="online">Online</option>
                     <option value="offline">Offline</option>
@@ -554,7 +554,7 @@ include 'includes/topbar.php';
     <div class="modal-content">
         <div class="modal-header">
             <h4><i class="fa fa-cog"></i> ONT Actions</h4>
-            <span class="close" onclick="closeModal()">&times;</span>
+            <span class="close" data-action="closeModal">&times;</span>
         </div>
         <div class="modal-body">
             <p id="ontSerialDisplay" style="font-size: 16px; font-weight: 600; margin-bottom: 20px;"></p>
@@ -575,7 +575,19 @@ include 'includes/topbar.php';
 </div>
 
 <script>
-let currentOLT = <?= $olt_id ?? 0 ?>;
+
+// Values below are rendered with innerHTML / bindPopup, so anything that
+// originates from the database must be escaped before interpolation.
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
+function escJs(value) {
+    return JSON.stringify(String(value ?? '')).slice(1, -1).replace(/'/g, "\\'");
+}
+function num(value) { return Number(value) || 0; }
+let currentOLT = <?= (int) ($olt_id ?? 0) ?>;
 let ontData = [];
 
 <?php if ($olt_id): ?>
@@ -600,7 +612,7 @@ function loadOLTData() {
             renderONTTable(ontData);
             renderPONPorts();
         } else {
-            document.getElementById('ontTableBody').innerHTML = `<tr><td colspan="7" class="empty-state">${data.message}</td></tr>`;
+            document.getElementById('ontTableBody').innerHTML = `<tr><td colspan="7" class="empty-state">${esc(data.message)}</td></tr>`;
         }
     })
     .catch(err => {
@@ -627,30 +639,30 @@ function renderONTTable(onts) {
         
         html += `
             <tr>
-                <td><code>${ont.port}</code></td>
-                <td><code style="font-weight:600;">${ont.onu_serial}</code></td>
-                <td>${ont.onu_type || 'G-97Z4'}</td>
+                <td><code>${esc(ont.port)}</code></td>
+                <td><code style="font-weight:600;">${esc(ont.onu_serial)}</code></td>
+                <td>${esc(ont.onu_type || 'G-97Z4')}</td>
                 <td>
                     <span class="signal-badge ${signalClass}">
-                        <i class="fa fa-signal"></i> ${ont.rx_power ? ont.rx_power + ' dBm' : 'N/A'}
+                        <i class="fa fa-signal"></i> ${ont.rx_power ? num(ont.rx_power) + ' dBm' : 'N/A'}
                     </span>
                 </td>
-                <td>${ont.tx_power ? ont.tx_power + ' dBm' : 'N/A'}</td>
+                <td>${ont.tx_power ? num(ont.tx_power) + ' dBm' : 'N/A'}</td>
                 <td>
-                    <span class="status-badge ${ont.status}">
-                        ${ont.status.toUpperCase()}
+                    <span class="status-badge ${esc(ont.status)}">
+                        ${esc(String(ont.status || '').toUpperCase())}
                     </span>
                 </td>
                 <td>
-                    <button class="action-btn info" title="View Details" onclick="viewONT('${ont.onu_serial}')">
+                    <button class="action-btn info" title="View Details" onclick="viewONT('${escJs(ont.onu_serial)}')">
                         <i class="fa fa-eye"></i>
                     </button>
-                    <button class="action-btn warning" title="Reboot" onclick="openActionModal('${ont.onu_serial}', 'reboot')">
+                    <button class="action-btn warning" title="Reboot" onclick="openActionModal('${escJs(ont.onu_serial)}', 'reboot')">
                         <i class="fa fa-sync"></i>
                     </button>
                     <button class="action-btn ${ont.status === 'online' ? 'danger' : 'success'}" 
                             title="${ont.status === 'online' ? 'Disable' : 'Enable'}"
-                            onclick="openActionModal('${ont.onu_serial}', '${ont.status === 'online' ? 'disable' : 'enable'}')">
+                            onclick="openActionModal('${escJs(ont.onu_serial)}', '${ont.status === 'online' ? 'disable' : 'enable'}')">
                         <i class="fa fa-${ont.status === 'online' ? 'ban' : 'check'}"></i>
                     </button>
                 </td>
@@ -750,4 +762,4 @@ window.onclick = function(event) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

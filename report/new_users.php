@@ -1,7 +1,7 @@
 <?php
 $base_path = '../';
-include $base_path . 'config.php';
-include $base_path . 'includes/auth.php';
+include __DIR__ . '/../config.php';
+include __DIR__ . '/../includes/auth.php';
 
 $page_title = "New Customers (Last 30 Days)";
 $active = "reports";
@@ -27,9 +27,9 @@ $query = "
 ";
 $result = $conn->query($query);
 
-include $base_path . 'includes/header.php';
-include $base_path . 'includes/sidebar.php';
-include $base_path . 'includes/topbar.php';
+include __DIR__ . '/../includes/header.php';
+include __DIR__ . '/../includes/sidebar.php';
+include __DIR__ . '/../includes/topbar.php';
 ?>
 
 <style>
@@ -53,6 +53,7 @@ include $base_path . 'includes/topbar.php';
         <div class="card-header">
             <h2>New Customers (<?= $result ? $result->num_rows : 0 ?>)</h2>
             <form method="post" action="export_new_users.php">
+<?= csrf_field() ?>
                 <button type="submit" style="background:#10b981; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;"><i class="fa fa-file-csv"></i> Export CSV</button>
             </form>
         </div>
@@ -81,7 +82,7 @@ include $base_path . 'includes/topbar.php';
                                 <td><?= date('M d, Y', strtotime($row['expiry'])) ?></td>
                                 <td><span class="badge badge-new">New</span></td>
                                 <td>
-                                    <a href="<?= $base_path ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i> View</a>
+                                    <a href="<?= e($base_path) ?>user_view.php?username=<?= urlencode($row['username']) ?>" class="btn-action btn-view"><i class="fa fa-eye"></i> View</a>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
@@ -93,4 +94,4 @@ include $base_path . 'includes/topbar.php';
         </div>
     </div>
 </div>
-<?php include $base_path . 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
