@@ -29,6 +29,8 @@ straight-line legs with measured road distances.
 | `deliverables/dist_routes.json` | Per-POP OSRM road-distance MST: edges (road/trail mode), km, path km per DB |
 | `deliverables/TRAIL_SURVEY.md` `trail_survey_checklist.csv` | Off-road spur field-survey checklist (9 trail DBs, km, poles, guide) |
 | `deliverables/HOTSPOT_OPTIMIZATION.md` `hotspot_priority.csv` | Homes/feeder-km ranking, lean phasing (16-DB tail -> P4), ARPU-900 payback levers |
+| `deliverables/trail_survey_map.html` | Print-friendly survey map for the 9 trail spurs (parent + spur + fill-in table) |
+| `deliverables/PRICING_BANDS.md` `pricing_bands.csv` | 3-band tariff model (Basic 30M/Std 60M/Prem 100M), blended margin + payback per mix |
 | `deliverables/clusters.json` `deliverables/building_counts.json` `deliverables/legs.json` | Raw data |
 
 ## Methodology

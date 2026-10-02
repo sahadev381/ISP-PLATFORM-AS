@@ -1,0 +1,9 @@
+band,mbps,price_npr,cogs_npr,net_margin_npr,max_split_ratio,equipment
+Basic 30M,30,750,160,545,1:8 fine,1GE
+Standard 60M,60,1150,260,821,1:8 fine,4GE WiFi 5G
+Premium 100M,100,1600,400,1104,1:6 or 1:8,4GE WiFi ac + OTT (NetTV)
+
+mix,basic%,std%,prem%,blended_arpu,blended_margin,payback_months
+Basic-heavy (rural default),55,35,10,975,700.0,59
+Balanced (target Y2),40,45,15,1058,750.0,55
+Upsell push (ott bundles),30,50,20,1120,790.0,52
