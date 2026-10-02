@@ -27,6 +27,8 @@ straight-line legs with measured road distances.
 | `deliverables/pon_allocation.csv` | FDC/PON-port level plan (124 FDCs) |
 | `deliverables/fiber_segments.csv` | Backbone + distribution segments with km and core counts |
 | `deliverables/dist_routes.json` | Per-POP OSRM road-distance MST: edges (road/trail mode), km, path km per DB |
+| `deliverables/TRAIL_SURVEY.md` `trail_survey_checklist.csv` | Off-road spur field-survey checklist (9 trail DBs, km, poles, guide) |
+| `deliverables/HOTSPOT_OPTIMIZATION.md` `hotspot_priority.csv` | Homes/feeder-km ranking, lean phasing (16-DB tail -> P4), ARPU-900 payback levers |
 | `deliverables/clusters.json` `deliverables/building_counts.json` `deliverables/legs.json` | Raw data |
 
 ## Methodology
