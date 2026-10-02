@@ -1,0 +1,92 @@
+! L3-POP2 — Huawei S6730-H (24x10GE) — ring aggregation
+! Ring arms: 4 | OLT trunk + BNG trunk | mgmt GW 10.20.2.1 | loop 10.10.0.12
+system-view
+sysname L3-POP2
+vlan 100
+interface vlanif 100
+  ip address 10.20.2.1 255.255.255.128
+quit
+interface LoopBack 0
+  ip address 10.10.0.12 255.255.255.255
+quit
+! --- ring arms (each = dedicated VLAN + VLANIF, L3 PTP) ---
+vlan 2021
+  description HE-POP2 RingA east
+interface XGigabitEthernet 0/0/1
+  description HE-POP2 RingA east (48F fiber)
+  port link-type access
+  port default vlan 2021
+quit
+interface Vlanif 2021
+  ip address 10.10.1.1 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2022
+  description POP2-POP1 RingA
+interface XGigabitEthernet 0/0/2
+  description POP2-POP1 RingA (48F fiber)
+  port link-type access
+  port default vlan 2022
+quit
+interface Vlanif 2022
+  ip address 10.10.1.2 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2023
+  description HE-POP2 RingC
+interface XGigabitEthernet 0/0/3
+  description HE-POP2 RingC (48F fiber)
+  port link-type access
+  port default vlan 2023
+quit
+interface Vlanif 2023
+  ip address 10.10.1.7 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2024
+  description POP2-POP6 RingC
+interface XGigabitEthernet 0/0/4
+  description POP2-POP6 RingC (48F fiber)
+  port link-type access
+  port default vlan 2024
+quit
+interface Vlanif 2024
+  ip address 10.10.1.16 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+! --- OLT aggregation trunk (2x10GE LACP, matches OLT side) ---
+interface Eth-Trunk 1
+  description to-OLT LACP
+  port link-type trunk
+  port trunk allow-pass vlan 100 1201 to 1228
+  mode lacp
+quit
+! (members: XGE0/0/6-0/0/7)
+! --- BNG trunk (MikroTik CCR2004 PPPoE, local POP) ---
+interface XGigabitEthernet 0/0/20
+  description to-BNG-CCR2004
+  port link-type trunk
+  port trunk allow-pass vlan 100 1201 to 1228
+quit
+! --- OSPF ---
+bfd
+quit
+ospf 1 router-id 10.10.0.12
+  bfd all-interfaces enable
+  area 0.0.0.0
+    network 10.10.0.12 0.0.0.0
+    network 10.10.1.0 0.0.0.1
+    network 10.10.1.2 0.0.0.1
+    network 10.10.1.6 0.0.0.1
+    network 10.10.1.16 0.0.0.1
+  quit
+quit
+snmp-agent sys-info version v2c
+snmp-agent community write/privateRO publicRO@FTTH26   ! CHANGE
+sntp unicast-server 202.79.35.170
+save
+y

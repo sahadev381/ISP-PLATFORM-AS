@@ -1,0 +1,66 @@
+! L3-POP7 — Huawei S5735-S32ST4X (4x10GE) — ring aggregation
+! Ring arms: 2 | OLT trunk + BNG trunk | mgmt GW 10.20.7.1 | loop 10.10.0.17
+system-view
+sysname L3-POP7
+vlan 100
+interface vlanif 100
+  ip address 10.20.7.1 255.255.255.128
+quit
+interface LoopBack 0
+  ip address 10.10.0.17 255.255.255.255
+quit
+! --- ring arms (each = dedicated VLAN + VLANIF, L3 PTP) ---
+vlan 2081
+  description HE-POP7 spur fiber
+interface XGigabitEthernet 0/0/1
+  description HE-POP7 spur fiber (48F fiber)
+  port link-type access
+  port default vlan 2081
+quit
+interface Vlanif 2081
+  ip address 10.10.1.25 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2082
+  description HE-POP7 wireless backup
+interface XGigabitEthernet 0/0/2
+  description HE-POP7 wireless backup (48F fiber)
+  port link-type access
+  port default vlan 2082
+quit
+interface Vlanif 2082
+  ip address 10.10.1.27 255.255.255.254
+  ospf cost 100
+  ospf bfd enable
+quit
+! --- OLT aggregation trunk (2x10GE LACP, matches OLT side) ---
+interface Eth-Trunk 1
+  description to-OLT LACP
+  port link-type trunk
+  port trunk allow-pass vlan 100 1701 to 1714
+  mode lacp
+quit
+! (members: XGE0/0/4-0/0/5)
+! --- BNG trunk (MikroTik CCR2004 PPPoE, local POP) ---
+interface GigabitEthernet 0/0/24
+  description to-BNG-CCR2004
+  port link-type trunk
+  port trunk allow-pass vlan 100 1701 to 1714
+quit
+! --- OSPF ---
+bfd
+quit
+ospf 1 router-id 10.10.0.17
+  bfd all-interfaces enable
+  area 0.0.0.0
+    network 10.10.0.17 0.0.0.0
+    network 10.10.1.24 0.0.0.1
+    network 10.10.1.26 0.0.0.1
+  quit
+quit
+snmp-agent sys-info version v2c
+snmp-agent community write/privateRO publicRO@FTTH26   ! CHANGE
+sntp unicast-server 202.79.35.170
+save
+y

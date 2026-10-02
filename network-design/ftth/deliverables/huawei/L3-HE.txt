@@ -1,0 +1,131 @@
+! L3-HE — Huawei S6730-H (24x10GE) — ring aggregation
+! Ring arms: 7 | OLT trunk + BNG trunk | mgmt GW 10.20.0.1 | loop 10.10.0.1
+system-view
+sysname L3-HE
+vlan 100
+interface vlanif 100
+  ip address 10.20.0.1 255.255.255.128
+quit
+interface LoopBack 0
+  ip address 10.10.0.1 255.255.255.255
+quit
+! --- ring arms (each = dedicated VLAN + VLANIF, L3 PTP) ---
+vlan 2001
+  description HE-POP2 RingA east
+interface XGigabitEthernet 0/0/1
+  description HE-POP2 RingA east (48F fiber)
+  port link-type access
+  port default vlan 2001
+quit
+interface Vlanif 2001
+  ip address 10.10.1.0 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2002
+  description HE-POP2 RingC (2nd cable)
+interface XGigabitEthernet 0/0/2
+  description HE-POP2 RingC (2nd cable) (48F fiber)
+  port link-type access
+  port default vlan 2002
+quit
+interface Vlanif 2002
+  ip address 10.10.1.6 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2003
+  description HE-POP5 RingB
+interface XGigabitEthernet 0/0/3
+  description HE-POP5 RingB (48F fiber)
+  port link-type access
+  port default vlan 2003
+quit
+interface Vlanif 2003
+  ip address 10.10.1.8 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2004
+  description POP4-HE RingB return
+interface XGigabitEthernet 0/0/4
+  description POP4-HE RingB return (48F fiber)
+  port link-type access
+  port default vlan 2004
+quit
+interface Vlanif 2004
+  ip address 10.10.1.13 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2005
+  description POP3-HE RingC return
+interface XGigabitEthernet 0/0/5
+  description POP3-HE RingC return (48F fiber)
+  port link-type access
+  port default vlan 2005
+quit
+interface Vlanif 2005
+  ip address 10.10.1.21 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2006
+  description HE-POP7 spur fiber
+interface XGigabitEthernet 0/0/6
+  description HE-POP7 spur fiber (48F fiber)
+  port link-type access
+  port default vlan 2006
+quit
+interface Vlanif 2006
+  ip address 10.10.1.24 255.255.255.254
+  ospf cost 10
+  ospf bfd enable
+quit
+vlan 2007
+  description HE-POP7 wireless backup
+interface XGigabitEthernet 0/0/7
+  description HE-POP7 wireless backup (48F fiber)
+  port link-type access
+  port default vlan 2007
+quit
+interface Vlanif 2007
+  ip address 10.10.1.26 255.255.255.254
+  ospf cost 100
+  ospf bfd enable
+quit
+! --- OLT aggregation trunk (2x10GE LACP, matches OLT side) ---
+interface Eth-Trunk 1
+  description to-OLT LACP
+  port link-type trunk
+  port trunk allow-pass vlan 100 1001 to 1031
+  mode lacp
+quit
+! (members: XGE0/0/9-0/0/10)
+! --- BNG trunk (MikroTik CCR2004 PPPoE, local POP) ---
+interface XGigabitEthernet 0/0/20
+  description to-BNG-CCR2004
+  port link-type trunk
+  port trunk allow-pass vlan 100 1001 to 1031
+quit
+! --- OSPF ---
+bfd
+quit
+ospf 1 router-id 10.10.0.1
+  bfd all-interfaces enable
+  area 0.0.0.0
+    network 10.10.0.1 0.0.0.0
+    network 10.10.1.0 0.0.0.1
+    network 10.10.1.6 0.0.0.1
+    network 10.10.1.8 0.0.0.1
+    network 10.10.1.12 0.0.0.1
+    network 10.10.1.20 0.0.0.1
+    network 10.10.1.24 0.0.0.1
+    network 10.10.1.26 0.0.0.1
+  quit
+quit
+snmp-agent sys-info version v2c
+snmp-agent community write/privateRO publicRO@FTTH26   ! CHANGE
+sntp unicast-server 202.79.35.170
+save
+y
