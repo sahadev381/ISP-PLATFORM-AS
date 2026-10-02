@@ -1,0 +1,73 @@
+! =============================================================
+! OLT-POP6 — Huawei MA5800-X2 provisioning script
+! POP6 - Chisapani/Haibung west (16-PON) | PON used: 8/16 (1x GPHF)
+! Customer VLANs: 1601-1608 (S-VLAN per PON) | MGMT: 10.20.6.10/25 via VLAN 100
+! Generated from FTTH design 2026-10-02. Review passwords/keys before paste!
+! =============================================================
+enable
+config
+undo enable alarm output all
+sysname OLT-POP6
+board confirm 0 frameid 0 slotid 1 boardname GPHF
+! --- DBA + profiles (create once, same on every OLT) ---
+dba-profile add profile-id 20 profile-name FTTH-RESI type4 max 1000000
+dba-profile add profile-id 21 profile-name FTTH-100M type3 assure 50000 max 102400
+dba-profile add profile-id 22 profile-name FTTH-50M  type3 assure 25000 max 51200
+gpon line-profile add profile-id 20 profile-name FTTH-LINE
+  tcont 1 dba-profile-id 20
+  gem add 1 eth tcont 1
+  gem mapping 1 0 vlan 10
+  commit
+quit
+gpon service-profile add profile-id 20 profile-name FTTH-SVC
+  port vlan eth 1 translation 10 user-vlan 10
+  commit
+quit
+! --- Management (VLAN 100) ---
+vlan 100 smart
+port vlan 100 0/19 *
+port vlan 100 0/20 *
+interface vlanif 100
+  ip address 10.20.6.10 255.255.255.128
+quit
+ip route-static 0.0.0.0 0.0.0.0 10.20.6.1
+! --- Uplink 2x10GE to POP6 L3 switch (LACP trunk) ---
+link-aggregation add port 0/19/0 port 0/20/0 mode work lacp-trunk
+! --- SNMP/NMS (ISP platform monitoring) ---
+snmp-agent sys-info version v2c
+snmp-agent community write/privateRO publicRO@FTTH26
+snmp-agent target-host trap-hostname NMS address 10.20.0.2 udp-port 162 trap-paramsname NMSNORM
+snmp-agent trap enable standard
+sntp unicast-server 202.79.35.170
+! --- Customer S-VLANs: 1601-1608 ---
+vlan 1601 to 1608 smart
+port vlan 1601 to 1608 0/1 0-7
+port vlan 1601 to 1608 0/19 *
+port vlan 1601 to 1608 0/20 *
+! --- PON port activation (8 used) ---
+interface gpon 0/1
+  port 0 ont-auto-find enable
+interface gpon 0/1
+  port 1 ont-auto-find enable
+interface gpon 0/1
+  port 2 ont-auto-find enable
+interface gpon 0/1
+  port 3 ont-auto-find enable
+interface gpon 0/1
+  port 4 ont-auto-find enable
+interface gpon 0/1
+  port 5 ont-auto-find enable
+interface gpon 0/1
+  port 6 ont-auto-find enable
+interface gpon 0/1
+  port 7 ont-auto-find enable
+! quit from interface context before next section
+! --- EXAMPLE: first customer on PON1 (VLAN 1601, FDC=FDC-POP6-01) ---
+interface gpon 0/1
+  ont add 0 0 sn-auth 48575443XXXXXXXX picasso ont-lineprofile-id 20 ont-srvprofile-id 20 desc CUST-FDC-POP6-01-001
+  ont port native-vlan <port> 0 eth 1 vlan 10 priority 0
+quit
+service-port 1601 vlan 1601 gpon 0/1/0 ont 0 gemindex 1 multi-service user-vlan 10 tag-transform translate
+! NOTE: slot 2 FREE — future: second GPHF doubles capacity without new chassis
+save
+y
