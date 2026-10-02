@@ -31,6 +31,7 @@ straight-line legs with measured road distances.
 | `deliverables/HOTSPOT_OPTIMIZATION.md` `hotspot_priority.csv` | Homes/feeder-km ranking, lean phasing (16-DB tail -> P4), ARPU-900 payback levers |
 | `deliverables/trail_survey_map.html` | Print-friendly survey map for the 9 trail spurs (parent + spur + fill-in table) |
 | `deliverables/PRICING_BANDS.md` `pricing_bands.csv` | 3-band tariff model (Basic 30M/Std 60M/Prem 100M), blended margin + payback per mix |
+| `deliverables/TENDER_PACKAGE.md` `tender_lots.csv` | Lot-wise tender structure (M1-M5 material, W1-W6 works) with quantities + award strategy |
 | `deliverables/clusters.json` `deliverables/building_counts.json` `deliverables/legs.json` | Raw data |
 
 ## Methodology
