@@ -3,7 +3,8 @@
 import csv, os, json
 HERE = os.path.dirname(os.path.abspath(__file__)); OUT = os.path.join(HERE, "deliverables")
 
-CAPEX = [("P1 backbone+HE core", 31_309_609, 0), ("P2 rings A/C+POPs", 34_057_429, 12), ("P3 POP7+redundancy buffer", 13_624_490+5_000_000, 24)]
+_ph = {r["phase"]: float(r["est_cost_npr"]) for r in csv.DictReader(open(f"{OUT}/phased_capex.csv"))}
+CAPEX = [("P1 backbone+HE core", _ph["Phase1"], 0), ("P2 rings A/C+POPs", _ph["Phase2"], 12), ("P3 POP7+redundancy buffer", _ph["Phase3"]+5_000_000, 24)]
 # avg subscribers per year (design: Y1 end 3224, Y3 end 4836; ramp midpoints)
 AVG_SUBS = [1600, 3600, 4500, 5000, 5200]
 CPE_NET = 1600            # net sub capex/connection after install-charge recovery
@@ -34,7 +35,7 @@ def run(arpu):
     return payback, rows
 
 doc = ["# Payback / Cashflow Model (planning aid — replace with real quotes)\n",
-       "Capex: P1 31.3M m0, P2 34.1M m12, P3 18.6M m24 (POP7 + redundancy: POP2-POP7 ring closure or wireless relay).",
+       f"Capex: P1 {_ph['Phase1']/1e6:.1f}M m0, P2 {_ph['Phase2']/1e6:.1f}M m12, P3 {(_ph['Phase3']+5_000_000)/1e6:.1f}M m24 (POP7 + redundancy: POP2-POP7 ring closure or wireless relay) - from phased_capex.csv (road-measured distribution).",
        "Avg subs by year: 1.6k / 3.6k / 4.5k / 5.0k / 5.2k (design targets 3224 Y1-end, 4836 Y3-end).",
        "COGS 220/sub/mo (upstream), OpEx 570k->920k/mo phased, NTA royalty+RTDF 6% of revenue, net CPE 1600/sub.\n",
        "| ARPU (NPR/mo) | Payback | Y3 monthly EBITDA |","|--:|---|--:|"]

@@ -71,19 +71,24 @@ for pop in LEGS["pops"]:
     pon_used = sum(math.ceil(d["fats"] / FATS_PER_PON) for d in members)
     pop_stats[pop] = {"dbs": members, "homes": homes, "fats": fats, "pon_used": pon_used}
 
-# ---------------- distribution fiber: MST from each POP over its DB sites ----------------
+# ---------------- distribution fiber: OSRM road-distance MST per POP (make_dist_routes.py) ----------------
+DIST_ROUTES = json.load(open(f"{OUT}/dist_routes.json"))
 dist_edges_all = []
 for pop, st in pop_stats.items():
-    p = LEGS["pops"][pop]
-    pts = [{"id": pop, "lat": p["lat"], "lon": p["lon"]}] + \
-          [{"id": d["id"], "lat": d["lat"], "lon": d["lon"]} for d in st["dbs"]]
-    edges = mst_edges(pts)
-    for e in edges:
-        e["pop"] = pop
-        e["km_route"] = round(e["km"] * ROUTE_FACTOR_DIST, 2)
-    st["mst_km_straight"] = round(sum(e["km"] for e in edges), 2)
-    st["route_km"] = round(sum(e["km_route"] for e in edges), 2)
-    dist_edges_all += edges
+    dr = DIST_ROUTES.get(pop)
+    if dr:
+        for e in dr["edges"]:
+            dist_edges_all.append({"from": e["from"], "to": e["to"], "pop": pop,
+                                   "km_route": e["km"], "km_raw": e["km_raw"],
+                                   "km_straight": e["km_straight"], "mode": e["mode"]})
+        st["route_km"] = dr["design_km"]
+        st["road_km"] = dr["road_km"]; st["trail_km"] = dr["trail_km"]; st["n_trail"] = dr["n_trail"]
+    else:
+        st["route_km"] = 0.0; st["road_km"] = 0.0; st["trail_km"] = 0.0; st["n_trail"] = 0
+dist_km = round(sum(st["route_km"] for st in pop_stats.values()), 1)
+dist_road = round(sum(st["road_km"] for st in pop_stats.values()), 1)
+dist_trail = round(sum(st["trail_km"] for st in pop_stats.values()), 1)
+n_trail_all = sum(st["n_trail"] for st in pop_stats.values())
 
 backbone_km = round(sum(l["km"] for l in LEGS["legs"]), 1)
 backbone_48 = round(sum(l["km"] for l in LEGS["legs"] if l["core"] == 48), 1)
@@ -138,7 +143,7 @@ with open(f"{OUT}/fiber_segments.csv", "w", newline="") as f:
     for l in LEGS["legs"]:
         w.writerow([l["group"], "backbone", l["a"], l["b"], l["km"], l["core"]])
     for e in dist_edges_all:
-        w.writerow([f"distribution {e['pop']}", "distribution(12F)", e["from"], e["to"], e["km_route"], 12])
+        w.writerow([f"distribution {e['pop']}", "distribution(12F)" + (" trail-est" if e.get("mode")=="trail" else " road"), e["from"], e["to"], e["km_route"], 12])
 with open(f"{OUT}/pon_allocation.csv", "w", newline="") as f:
     w = csv.writer(f); w.writerow(["pop","pon_port_at_olt","fdc_id","db_site","locality","fats_in_fdc","customer_capacity"])
     for pop, st in pop_stats.items():
@@ -155,9 +160,10 @@ with open(f"{OUT}/pon_allocation.csv", "w", newline="") as f:
             print(f"!!! {pop} oversubscribed: {fdc_no} PON needed > {olt_cap}-port OLT")
 
 # ---------------- interactive map ----------------
+fib = {e["to"]: {"from": e["from"], "km": e["km_route"], "mode": e["mode"], "raw": e["km_raw"]} for e in dist_edges_all}
 data = {
  "pops": LEGS["pops"], "legs": LEGS["legs"], "backup": LEGS["backup_wireless"],
- "dbs": dbs, "edges": dist_edges_all,
+ "dbs": dbs, "edges": dist_edges_all, "fib": fib,
  "stats": {p: {"homes": s["homes"], "fats": s["fats"], "pon_used": s["pon_used"], "dbs": len(s["dbs"]), "route_km": s["route_km"]} for p, s in pop_stats.items()},
  "totals": {"homes": tot_homes, "fats": tot_fats, "fdcs": tot_fdcs, "backbone_km": backbone_km, "dist_km": dist_km, "cust_y1": cust_y1, "cust_y3": cust_y3, "capex_lakh": round(capex/100000)},
 }
@@ -189,7 +195,7 @@ html_tmpl = r"""<!DOCTYPE html>
  <h3>FTTH Design - Melamchi / Helambu / Thangpal / Haibung</h3>
  <table>
    <tr><td>Backbone ring+spur</td><td><b>@BACKBONE@ km</b> road-km</td></tr>
-   <tr><td>Distribution (to DB)</td><td><b>@DIST@ km</b> route-km (est)</td></tr>
+   <tr><td>Distribution (to DB)</td><td><b>@DIST@ km</b> route-km (road-measured OSRM + trail-est spurs)</td></tr>
    <tr><td>DB/FAT boxes</td><td><b>@FATS@</b> pcs (sites: @DBSITES@)</td></tr>
    <tr><td>FDC / PON ports used</td><td><b>@FDCS@</b> of 144 ports</td></tr>
    <tr><td>Homes passed (est)</td><td><b>@HOMES@</b> (OSM buildings x 0.75)</td></tr>
@@ -202,7 +208,8 @@ html_tmpl = r"""<!DOCTYPE html>
   <span class="sw" style="background:#43a047"></span>Ring C (HE-POP2-POP6-POP3-HE)<br>
   <span class="sw" style="background:#fb8c00"></span>Spur HE-POP7 (Timbu) + wireless backup<br>
   <span class="sw" style="background:#8e24aa;height:0;border-top:2px dashed #8e24aa"></span>Wireless PTP backup 14 km<br>
-  <span class="sw" style="background:#90a4ae;height:0;border-top:1px dashed #90a4ae"></span>Distribution tree (to DB points)
+  <span class="sw" style="background:#43a047"></span>Distribution fiber - road-following (OSRM)<br>
+  <span class="sw" style="background:#fb8c00;height:0;border-top:2px dashed #fb8c00"></span>Off-road DB spur (trail-est, survey)
  </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -229,7 +236,7 @@ for (const [k,p] of Object.entries(DATA.pops)) {
       padding:2px 6px;font-weight:700;font-size:12px;box-shadow:0 1px 5px rgba(0,0,0,.5);white-space:nowrap">${k}</div>`,
       iconSize:[40,20], iconAnchor:[20,10]})})
    .bindPopup(`<b>${p.label}</b><br>OLT: ${p.pon} PON<br>DB sites: ${st.dbs}<br>Homes passed: ~${st.homes}
-               <br>FAT/DB boxes: ${st.fats}<br>PON used: ${st.pon_used}/${p.pon}<br>Distribution fiber: ~${st.route_km} km`);
+               <br>FAT/DB boxes: ${st.fats}<br>PON used: ${st.pon_used}/${p.pon}<br>Distribution fiber: ${st.route_km} km road-measured`);
   lyrBB.addLayer(m);
   lyrCov.addLayer(L.circle([p.lat,p.lon],{radius:6500,color:POPCOL[k],weight:1,dashArray:'4 6',fillOpacity:.02}));
 }
@@ -256,20 +263,38 @@ DATA.legs.forEach(drawRoad);
 lyrBB.addLayer(L.polyline([popLatLon.HE, popLatLon.POP7],
   {color:'#8e24aa',weight:2,dashArray:'3 6'}).bindTooltip('Wireless PTP backup HE-POP7, ~14 km LOS (survey)'));
 
-// distribution MST tree (straight-line, field routing required)
+// distribution fiber tree: OSRM road-distance MST (km measured), trail spurs flagged
 const idx={}; DATA.dbs.forEach(d=>idx[d.id]=[d.lat,d.lon]); Object.assign(idx,popLatLon);
+const fiberQ=[];
 DATA.edges.forEach(e=>{
-  if(idx[e.from]&&idx[e.to])
-    lyrDist.addLayer(L.polyline([idx[e.from],idx[e.to]],{color:'#90a4ae',weight:1.2,dashArray:'2 4',opacity:.8})
-      .bindTooltip(`${e.from} -> ${e.to} (${e.km_route} km est)`));
+  if(!(idx[e.from]&&idx[e.to])) return;
+  const tr=e.mode==='trail';
+  const pl=L.polyline([idx[e.from],idx[e.to]],{color:tr?'#fb8c00':'#43a047',weight:tr?1.5:2,dashArray:tr?'5 5':null,opacity:.85});
+  pl.bindTooltip(`${e.from} -> ${e.to}: ${e.km_route} km `+(tr?`TRAIL SPUR (no drivable road; road detour ${e.km_raw} km impractical - field survey)`:'(road-following, loading exact path...)'));
+  lyrDist.addLayer(pl);
+  if(!tr) fiberQ.push([e,pl]);
 });
+// progressively upgrade road edges to exact OSRM geometry
+(function pump(){
+  const it=fiberQ.shift(); if(!it) return;
+  const [e,pl]=it, a=idx[e.from], b=idx[e.to];
+  fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`)
+   .then(r=>r.json()).then(j=>{
+     const g=j.routes&&j.routes[0]&&j.routes[0].geometry;
+     if(g) pl.setLatLngs(g.coordinates.map(c=>[c[1],c[0]]))
+           .setTooltipContent(`${e.from} -> ${e.to}: ${e.km_route} km (road-following)`);
+   }).catch(()=>{})
+  .finally(()=>setTimeout(pump,120));
+})();
 
 // DB points
 DATA.dbs.forEach(d=>{
   const rad = 4+Math.min(10,Math.sqrt(d.homes)/6);
   lyrDB.addLayer(L.circleMarker([d.lat,d.lon],{radius:rad,color:POPCOL[d.pop]||'#555',weight:1.5,fillColor:POPCOL[d.pop]||'#555',fillOpacity:.55})
    .bindPopup(`<b>${d.id}</b> ${d.label?(' - '+d.label):''}<br>POP: ${d.pop}<br>Villages: ${d.members.join(', ')}
-     <br>OSM buildings (450 m): ${d.buildings}<br>Est. homes: ${d.homes}<br>FAT/DB boxes here: ${d.fats}`));
+     <br>OSM buildings (450 m): ${d.buildings}<br>Est. homes: ${d.homes}<br>FAT/DB boxes here: ${d.fats}`
+     +(DATA.fib[d.id]?`<br><b>Feeder fiber:</b> ${DATA.fib[d.id].km} km from ${DATA.fib[d.id].from}`
+       +(DATA.fib[d.id].mode==='trail'?` (TRAIL spur est - road detour ${DATA.fib[d.id].raw} km, survey)`:' (road-following)'):'')));
 });
 L.control.layers(null,{"Backbone/POP":lyrBB,"DB points":lyrDB,"Distribution tree":lyrDist,"Coverage 6.5km":lyrCov},{collapsed:false}).addTo(map);
 </script>
@@ -301,10 +326,16 @@ lb_rows = ""
 for pop, st in pop_stats.items():
     if not st["dbs"]:
         lb_rows += f"| {pop} | — | — | — | — | n/a |\n"; continue
-    p = LEGS["pops"][pop]
-    far = max(st["dbs"], key=lambda d: hav(p["lat"], p["lon"], d["lat"], d["lon"]))
-    fkm_straight = hav(p["lat"], p["lon"], far["lat"], far["lon"])
-    fiber_km = fkm_straight * ROUTE_FACTOR_DIST + 1.0  # +1 km slack/loops inside routes
+    drp = DIST_ROUTES.get(pop)
+    if drp and drp.get("path_km"):
+        far_id = max(drp["path_km"], key=drp["path_km"].get)
+        far = next((d for d in st["dbs"] if d["id"] == far_id), st["dbs"][0])
+        fiber_km = drp["path_km"][far_id] + 1.0  # cumulative POP->DB road/trail km + splices slack
+    else:
+        p = LEGS["pops"][pop]
+        far = max(st["dbs"], key=lambda d: hav(p["lat"], p["lon"], d["lat"], d["lon"]))
+        fkm_straight = hav(p["lat"], p["lon"], far["lat"], far["lon"])
+        fiber_km = fkm_straight * ROUTE_FACTOR_DIST + 1.0
     loss = SPLIT_LOSS + FIBER_DB_KM*fiber_km + CONN_DB + MARGIN_DB
     verdict = "PASS (C+ 32dB)" if loss < 32 else "CHECK design"
     lb_rows += f"| {pop} | {far['id']} {far['label']} | {fiber_km:.1f} km | {loss:.1f} dB | 32 dB | {verdict} |\n"
@@ -336,7 +367,8 @@ Generated: 2026-10-02 | Data: OpenStreetMap (Overpass z mirror) + OSRM road rout
 - Densest DB points: Melamchi bazaar 545 bldg/450m; Gunsakot 545; Dubachaur-area ~294-331; Mandandeupur 212; Haibung 264; Tarkeghyang-side 114.
 
 ## 3) Access network design (DB points, PON allocation)
-Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 1:8 + FAT 1:8 = 64 ONT/PON · distribution route = MST x 1.35 winding factor.
+Distribution routing: per-POP MST on **OSRM road-distance matrix** (measured), +10% slack; {n_trail_all} DB spurs have **no drivable road** (orange dashed on map) - trail-pole estimate = straight-line x 1.6 (+10% slack), field survey required. Distribution totals: {dist_km} km design = {dist_road} km road-measured x1.10 + {dist_trail} km trail-est.
+Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 1:8 + FAT 1:8 = 64 ONT/PON · distribution = OSRM road MST + trail spurs.
 
 | POP | OLT PON | DB sites | Est. homes | FAT/DB boxes | PON used | PON spare | Dist. fiber km |
 |-----|--------:|---------:|-----------:|-------------:|---------:|----------:|---------------:|
@@ -399,7 +431,7 @@ open(f"{OUT}/FTTH_DESIGN_REPORT.md", "w").write(report)
 print("="*70)
 print(f"DB sites: {len(dbs)} | FAT boxes: {tot_fats} | FDC/PONs used: {tot_fdcs}")
 print(f"Est homes passed: {tot_homes} | Y1: {cust_y1} | Y3: {cust_y3}")
-print(f"Backbone: {backbone_km} road-km | Distribution: {dist_km} km(est)")
+print(f"Backbone: {backbone_km} road-km | Distribution: {dist_km} km design ({dist_road} km road-measured + {dist_trail} km trail-est; {n_trail_all} off-road DB spurs)")
 for pop in LEGS["pops"]:
     st = pop_stats[pop]
     print(f"  {pop:5} homes={st['homes']:5} fats={st['fats']:3} pon={st['pon_used']:2}/{LEGS['pops'][pop]['pon']:2} dist={st['route_km']:6.2f} km")

@@ -69,7 +69,7 @@ for row in csv.DictReader(io.StringIO("\n".join(dbcsv))):
 parts.append("</Folder>")
 
 # Distribution tree edges from fiber_segments.csv (12F only)
-parts.append("<Folder><name>Distribution tree (MST, straight)</name>")
+parts.append("<Folder><name>Distribution fiber routes (OSRM road+trail MST)</name>")
 coords_idx = {k: (p["lon"], p["lat"]) for k, p in POPS.items()}
 for d in clusters["clusters"]:
     coords_idx[f"DB-{d['cluster_id']}"] = (d["lon"], d["lat"])

@@ -26,6 +26,7 @@ straight-line legs with measured road distances.
 | `deliverables/pops.csv` | Per-POP stats: homes, FATs, PON used/spare, distribution km |
 | `deliverables/pon_allocation.csv` | FDC/PON-port level plan (124 FDCs) |
 | `deliverables/fiber_segments.csv` | Backbone + distribution segments with km and core counts |
+| `deliverables/dist_routes.json` | Per-POP OSRM road-distance MST: edges (road/trail mode), km, path km per DB |
 | `deliverables/clusters.json` `deliverables/building_counts.json` `deliverables/legs.json` | Raw data |
 
 ## Methodology
@@ -39,11 +40,12 @@ straight-line legs with measured road distances.
 4. Building density: OSM `way[building]` counts within 450 m of each site
    → est. homes = buildings × 0.75.
 5. FAT/DB = 8-port, 12 homes per FAT; FDC 1:8 → PON ports implied per POP.
-6. Distribution fiber = MST(POP + DB sites) × 1.35 hill-winding factor.
+6. Distribution fiber = MST on OSRM **road-distance matrix** per POP (measured, not estimated) + 10% slack; DBs with no drivable road (9 spurs) flagged as trail-est (straight × 1.6 + slack). Result: 239.7 km road + 47.2 km trail-est = **310.9 km** design.
 
 ## Regenerate
 ```bash
 python3 cluster.py        # settlements -> DB clusters (needs data_settlements.py)
+python3 make_dist_routes.py  # OSRM road-distance MST per POP -> dist_routes.json
 python3 build_design.py   # full design + map + report + CSVs
 python3 export_kml.py     # KML
 python3 make_diagram.py   # SVG schematic

@@ -9,80 +9,80 @@ Ring C,backbone,HE,POP3,17.84,48
 Ring C,backbone,POP3,POP6,11.01,48
 Ring C,backbone,POP6,POP2,22.21,48
 Spur (fiber 24F) + wireless PTP backup,backbone,HE,POP7,34.32,24
-distribution HE,distribution(12F),HE,DB-HE-C01,0.16,12
-distribution HE,distribution(12F),HE,DB-HE-C04,0.92,12
-distribution HE,distribution(12F),DB-HE-C04,DB-HE-C09,0.69,12
-distribution HE,distribution(12F),DB-HE-C04,DB-HE-C07,0.93,12
-distribution HE,distribution(12F),DB-HE-C07,DB-HE-C08,0.95,12
-distribution HE,distribution(12F),DB-HE-C04,DB-HE-C06,1.03,12
-distribution HE,distribution(12F),DB-HE-C09,DB-HE-C03,1.05,12
-distribution HE,distribution(12F),DB-HE-C09,DB-HE-C02,1.06,12
-distribution HE,distribution(12F),DB-HE-C02,DB-HE-C11,0.99,12
-distribution HE,distribution(12F),DB-HE-C01,DB-HE-C05,1.07,12
-distribution HE,distribution(12F),DB-HE-C02,DB-HE-C15,1.52,12
-distribution HE,distribution(12F),DB-HE-C15,DB-HE-C14,0.96,12
-distribution HE,distribution(12F),DB-HE-C14,DB-HE-C13,0.93,12
-distribution HE,distribution(12F),DB-HE-C11,DB-HE-C10,2.02,12
-distribution HE,distribution(12F),DB-HE-C10,DB-HE-C12,0.88,12
-distribution HE,distribution(12F),DB-HE-C05,DB-HE-C16,5.78,12
-distribution HE,distribution(12F),DB-HE-C16,DB-HE-C17,4.38,12
-distribution POP1,distribution(12F),POP1,DB-POP1-C08,2.18,12
-distribution POP1,distribution(12F),DB-POP1-C08,DB-POP1-C03,2.03,12
-distribution POP1,distribution(12F),DB-POP1-C03,DB-POP1-C06,2.37,12
-distribution POP1,distribution(12F),DB-POP1-C06,DB-POP1-C05,1.02,12
-distribution POP1,distribution(12F),DB-POP1-C05,DB-POP1-C12,0.68,12
-distribution POP1,distribution(12F),DB-POP1-C06,DB-POP1-C04,2.0,12
-distribution POP1,distribution(12F),POP1,DB-POP1-C14,2.37,12
-distribution POP1,distribution(12F),DB-POP1-C14,DB-POP1-C01,2.09,12
-distribution POP1,distribution(12F),DB-POP1-C05,DB-POP1-C02,2.78,12
-distribution POP1,distribution(12F),DB-POP1-C02,DB-POP1-C13,1.38,12
-distribution POP1,distribution(12F),DB-POP1-C03,DB-POP1-C07,3.03,12
-distribution POP1,distribution(12F),DB-POP1-C01,DB-POP1-C11,3.31,12
-distribution POP1,distribution(12F),DB-POP1-C11,DB-POP1-C09,1.32,12
-distribution POP1,distribution(12F),DB-POP1-C08,DB-POP1-C10,4.47,12
-distribution POP2,distribution(12F),POP2,DB-POP2-C06,0.28,12
-distribution POP2,distribution(12F),DB-POP2-C06,DB-POP2-C14,1.27,12
-distribution POP2,distribution(12F),DB-POP2-C14,DB-POP2-C16,1.01,12
-distribution POP2,distribution(12F),DB-POP2-C16,DB-POP2-C03,1.09,12
-distribution POP2,distribution(12F),DB-POP2-C14,DB-POP2-C05,1.12,12
-distribution POP2,distribution(12F),DB-POP2-C16,DB-POP2-C15,1.36,12
-distribution POP2,distribution(12F),DB-POP2-C05,DB-POP2-C08,1.53,12
-distribution POP2,distribution(12F),DB-POP2-C08,DB-POP2-C10,1.16,12
-distribution POP2,distribution(12F),DB-POP2-C03,DB-POP2-C01,1.98,12
-distribution POP2,distribution(12F),DB-POP2-C08,DB-POP2-C17,2.1,12
-distribution POP2,distribution(12F),DB-POP2-C17,DB-POP2-C12,1.71,12
-distribution POP2,distribution(12F),DB-POP2-C12,DB-POP2-C13,1.68,12
-distribution POP2,distribution(12F),DB-POP2-C13,DB-POP2-C04,0.75,12
-distribution POP2,distribution(12F),DB-POP2-C03,DB-POP2-C02,2.19,12
-distribution POP2,distribution(12F),DB-POP2-C13,DB-POP2-C11,2.19,12
-distribution POP2,distribution(12F),DB-POP2-C11,DB-POP2-C07,0.7,12
-distribution POP2,distribution(12F),DB-POP2-C07,DB-POP2-C09,1.45,12
-distribution POP4,distribution(12F),POP4,DB-POP4-C10,3.46,12
-distribution POP4,distribution(12F),DB-POP4-C10,DB-POP4-C03,2.35,12
-distribution POP4,distribution(12F),DB-POP4-C03,DB-POP4-C04,1.68,12
-distribution POP4,distribution(12F),DB-POP4-C04,DB-POP4-C05,1.07,12
-distribution POP4,distribution(12F),DB-POP4-C05,DB-POP4-C06,1.27,12
-distribution POP4,distribution(12F),DB-POP4-C04,DB-POP4-C07,1.98,12
-distribution POP4,distribution(12F),DB-POP4-C07,DB-POP4-C08,1.37,12
-distribution POP4,distribution(12F),DB-POP4-C08,DB-POP4-C01,1.03,12
-distribution POP4,distribution(12F),DB-POP4-C06,DB-POP4-C11,2.96,12
-distribution POP4,distribution(12F),POP4,DB-POP4-C02,3.72,12
-distribution POP4,distribution(12F),DB-POP4-C02,DB-POP4-C09,1.9,12
-distribution POP5,distribution(12F),POP5,DB-POP5-C01,4.11,12
-distribution POP5,distribution(12F),DB-POP5-C01,DB-POP5-C02,1.35,12
-distribution POP6,distribution(12F),POP6,DB-POP6-C01,0.5,12
-distribution POP6,distribution(12F),DB-POP6-C01,DB-POP6-C04,2.42,12
-distribution POP6,distribution(12F),POP6,DB-POP6-C03,2.57,12
-distribution POP6,distribution(12F),DB-POP6-C03,DB-POP6-C05,3.74,12
-distribution POP6,distribution(12F),DB-POP6-C01,DB-POP6-C02,7.48,12
-distribution POP7,distribution(12F),POP7,DB-POP7-C04,0.02,12
-distribution POP7,distribution(12F),DB-POP7-C04,DB-POP7-C05,1.93,12
-distribution POP7,distribution(12F),DB-POP7-C05,DB-POP7-C11,3.28,12
-distribution POP7,distribution(12F),POP7,DB-POP7-C08,5.01,12
-distribution POP7,distribution(12F),DB-POP7-C08,DB-POP7-C07,0.8,12
-distribution POP7,distribution(12F),DB-POP7-C08,DB-POP7-C10,1.43,12
-distribution POP7,distribution(12F),DB-POP7-C10,DB-POP7-C09,2.96,12
-distribution POP7,distribution(12F),POP7,DB-POP7-C06,5.03,12
-distribution POP7,distribution(12F),DB-POP7-C06,DB-POP7-C03,1.81,12
-distribution POP7,distribution(12F),DB-POP7-C05,DB-POP7-C02,6.03,12
-distribution POP7,distribution(12F),DB-POP7-C02,DB-POP7-C01,2.95,12
+distribution HE,distribution(12F) road,HE,HE-C01,0.37,12
+distribution HE,distribution(12F) road,HE-C09,HE-C02,1.57,12
+distribution HE,distribution(12F) road,HE-C06,HE-C03,2.18,12
+distribution HE,distribution(12F) road,HE,HE-C04,2.08,12
+distribution HE,distribution(12F) road,HE-C01,HE-C05,2.5,12
+distribution HE,distribution(12F) road,HE-C04,HE-C06,1.23,12
+distribution HE,distribution(12F) road,HE-C01,HE-C07,1.69,12
+distribution HE,distribution(12F) road,HE-C07,HE-C08,2.76,12
+distribution HE,distribution(12F) road,HE,HE-C09,2.72,12
+distribution HE,distribution(12F) road,HE-C15,HE-C10,6.04,12
+distribution HE,distribution(12F) road,HE-C02,HE-C11,2.39,12
+distribution HE,distribution(12F) trail-est,HE-C03,HE-C12,4.9,12
+distribution HE,distribution(12F) road,HE-C14,HE-C13,2.01,12
+distribution HE,distribution(12F) road,HE-C15,HE-C14,1.1,12
+distribution HE,distribution(12F) road,HE-C02,HE-C15,2.3,12
+distribution HE,distribution(12F) road,HE-C17,HE-C16,6.84,12
+distribution HE,distribution(12F) road,HE-C01,HE-C17,12.34,12
+distribution POP1,distribution(12F) road,POP1-C14,POP1-C01,6.27,12
+distribution POP1,distribution(12F) road,POP1-C05,POP1-C02,3.12,12
+distribution POP1,distribution(12F) road,POP1-C08,POP1-C03,4.31,12
+distribution POP1,distribution(12F) road,POP1-C06,POP1-C04,2.12,12
+distribution POP1,distribution(12F) road,POP1-C03,POP1-C05,5.1,12
+distribution POP1,distribution(12F) road,POP1-C03,POP1-C06,2.49,12
+distribution POP1,distribution(12F) road,POP1-C04,POP1-C07,7.49,12
+distribution POP1,distribution(12F) trail-est,POP1,POP1-C08,2.84,12
+distribution POP1,distribution(12F) road,POP1-C11,POP1-C09,3.34,12
+distribution POP1,distribution(12F) road,POP1-C14,POP1-C10,9.43,12
+distribution POP1,distribution(12F) road,POP1-C01,POP1-C11,5.98,12
+distribution POP1,distribution(12F) road,POP1-C05,POP1-C12,0.54,12
+distribution POP1,distribution(12F) road,POP1-C02,POP1-C13,2.15,12
+distribution POP1,distribution(12F) road,POP1-C08,POP1-C14,7.72,12
+distribution POP2,distribution(12F) road,POP2-C03,POP2-C01,4.41,12
+distribution POP2,distribution(12F) road,POP2-C01,POP2-C02,5.21,12
+distribution POP2,distribution(12F) road,POP2-C16,POP2-C03,2.76,12
+distribution POP2,distribution(12F) road,POP2-C10,POP2-C04,4.17,12
+distribution POP2,distribution(12F) road,POP2-C14,POP2-C05,1.94,12
+distribution POP2,distribution(12F) road,POP2,POP2-C06,0.62,12
+distribution POP2,distribution(12F) road,POP2-C11,POP2-C07,2.2,12
+distribution POP2,distribution(12F) road,POP2-C10,POP2-C08,2.62,12
+distribution POP2,distribution(12F) trail-est,POP2-C15,POP2-C09,3.87,12
+distribution POP2,distribution(12F) road,POP2,POP2-C10,2.31,12
+distribution POP2,distribution(12F) road,POP2-C09,POP2-C11,3.48,12
+distribution POP2,distribution(12F) road,POP2-C04,POP2-C12,5.25,12
+distribution POP2,distribution(12F) road,POP2-C11,POP2-C13,3.47,12
+distribution POP2,distribution(12F) road,POP2-C08,POP2-C14,2.72,12
+distribution POP2,distribution(12F) road,POP2,POP2-C15,4.04,12
+distribution POP2,distribution(12F) road,POP2-C06,POP2-C16,2.54,12
+distribution POP2,distribution(12F) road,POP2-C10,POP2-C17,3.72,12
+distribution POP4,distribution(12F) road,POP4-C08,POP4-C01,2.4,12
+distribution POP4,distribution(12F) trail-est,POP4,POP4-C02,4.84,12
+distribution POP4,distribution(12F) road,POP4-C04,POP4-C03,1.98,12
+distribution POP4,distribution(12F) road,POP4-C05,POP4-C04,2.49,12
+distribution POP4,distribution(12F) road,POP4-C06,POP4-C05,2.31,12
+distribution POP4,distribution(12F) road,POP4-C11,POP4-C06,6.19,12
+distribution POP4,distribution(12F) road,POP4-C04,POP4-C07,3.19,12
+distribution POP4,distribution(12F) road,POP4-C04,POP4-C08,4.22,12
+distribution POP4,distribution(12F) road,POP4-C02,POP4-C09,2.7,12
+distribution POP4,distribution(12F) road,POP4-C02,POP4-C10,7.01,12
+distribution POP4,distribution(12F) road,POP4,POP4-C11,7.31,12
+distribution POP5,distribution(12F) road,POP5,POP5-C01,4.12,12
+distribution POP5,distribution(12F) road,POP5-C01,POP5-C02,1.2,12
+distribution POP6,distribution(12F) road,POP6,POP6-C01,0.5,12
+distribution POP6,distribution(12F) trail-est,POP6-C04,POP6-C02,10.18,12
+distribution POP6,distribution(12F) road,POP6,POP6-C03,5.6,12
+distribution POP6,distribution(12F) road,POP6-C01,POP6-C04,4.68,12
+distribution POP6,distribution(12F) trail-est,POP6-C03,POP6-C05,4.88,12
+distribution POP7,distribution(12F) road,POP7-C02,POP7-C01,1.92,12
+distribution POP7,distribution(12F) road,POP7-C11,POP7-C02,18.35,12
+distribution POP7,distribution(12F) road,POP7-C06,POP7-C03,1.8,12
+distribution POP7,distribution(12F) road,POP7,POP7-C04,0.01,12
+distribution POP7,distribution(12F) trail-est,POP7-C11,POP7-C05,4.27,12
+distribution POP7,distribution(12F) road,POP7-C04,POP7-C06,12.18,12
+distribution POP7,distribution(12F) road,POP7-C10,POP7-C07,2.27,12
+distribution POP7,distribution(12F) road,POP7-C07,POP7-C08,0.02,12
+distribution POP7,distribution(12F) trail-est,POP7-C10,POP7-C09,3.86,12
+distribution POP7,distribution(12F) road,POP7-C04,POP7-C10,9.53,12
+distribution POP7,distribution(12F) trail-est,POP7-C03,POP7-C11,7.53,12

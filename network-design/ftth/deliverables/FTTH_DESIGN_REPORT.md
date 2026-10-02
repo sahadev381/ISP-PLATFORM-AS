@@ -27,20 +27,21 @@ Generated: 2026-10-02 | Data: OpenStreetMap (Overpass z mirror) + OSRM road rout
 - Densest DB points: Melamchi bazaar 545 bldg/450m; Gunsakot 545; Dubachaur-area ~294-331; Mandandeupur 212; Haibung 264; Tarkeghyang-side 114.
 
 ## 3) Access network design (DB points, PON allocation)
-Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 1:8 + FAT 1:8 = 64 ONT/PON · distribution route = MST x 1.35 winding factor.
+Distribution routing: per-POP MST on **OSRM road-distance matrix** (measured), +10% slack; 9 DB spurs have **no drivable road** (orange dashed on map) - trail-pole estimate = straight-line x 1.6 (+10% slack), field survey required. Distribution totals: 310.6 km design = 239.7 km road-measured x1.10 + 47.2 km trail-est.
+Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 1:8 + FAT 1:8 = 64 ONT/PON · distribution = OSRM road MST + trail spurs.
 
 | POP | OLT PON | DB sites | Est. homes | FAT/DB boxes | PON used | PON spare | Dist. fiber km |
 |-----|--------:|---------:|-----------:|-------------:|---------:|----------:|---------------:|
-| HE | 32 | 17 | 2279 | 198 | 31 | 1 | 25.32 |
-| POP1 | 16 | 14 | 1729 | 151 | 25 | -9 | 31.03 |
-| POP2 | 16 | 17 | 1741 | 152 | 28 | -12 | 23.57 |
-| POP3 | 16 | 0 | 0 | 0 | 0 | 16 | 0 |
-| POP4 | 16 | 11 | 858 | 77 | 14 | 2 | 22.79 |
-| POP5 | 16 | 2 | 295 | 26 | 4 | 12 | 5.46 |
-| POP6 | 16 | 5 | 432 | 39 | 8 | 8 | 16.71 |
-| POP7 | 16 | 11 | 727 | 65 | 14 | 2 | 31.25 |
+| HE | 32 | 17 | 2279 | 198 | 31 | 1 | 55.0 |
+| POP1 | 16 | 14 | 1729 | 151 | 25 | -9 | 62.9 |
+| POP2 | 16 | 17 | 1741 | 152 | 28 | -12 | 55.3 |
+| POP3 | 16 | 0 | 0 | 0 | 0 | 16 | 0.0 |
+| POP4 | 16 | 11 | 858 | 77 | 14 | 2 | 44.6 |
+| POP5 | 16 | 2 | 295 | 26 | 4 | 12 | 5.3 |
+| POP6 | 16 | 5 | 432 | 39 | 8 | 8 | 25.8 |
+| POP7 | 16 | 11 | 727 | 65 | 14 | 2 | 61.7 |
 
-| **Total** | **144(+32)** | **77** | **8061** | **708** | **124** | — | **156.1** |
+| **Total** | **144(+32)** | **77** | **8061** | **708** | **124** | — | **310.6** |
 
 - Customer projection: Y1 ~3,224 (40%) · Y3 ~4,837 (60%).
 - ⚠ **POP1 ≈ 25 ra POP2 ≈ 28 PON required** (16-port OLT bhandaa dherai; FDC haru site-wise install hune bhayera spare splitter-port pani count vayeko) — tehaa **2nd 16-port OLT** (waa direct 32-port) rakhaa; BOM ma include gareko chha. Baaki POP haru 16-port le pugchha.
@@ -53,9 +54,9 @@ Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 
 |------|-----|----------:|------|
 | 48F ADSS backbone fiber | 145 km | 137.9 L | cable @95/m +6% slack |
 | 24F fiber (POP7 spur) | 36 km | 20.0 L | cable @55/m |
-| 12F distribution fiber | 169 km | 53.9 L | cable @32/m +8% service loop |
-| 8m wooden poles | 6,232 pcs | 342.8 L | @5,500 incl. transport |
-| Aerial stringing/lashing labour | 327 km | 104.7 L | @32/m |
+| 12F distribution fiber | 335 km | 107.3 L | cable @32/m +8% service loop |
+| 8m wooden poles | 8,163 pcs | 449.0 L | @5,500 incl. transport |
+| Aerial stringing/lashing labour | 482 km | 154.2 L | @32/m |
 | FDC closures (1:8 cassette + tray) | 124 pcs | 11.8 L | per PON coverage area |
 | FAT/DB box + 1:8 PLC splitter | 708 pcs | 17.0 L |  |
 | Splice closures + pigtails | 844 pcs | 27.0 L | estimate |
@@ -68,7 +69,7 @@ Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 
 | Aggregation switches/router | 8 sites | 12.0 L | L3 at HE + L2 at POPs |
 | Drop cable 100m + install /customer (Y1) | 3224 subs | 90.3 L | year-1 connections |
 | ONT/ONU (Y1) | 3224 pcs | 74.2 L | usually billed to customer |
-| **TOTAL (approx)** | | **954.8 L** | ±30% |
+| **TOTAL (approx)** | | **1,163.9 L** | ±30% |
 
 ## 7) Implementation phases
 1. **Phase 1 (month 0-2):** Ring A+C shared HE-POP2, HE-POP5-POP4-HE (Ring B), Melamchi town DBs (550+ homes), POP4/POP5 feeders. ~60% of revenue potential.
@@ -78,14 +79,14 @@ Assumptions: homes = buildings x 0.75 · FAT/DB 8-port, 12 homes per FAT · FDC 
 ## 4) PON optical link budget (worst-case per POP; 1:8+1:8 = 64-way, 1310/1490 nm)
 | POP | Farthest DB | Fiber (est) | Total loss | Budget (Class C+) | Verdict |
 |-----|-------------|------------:|-----------:|------------------:|---------|
-| HE | DB-HE-C17 Indrawati | 7.9 km | 27.6 dB | 32 dB | PASS (C+ 32dB) |
-| POP1 | DB-POP1-C09 Gunsakot | 7.9 km | 27.5 dB | 32 dB | PASS (C+ 32dB) |
-| POP2 | DB-POP2-C02  | 5.7 km | 26.8 dB | 32 dB | PASS (C+ 32dB) |
+| HE | DB-HE-C01 Melamchi | 13.7 km | 29.6 dB | 32 dB | PASS (C+ 32dB) |
+| POP1 | DB-POP1-C01 Dhap | 13.2 km | 29.4 dB | 32 dB | PASS (C+ 32dB) |
+| POP2 | DB-POP2-C01  | 11.8 km | 28.9 dB | 32 dB | PASS (C+ 32dB) |
 | POP3 | — | — | — | — | n/a |
-| POP4 | DB-POP4-C07 Chhittegaun | 9.6 km | 28.2 dB | 32 dB | PASS (C+ 32dB) |
-| POP5 | DB-POP5-C02 Dhaitar | 5.7 km | 26.8 dB | 32 dB | PASS (C+ 32dB) |
-| POP6 | DB-POP6-C02 Mulkharka (W) | 9.0 km | 27.9 dB | 32 dB | PASS (C+ 32dB) |
-| POP7 | DB-POP7-C01 Sanugopte | 9.7 km | 28.2 dB | 32 dB | PASS (C+ 32dB) |
+| POP4 | DB-POP4-C01 Nagarkot | 12.8 km | 29.3 dB | 32 dB | PASS (C+ 32dB) |
+| POP5 | DB-POP5-C01 Mandandeupur | 6.3 km | 27.0 dB | 32 dB | PASS (C+ 32dB) |
+| POP6 | DB-POP6-C01 Chisapani | 11.5 km | 28.8 dB | 32 dB | PASS (C+ 32dB) |
+| POP7 | DB-POP7-C01 Sanugopte | 19.4 km | 31.6 dB | 32 dB | PASS (C+ 32dB) |
 
 Formula: 21 dB splitters + 0.35 dB/km fiber + 1.8 dB connectors/splices + 2 dB margin. **Class C+ (32 dB) SFP sabai PON port ma use gara** (BOM ma chha); C++ (35 dB) optional for POP7 longest runs.
 
